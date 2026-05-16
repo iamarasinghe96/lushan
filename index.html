@@ -3,426 +3,494 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LushanNote – Psychiatric Progress Note Builder</title>
+  <title>LushanNote – Progress Note Builder</title>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
       --blue:    #1a56db;
+      --blue-dk: #1347b8;
       --blue-lt: #ebf0ff;
       --teal:    #0e9f6e;
       --teal-lt: #e3f9ee;
       --gray:    #6b7280;
       --border:  #d1d5db;
-      --bg:      #f9fafb;
+      --bg:      #f3f4f6;
       --card:    #ffffff;
       --danger:  #e02424;
       --text:    #111827;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *  { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
     /* ── Header ── */
     header {
       background: var(--blue);
       color: #fff;
-      padding: 14px 24px;
+      padding: 12px 24px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,.28);
+      position: sticky; top: 0; z-index: 90;
     }
-    header svg { flex-shrink: 0; }
-    header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -.3px; }
-    header p  { font-size: .78rem; opacity: .8; }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -.3px; }
+    header p  { font-size: .75rem; opacity: .75; }
+    .settings-btn {
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.3);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: .82rem;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .settings-btn:hover { background: rgba(255,255,255,.28); }
 
     /* ── Tabs ── */
-    .tabs { display: flex; border-bottom: 2px solid var(--border); background: var(--card); padding: 0 24px; }
+    .tabs { display: flex; border-bottom: 2px solid var(--border); background: var(--card); padding: 0 20px; position: sticky; top: 57px; z-index: 89; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
     .tab-btn {
-      padding: 12px 22px;
-      font-size: .88rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      background: none;
-      color: var(--gray);
-      border-bottom: 3px solid transparent;
-      margin-bottom: -2px;
+      padding: 11px 20px; font-size: .85rem; font-weight: 600;
+      cursor: pointer; border: none; background: none; color: var(--gray);
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
       transition: color .15s, border-color .15s;
     }
     .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
     .tab-btn:hover:not(.active) { color: var(--text); }
-
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
     /* ── Layout ── */
-    main { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
-    .card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-    .card h2 .badge { font-size: .72rem; background: var(--blue-lt); color: var(--blue); border-radius: 20px; padding: 2px 8px; font-weight: 700; }
+    main { max-width: 1200px; margin: 0 auto; padding: 20px 18px 60px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 22px; margin-bottom: 18px; }
+    .card h2 { font-size: .95rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
 
-    label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: 5px; color: #374151; }
-    textarea, input[type=text], input[type=email], select {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      padding: 9px 12px;
-      font-size: .88rem;
-      font-family: inherit;
-      color: var(--text);
-      resize: vertical;
-      background: #fff;
+    label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: 4px; color: #374151; }
+    textarea, input[type=text], input[type=email], input[type=password], input[type=search], select {
+      width: 100%; border: 1px solid var(--border); border-radius: 7px;
+      padding: 8px 11px; font-size: .86rem; font-family: inherit;
+      color: var(--text); resize: vertical; background: #fff;
       transition: border-color .15s, box-shadow .15s;
     }
     textarea:focus, input:focus, select:focus {
-      outline: none;
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(26,86,219,.15);
+      outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,86,219,.14);
     }
-    .field-row { margin-bottom: 14px; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .field-row { margin-bottom: 13px; }
+    .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 13px; }
 
     /* ── Buttons ── */
-    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 7px; font-size: .88rem; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s, transform .1s; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: .84rem; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s, transform .1s; }
     .btn:active { transform: scale(.97); }
-    .btn-primary   { background: var(--blue); color: #fff; }
-    .btn-teal      { background: var(--teal); color: #fff; }
-    .btn-outline   { background: #fff; color: var(--blue); border: 1.5px solid var(--blue); }
-    .btn-danger    { background: var(--danger); color: #fff; }
-    .btn-gray      { background: #e5e7eb; color: #374151; }
-    .btn:hover     { opacity: .88; }
-    .btn-group     { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-teal    { background: var(--teal); color: #fff; }
+    .btn-outline { background: #fff; color: var(--blue); border: 1.5px solid var(--blue); }
+    .btn-danger  { background: var(--danger); color: #fff; }
+    .btn-gray    { background: #e5e7eb; color: #374151; }
+    .btn-sm      { padding: 5px 11px; font-size: .78rem; }
+    .btn:hover   { opacity: .88; }
+    .btn-group   { display: flex; gap: 9px; flex-wrap: wrap; }
 
-    /* ── Prompt box ── */
-    .prompt-display {
-      background: #f3f4f6;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px;
-      font-size: .82rem;
-      font-family: 'Courier New', monospace;
-      white-space: pre-wrap;
-      max-height: 260px;
-      overflow-y: auto;
-      color: #374151;
+    /* ── Info / status boxes ── */
+    .info-box {
+      background: var(--blue-lt); border-left: 4px solid var(--blue);
+      border-radius: 6px; padding: 10px 13px; font-size: .81rem;
+      color: #1e40af; margin-bottom: 14px; line-height: 1.5;
     }
+    .warn-box {
+      background: #fffbeb; border-left: 4px solid #f59e0b;
+      border-radius: 6px; padding: 10px 13px; font-size: .81rem;
+      color: #92400e; margin-bottom: 14px; line-height: 1.5;
+    }
+    .ok-box {
+      background: var(--teal-lt); border-left: 4px solid var(--teal);
+      border-radius: 6px; padding: 10px 13px; font-size: .81rem;
+      color: #065f46; margin-bottom: 14px; line-height: 1.5;
+    }
+    .section-title {
+      font-size: .74rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--gray);
+      border-bottom: 1px solid var(--border); padding-bottom: 5px; margin: 18px 0 12px;
+    }
+
+    /* ── API Status Bar ── */
+    #api-status-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 16px; margin-bottom: 18px;
+      font-size: .82rem;
+    }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green  { background: #10b981; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-red    { background: #ef4444; }
+    #api-status-bar .sep { color: var(--border); margin: 0 4px; }
+
+    /* ── Paste Hero ── */
+    .paste-hero {
+      text-align: center;
+      padding: 60px 20px 50px;
+      background: var(--card);
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      margin-bottom: 18px;
+    }
+    .paste-icon { font-size: 3.5rem; margin-bottom: 16px; }
+    .paste-hero h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; }
+    .paste-hero p  { color: var(--gray); margin-bottom: 28px; font-size: .92rem; }
+    .btn-paste {
+      background: var(--blue); color: #fff;
+      font-size: 1.1rem; font-weight: 700;
+      padding: 16px 44px; border-radius: 10px;
+      border: none; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(26,86,219,.35);
+      transition: transform .12s, box-shadow .12s, background .15s;
+      display: inline-flex; align-items: center; gap: 10px;
+    }
+    .btn-paste:hover  { background: var(--blue-dk); box-shadow: 0 6px 20px rgba(26,86,219,.4); transform: translateY(-1px); }
+    .btn-paste:active { transform: scale(.97); }
+    .paste-hint { font-size: .78rem; color: var(--gray); margin-top: 14px; }
+
+    /* ── Transcript preview ── */
+    .transcript-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--teal-lt); border: 1px solid #6ee7b7;
+      border-radius: 20px; padding: 6px 14px; font-size: .82rem;
+      color: #065f46; font-weight: 600; margin-top: 20px;
+    }
+
+    /* ── Loading Overlay ── */
+    #loading-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: none; align-items: center; justify-content: center; z-index: 200;
+    }
+    #loading-overlay.show { display: flex; }
+    .loading-box {
+      background: #fff; border-radius: 14px; padding: 36px 44px;
+      text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    .spinner {
+      width: 44px; height: 44px; border: 4px solid #e5e7eb;
+      border-top-color: var(--blue); border-radius: 50%;
+      animation: spin .75s linear infinite; margin: 0 auto 18px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-box p { font-size: .92rem; color: var(--gray); font-weight: 500; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center; z-index: 300;
+    }
+    .modal {
+      background: #fff; border-radius: 12px;
+      width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px; border-bottom: 1px solid var(--border);
+    }
+    .modal-header h2 { font-size: 1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--gray); padding: 2px 6px; border-radius: 4px; }
+    .modal-close:hover { background: #f3f4f6; color: var(--text); }
+    .modal-body { padding: 22px; }
+
+    /* ── Edit/Preview split ── */
+    .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    .form-panel .card { margin-bottom: 0; }
+    .preview-sticky { position: sticky; top: 112px; }
+
+    /* ── Current note bar ── */
+    #current-note-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--teal-lt); border: 1px solid #6ee7b7;
+      border-radius: 8px; padding: 9px 16px; margin-bottom: 16px;
+      font-size: .83rem; color: #065f46; font-weight: 600;
+    }
+
+    /* ── Preview Pane ── */
+    #preview-pane {
+      background: #fff; border: 1px solid var(--border); border-radius: 8px;
+      padding: 26px 30px; font-family: 'Times New Roman', serif;
+      font-size: .9rem; line-height: 1.75; color: #111;
+      max-height: calc(100vh - 180px); overflow-y: auto;
+    }
+    #preview-pane h3 { font-size: 1.05rem; text-align: center; font-weight: 700; margin-bottom: 12px; text-decoration: underline; }
+    #preview-pane .meta p { margin-bottom: 2px; }
+    #preview-pane .p-section { margin-top: 12px; }
+    #preview-pane .p-head { font-weight: 700; }
+    #preview-pane ul { margin: 3px 0 0 16px; }
+    #preview-pane ul li { margin-bottom: 2px; }
+    #preview-pane .empty-state { color: #9ca3af; font-style: italic; font-family: sans-serif; font-size: .84rem; }
+
+    /* ── History ── */
+    #history-list { display: grid; gap: 12px; }
+    .history-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 18px; display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; cursor: pointer; transition: border-color .15s, box-shadow .15s;
+    }
+    .history-card:hover { border-color: var(--blue); box-shadow: 0 2px 10px rgba(26,86,219,.12); }
+    .history-card-info h3 { font-size: .92rem; font-weight: 700; margin-bottom: 3px; }
+    .history-card-info .meta { font-size: .78rem; color: var(--gray); margin-bottom: 6px; }
+    .history-card-info .snippet { font-size: .8rem; color: #4b5563; line-height: 1.4; }
+    .history-card-actions { display: flex; gap: 7px; flex-shrink: 0; }
+    .history-empty { text-align: center; padding: 40px; color: var(--gray); font-size: .88rem; }
 
     /* ── Toast ── */
     #toast {
-      position: fixed;
-      bottom: 24px; right: 24px;
-      background: #111827;
-      color: #fff;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-size: .85rem;
-      font-weight: 600;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity .3s, transform .3s;
-      z-index: 999;
-      pointer-events: none;
+      position: fixed; bottom: 22px; right: 22px;
+      background: #111827; color: #fff; padding: 10px 16px;
+      border-radius: 8px; font-size: .83rem; font-weight: 600;
+      opacity: 0; transform: translateY(8px);
+      transition: opacity .3s, transform .3s; z-index: 999; pointer-events: none;
     }
     #toast.show { opacity: 1; transform: translateY(0); }
 
-    /* ── Section divider ── */
-    .section-title {
-      font-size: .78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      color: var(--gray);
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 6px;
-      margin: 20px 0 14px;
-    }
+    /* ── Misc ── */
+    a { color: var(--blue); }
+    .link-sm { font-size: .75rem; font-weight: 400; }
 
-    /* ── Info box ── */
-    .info-box {
-      background: var(--blue-lt);
-      border-left: 4px solid var(--blue);
-      border-radius: 6px;
-      padding: 12px 14px;
-      font-size: .83rem;
-      color: #1e40af;
-      margin-bottom: 14px;
-      line-height: 1.5;
-    }
-    .info-box strong { display: block; margin-bottom: 4px; }
-
-    /* ── Step indicators ── */
-    .steps { display: flex; gap: 0; margin-bottom: 24px; }
-    .step {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 16px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      font-size: .82rem;
-      color: var(--gray);
-    }
-    .step:first-child { border-radius: 8px 0 0 8px; }
-    .step:last-child  { border-radius: 0 8px 8px 0; }
-    .step .num {
-      width: 24px; height: 24px;
-      background: var(--border);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: .75rem; font-weight: 700; color: #fff; flex-shrink: 0;
-    }
-    .step.done .num  { background: var(--teal); }
-    .step.active .num { background: var(--blue); }
-    .step.active { color: var(--text); font-weight: 600; border-color: var(--blue); background: var(--blue-lt); }
-
-    /* ── Preview pane ── */
-    #preview-pane {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 30px 36px;
-      font-family: 'Times New Roman', serif;
-      font-size: .93rem;
-      line-height: 1.7;
-      color: #111;
-    }
-    #preview-pane h3 {
-      font-size: 1.1rem;
-      text-align: center;
-      font-weight: 700;
-      margin-bottom: 14px;
-      text-decoration: underline;
-    }
-    #preview-pane .meta { margin-bottom: 16px; }
-    #preview-pane .meta p { margin-bottom: 2px; }
-    #preview-pane .section { margin-top: 14px; }
-    #preview-pane .section-head { font-weight: 700; }
-    #preview-pane ul { margin: 4px 0 0 18px; }
-    #preview-pane ul li { margin-bottom: 3px; }
-
-    @media (max-width: 680px) {
+    @media (max-width: 760px) {
+      .edit-grid { grid-template-columns: 1fr; }
+      .preview-sticky { position: static; }
       .two-col, .three-col { grid-template-columns: 1fr; }
-      .steps { flex-direction: column; }
-      .step:first-child, .step:last-child { border-radius: 8px; }
+      #preview-pane { max-height: 60vh; }
+    }
+
+    @media print {
+      header, .tabs, #api-status-bar, .paste-hero, .card:not(#print-card), #toast { display: none !important; }
+      #preview-pane { border: none; padding: 0; max-height: none; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-    <rect width="34" height="34" rx="8" fill="white" fill-opacity=".15"/>
-    <path d="M9 10h16M9 17h10M9 24h13" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
-    <circle cx="27" cy="24" r="4" fill="#0e9f6e"/>
-    <path d="M25 24l1.5 1.5L29 22.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-  <div>
-    <h1>LushanNote</h1>
-    <p>Psychiatric Progress Note Builder – Dr Lushan Vasantha</p>
+<!-- ══════════════════════ SETTINGS MODAL ══════════════════════ -->
+<div id="settings-overlay" class="modal-overlay" style="display:none;" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box">API keys are stored in your browser only and never sent anywhere except the respective API.</div>
+
+      <div class="section-title">Groq API (required for AI generation)</div>
+      <div class="field-row">
+        <label>Groq API Key <a class="link-sm" href="https://console.groq.com/keys" target="_blank">→ Get free key at console.groq.com</a></label>
+        <input type="password" id="s-groq-key" placeholder="gsk_..." autocomplete="off" />
+      </div>
+
+      <div class="section-title">Firebase Firestore (optional – cross-device sync &amp; history)</div>
+      <div class="info-box" style="margin-bottom:10px;">
+        Create a free Firebase project → Firestore Database → Project Settings → Your apps → Add web app → copy the config JSON below.
+      </div>
+      <div class="field-row">
+        <label>Firebase Config (paste the firebaseConfig JSON object)</label>
+        <textarea id="s-firebase-config" rows="7" placeholder='{&#10;  "apiKey": "...",&#10;  "authDomain": "...",&#10;  "projectId": "...",&#10;  "storageBucket": "...",&#10;  "messagingSenderId": "...",&#10;  "appId": "..."&#10;}'></textarea>
+      </div>
+
+      <div class="btn-group" style="margin-top:6px;">
+        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+        <button class="btn btn-gray" onclick="closeSettings()">Cancel</button>
+      </div>
+    </div>
   </div>
+</div>
+
+<!-- ══════════════════════ LOADING OVERLAY ══════════════════════ -->
+<div id="loading-overlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <p id="loading-msg">Generating report with AI…</p>
+  </div>
+</div>
+
+<!-- ══════════════════════ HEADER ══════════════════════ -->
+<header>
+  <div class="header-left">
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+      <rect width="34" height="34" rx="8" fill="white" fill-opacity=".15"/>
+      <path d="M9 10h16M9 17h10M9 24h13" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="27" cy="24" r="4" fill="#0e9f6e"/>
+      <path d="M25 24l1.5 1.5L29 22.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>LushanNote</h1>
+      <p>Dr Lushan Vasantha · Psychiatric Progress Note Builder</p>
+    </div>
+  </div>
+  <button class="settings-btn" onclick="showSettings()">
+    <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
+    Settings
+  </button>
 </header>
 
+<!-- ══════════════════════ TABS ══════════════════════ -->
 <div class="tabs">
-  <button class="tab-btn active" data-tab="generate">1 · Generate Prompt</button>
-  <button class="tab-btn" data-tab="structure">2 · Paste &amp; Structure</button>
-  <button class="tab-btn" data-tab="edit">3 · Edit &amp; Preview</button>
-  <button class="tab-btn" data-tab="export">4 · Export / Send</button>
+  <button class="tab-btn active" data-tab="generate">Generate Report</button>
+  <button class="tab-btn" data-tab="edit">Edit &amp; Preview</button>
+  <button class="tab-btn" data-tab="export">Export</button>
+  <button class="tab-btn" data-tab="history">History</button>
 </div>
 
 <main>
 
   <!-- ══════════════════════ TAB 1 – GENERATE ══════════════════════ -->
   <div id="tab-generate" class="tab-panel active">
-    <div class="info-box">
-      <strong>How it works</strong>
-      Paste your voice-app transcript below, choose the session template, then click <em>Generate &amp; Copy Prompt</em>.
-      Open Gemini, paste (Ctrl+V), and copy Gemini's full response for Step 2.
+
+    <div id="api-status-bar">
+      <span class="status-dot" id="groq-dot"></span>
+      <span id="groq-status-text"></span>
+      <span class="sep">|</span>
+      <span class="status-dot" id="fb-dot"></span>
+      <span id="fb-status-text"></span>
+      <span style="flex:1"></span>
+      <button class="btn btn-gray btn-sm" onclick="showSettings()">Configure</button>
     </div>
 
-    <div class="card">
-      <h2>Session Details <span class="badge">Quick Fill</span></h2>
-      <div class="three-col">
-        <div class="field-row">
-          <label>Patient First Name</label>
-          <input type="text" id="g-patient" placeholder="e.g. Jason" />
-        </div>
-        <div class="field-row">
-          <label>Session Date</label>
-          <input type="text" id="g-date" placeholder="26 November 2025" />
-        </div>
-        <div class="field-row">
-          <label>Session Time</label>
-          <input type="text" id="g-time" placeholder="09:54 – 10:09" />
-        </div>
-      </div>
-      <div class="field-row">
-        <label>Session Template / Focus</label>
-        <select id="g-template">
-          <option value="standard">Standard Outpatient Psychiatric Consultation</option>
-          <option value="followup">Follow-up Appointment</option>
-          <option value="initial">Initial Assessment</option>
-          <option value="emergency">Post-ED / Acute Presentation</option>
-          <option value="medication">Medication Review</option>
-          <option value="psychosis">Psychosis / First Episode</option>
-          <option value="mood">Mood Disorder Review</option>
-          <option value="custom">Custom (describe below)</option>
-        </select>
-      </div>
-      <div class="field-row" id="custom-template-row" style="display:none;">
-        <label>Custom Template Description</label>
-        <textarea id="g-custom" rows="2" placeholder="Describe the session type or any special focus areas..."></textarea>
+    <div class="paste-hero">
+      <div class="paste-icon">📋</div>
+      <h2>Paste &amp; Generate Report</h2>
+      <p>Copy your consultation transcript from your voice app, then click below.</p>
+      <button class="btn-paste" onclick="pasteAndGenerate()">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Paste &amp; Generate Report
+      </button>
+      <p class="paste-hint">Reads clipboard → sends to Groq AI → auto-fills all fields</p>
+      <div id="transcript-chip" style="display:none;" class="transcript-chip">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="transcript-chip-text"></span>
       </div>
     </div>
 
-    <div class="card">
-      <h2>Voice Transcription</h2>
-      <div class="field-row">
-        <label>Paste your raw transcript here</label>
-        <textarea id="g-transcript" rows="14" placeholder="Paste the transcript from your voice app here...&#10;&#10;Example:&#10;Doctor: So Jason, can you tell me about what you've been experiencing at home?&#10;Patient: Yeah so I keep hearing these noises through the speakers in the light globes..."></textarea>
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-primary" onclick="generatePrompt()">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          Generate &amp; Copy Prompt
-        </button>
-        <button class="btn btn-gray" onclick="clearAll()">Clear</button>
-      </div>
-    </div>
-
-    <div class="card" id="prompt-result-card" style="display:none;">
-      <h2>Generated Prompt
-        <button class="btn btn-outline" style="margin-left:auto;font-size:.78rem;padding:5px 12px;" onclick="copyPrompt()">Copy Again</button>
-      </h2>
-      <div class="prompt-display" id="prompt-display"></div>
-      <div class="btn-group">
-        <button class="btn btn-teal" onclick="switchTab('structure')">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M13 5l7 7-7 7M5 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Next: Paste Gemini Response →
-        </button>
-      </div>
-    </div>
   </div>
 
-  <!-- ══════════════════════ TAB 2 – STRUCTURE ══════════════════════ -->
-  <div id="tab-structure" class="tab-panel">
-    <div class="info-box">
-      <strong>Step 2 – Paste Gemini's structured response</strong>
-      After Gemini generates the Progress Note, copy the entire response and paste it below.
-      The app will automatically extract and populate the fields for you.
-    </div>
-
-    <div class="card">
-      <h2>Gemini Response</h2>
-      <div class="field-row">
-        <label>Paste Gemini's full response here</label>
-        <textarea id="s-gemini" rows="22" placeholder="Paste the full structured Progress Note from Gemini here...&#10;&#10;The app will automatically detect:&#10;• Patient name, date, time&#10;• Current Presentation bullet points&#10;• Past Medical History&#10;• Mental Status Examination&#10;• Session Content&#10;• Risk Assessment&#10;• Session Summary&#10;• Next Steps"></textarea>
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-primary" onclick="parseGeminiResponse()">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          Auto-Populate Fields
-        </button>
-        <button class="btn btn-gray" onclick="document.getElementById('s-gemini').value=''">Clear</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══════════════════════ TAB 3 – EDIT ══════════════════════ -->
+  <!-- ══════════════════════ TAB 2 – EDIT & PREVIEW ══════════════════════ -->
   <div id="tab-edit" class="tab-panel">
-    <div class="card">
-      <h2>Progress Note Fields <span class="badge">Editable</span></h2>
 
-      <div class="section-title">Patient &amp; Session Info</div>
-      <div class="three-col">
-        <div class="field-row">
-          <label>Patient Name</label>
-          <input type="text" id="e-patient" placeholder="First name only" />
-        </div>
-        <div class="field-row">
-          <label>Date</label>
-          <input type="text" id="e-date" placeholder="26 November 2025" />
-        </div>
-        <div class="field-row">
-          <label>Time</label>
-          <input type="text" id="e-time" placeholder="09:54 – 10:09" />
-        </div>
-      </div>
-      <div class="field-row">
-        <label>Clinician</label>
-        <input type="text" id="e-clinician" value="Dr Lushan Vasantha, Psychiatrist" />
-      </div>
-
-      <div class="section-title">Clinical Content</div>
-
-      <div class="field-row">
-        <label>Current Presentation</label>
-        <textarea id="e-presentation" rows="5" placeholder="• Bullet points (one per line, start each with •)"></textarea>
-      </div>
-      <div class="field-row">
-        <label>Past Medical &amp; Psychiatric History</label>
-        <textarea id="e-history" rows="4" placeholder="• Bullet points or narrative text"></textarea>
-      </div>
-      <div class="field-row">
-        <label>Mental Status Examination</label>
-        <textarea id="e-mse" rows="4" placeholder="Appearance, behaviour, speech, mood, affect, thought form, thought content, perception, cognition, insight, judgement..."></textarea>
-      </div>
-      <div class="field-row">
-        <label>Session Content</label>
-        <textarea id="e-content" rows="6" placeholder="• Bullet points describing what was discussed"></textarea>
-      </div>
-      <div class="field-row">
-        <label>Risk Assessment and Management</label>
-        <textarea id="e-risk" rows="4" placeholder="Suicidality, self-harm, harm to others, risk factors, protective factors, management plan..."></textarea>
-      </div>
-      <div class="field-row">
-        <label>Session Summary</label>
-        <textarea id="e-summary" rows="5" placeholder="Narrative paragraph summarising the session..."></textarea>
-      </div>
-      <div class="field-row">
-        <label>Next Steps / Plan</label>
-        <textarea id="e-nextsteps" rows="4" placeholder="• Next steps and action items"></textarea>
-      </div>
-
+    <div id="current-note-bar" style="display:none;">
+      <span id="current-note-label"></span>
       <div class="btn-group">
-        <button class="btn btn-primary" onclick="updatePreview(); switchTab('export')">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke="currentColor" stroke-width="2"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" stroke-width="2"/></svg>
-          Preview &amp; Export →
+        <button class="btn btn-teal btn-sm" onclick="saveCurrentNote()">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Save
         </button>
+        <button class="btn btn-gray btn-sm" onclick="newNote()">New Note</button>
       </div>
     </div>
+
+    <div class="edit-grid">
+      <!-- Left: editable fields -->
+      <div class="form-panel">
+        <div class="card">
+          <div class="section-title" style="margin-top:0;">Patient &amp; Session</div>
+          <div class="three-col">
+            <div class="field-row">
+              <label>Patient Name</label>
+              <input type="text" id="e-patient" placeholder="First name" oninput="livePreview()" />
+            </div>
+            <div class="field-row">
+              <label>Date</label>
+              <input type="text" id="e-date" placeholder="26 November 2025" oninput="livePreview()" />
+            </div>
+            <div class="field-row">
+              <label>Time</label>
+              <input type="text" id="e-time" placeholder="09:54 – 10:09" oninput="livePreview()" />
+            </div>
+          </div>
+          <div class="field-row">
+            <label>Clinician</label>
+            <input type="text" id="e-clinician" value="Dr Lushan Vasantha, Psychiatrist" oninput="livePreview()" />
+          </div>
+
+          <div class="section-title">Clinical Content</div>
+
+          <div class="field-row">
+            <label>Current Presentation</label>
+            <textarea id="e-presentation" rows="5" placeholder="• Bullet points" oninput="livePreview()"></textarea>
+          </div>
+          <div class="field-row">
+            <label>Past Medical &amp; Psychiatric History</label>
+            <textarea id="e-history" rows="4" placeholder="• Bullet points" oninput="livePreview()"></textarea>
+          </div>
+          <div class="field-row">
+            <label>Mental Status Examination</label>
+            <textarea id="e-mse" rows="4" placeholder="Appearance, behaviour, speech, mood, affect, thought, perception, cognition, insight…" oninput="livePreview()"></textarea>
+          </div>
+          <div class="field-row">
+            <label>Session Content</label>
+            <textarea id="e-content" rows="6" placeholder="• Key points discussed" oninput="livePreview()"></textarea>
+          </div>
+          <div class="field-row">
+            <label>Risk Assessment and Management</label>
+            <textarea id="e-risk" rows="4" placeholder="Suicidality, self-harm, risk factors, protective factors, plan…" oninput="livePreview()"></textarea>
+          </div>
+          <div class="field-row">
+            <label>Session Summary</label>
+            <textarea id="e-summary" rows="5" placeholder="Narrative paragraph…" oninput="livePreview()"></textarea>
+          </div>
+          <div class="field-row">
+            <label>Next Steps / Plan</label>
+            <textarea id="e-nextsteps" rows="4" placeholder="• Action items" oninput="livePreview()"></textarea>
+          </div>
+
+          <div class="btn-group" style="margin-top:4px;">
+            <button class="btn btn-teal" onclick="saveCurrentNote()">Save to History</button>
+            <button class="btn btn-primary" onclick="switchTab('export')">Export →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: live preview -->
+      <div class="preview-sticky">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:.8rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;">Live Preview</span>
+          <button class="btn btn-outline btn-sm" onclick="switchTab('export')">Export →</button>
+        </div>
+        <div id="preview-pane">
+          <p class="empty-state">Fill in the fields to see the preview.</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- ══════════════════════ TAB 4 – EXPORT ══════════════════════ -->
+  <!-- ══════════════════════ TAB 3 – EXPORT ══════════════════════ -->
   <div id="tab-export" class="tab-panel">
-    <div class="card">
-      <h2>Preview</h2>
-      <div id="preview-pane">
-        <p style="color:var(--gray);font-style:italic;font-family:sans-serif;">Complete the fields in Step 3, then click "Preview &amp; Export" to see the formatted note here.</p>
+
+    <div class="card" id="print-card">
+      <h2>Progress Note Preview</h2>
+      <div id="export-preview-pane" style="background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:28px 32px;font-family:'Times New Roman',serif;font-size:.91rem;line-height:1.75;">
+        <p class="empty-state" style="color:#9ca3af;font-style:italic;font-family:sans-serif;font-size:.84rem;">Complete the fields in Edit &amp; Preview to see the note here.</p>
       </div>
     </div>
 
     <div class="card">
-      <h2>Export Options</h2>
-
-      <div class="section-title">PDF Export</div>
-      <div class="btn-group" style="margin-top:0;">
+      <h2>Download &amp; Print</h2>
+      <div class="btn-group">
         <button class="btn btn-primary" onclick="exportPDF()">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Download as PDF
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Download PDF
         </button>
         <button class="btn btn-outline" onclick="window.print()">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm1-4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm1-4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Print
         </button>
       </div>
+    </div>
 
-      <div class="section-title">Email</div>
+    <div class="card">
+      <h2>Send by Email</h2>
       <div class="two-col">
         <div class="field-row">
           <label>Recipient Email</label>
-          <input type="email" id="email-to" placeholder="recipient@hospital.com.au" />
+          <input type="email" id="email-to" placeholder="colleague@hospital.com.au" />
         </div>
         <div class="field-row">
           <label>CC (optional)</label>
@@ -430,29 +498,52 @@
         </div>
       </div>
       <div class="field-row">
-        <label>Email Subject (auto-filled)</label>
-        <input type="text" id="email-subject" placeholder="Will be auto-filled from note details" />
+        <label>Subject</label>
+        <input type="text" id="email-subject" placeholder="Auto-filled from note" />
       </div>
       <div class="field-row">
-        <label>Pre-text / Cover Note</label>
-        <textarea id="email-pretext" rows="4">Dear Colleague,
+        <label>Cover Note (pre-text)</label>
+        <textarea id="email-pretext" rows="5">Dear Colleague,
 
 Please find attached the psychiatric progress note for the above-named patient following their recent consultation with Dr Lushan Vasantha.
 
-Please do not hesitate to contact our rooms if you require any further information.
+Please do not hesitate to contact our rooms should you require any further information.
 
 Kind regards,
 Dr Lushan Vasantha
 Psychiatrist</textarea>
       </div>
-      <div class="btn-group" style="margin-top:0;">
+      <div class="btn-group" style="margin-top:4px;">
         <button class="btn btn-teal" onclick="sendEmail()">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Open in Email Client
         </button>
       </div>
-      <p style="font-size:.78rem;color:var(--gray);margin-top:8px;">Opens your default email client. Attach the PDF separately.</p>
+      <p style="font-size:.76rem;color:var(--gray);margin-top:8px;">Opens your default mail app. Attach the PDF separately.</p>
     </div>
+
+  </div>
+
+  <!-- ══════════════════════ TAB 4 – HISTORY ══════════════════════ -->
+  <div id="tab-history" class="tab-panel">
+
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--gray)"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="search" id="history-search" placeholder="Search by patient name or date…" oninput="filterHistory()" style="border:none;outline:none;font-size:.88rem;width:100%;background:transparent;" />
+      </div>
+    </div>
+
+    <div id="history-list">
+      <div class="history-empty" id="history-empty" style="display:none;">
+        <p>No saved notes yet.</p>
+        <p style="margin-top:6px;font-size:.78rem;">Notes are saved to Firebase after generation.</p>
+      </div>
+      <div id="history-no-firebase" class="warn-box" style="display:none;">
+        Firebase is not configured. Connect Firebase in Settings to enable history and cross-device sync.
+      </div>
+    </div>
+
   </div>
 
 </main>
@@ -460,259 +551,519 @@ Psychiatrist</textarea>
 <div id="toast"></div>
 
 <script>
-// ── State ─────────────────────────────────────────────────────────────────
-const state = { generatedPrompt: '' };
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL    = 'llama-3.3-70b-versatile';
+const COLLECTION    = 'progress_notes';
 
-// ── Tab switching ─────────────────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
-  document.getElementById(`tab-${name}`).classList.add('active');
+const SYSTEM_PROMPT = `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist.
+Analyse this psychiatric consultation transcript and return a structured Progress Note as a single JSON object.
+
+Return ONLY the raw JSON object — no markdown fences, no explanation, no surrounding text.
+The JSON must have exactly these keys:
+
+{
+  "patient":      "patient first name only, from the transcript",
+  "date":         "session date in DD Month YYYY format; infer from context or use today if unclear",
+  "time":         "session time as HH:MM – HH:MM; leave empty string if not mentioned",
+  "clinician":    "Dr Lushan Vasantha, Psychiatrist",
+  "presentation": "current presentation as bullet points, each line starting with • ",
+  "history":      "past medical and psychiatric history as bullet points starting with • ; write • Not discussed if absent",
+  "mse":          "mental status examination as narrative; write Not formally assessed in this consultation if not discussed",
+  "content":      "session content key points as bullet points starting with • ",
+  "risk":         "risk assessment and management narrative; write No specific risk concerns raised in this consultation if not discussed",
+  "summary":      "2-4 sentence narrative paragraph summarising the presentation, context and discussion",
+  "nextsteps":    "next steps and plan as bullet points starting with • ; write • None specified if absent"
 }
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-});
 
-// ── Template selector ─────────────────────────────────────────────────────
-document.getElementById('g-template').addEventListener('change', function() {
-  document.getElementById('custom-template-row').style.display =
-    this.value === 'custom' ? 'block' : 'none';
-});
+Use ONLY information from the transcript. Do not add clinical details not mentioned.`;
 
-// ── Set today's date ──────────────────────────────────────────────────────
-(function() {
-  const d = new Date();
-  const months = ['January','February','March','April','May','June','July',
-                  'August','September','October','November','December'];
-  document.getElementById('g-date').value =
-    `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-})();
-
-// ── Template descriptions ─────────────────────────────────────────────────
-const TEMPLATES = {
-  standard: 'Standard outpatient psychiatric consultation',
-  followup:  'Follow-up psychiatric appointment to review progress and treatment',
-  initial:   'Initial psychiatric assessment and mental state examination',
-  emergency: 'Post-Emergency Department presentation for acute psychiatric review',
-  medication:'Medication review and adjustment appointment',
-  psychosis: 'Assessment of psychotic symptoms / first episode psychosis',
-  mood:      'Mood disorder review (depression / bipolar / anxiety)',
-  custom:    null,
+// ─────────────────────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────────────────────
+const state = {
+  currentNoteId: null,
+  allNotes: [],
 };
+let db = null;
 
-// ── Generate Prompt ───────────────────────────────────────────────────────
-function generatePrompt() {
-  const transcript = document.getElementById('g-transcript').value.trim();
-  if (!transcript) { toast('Please paste a transcript first.'); return; }
-
-  const patient  = document.getElementById('g-patient').value.trim() || '[patient]';
-  const date     = document.getElementById('g-date').value.trim();
-  const time     = document.getElementById('g-time').value.trim();
-  const tmplKey  = document.getElementById('g-template').value;
-  const tmplDesc = tmplKey === 'custom'
-    ? document.getElementById('g-custom').value.trim()
-    : TEMPLATES[tmplKey];
-
-  const prompt = buildPrompt(patient, date, time, tmplDesc, transcript);
-  state.generatedPrompt = prompt;
-
-  document.getElementById('prompt-display').textContent = prompt;
-  document.getElementById('prompt-result-card').style.display = 'block';
-
-  copyToClipboard(prompt);
-  toast('Prompt generated and copied to clipboard!');
+// ─────────────────────────────────────────────────────────────────────────────
+// Firebase
+// ─────────────────────────────────────────────────────────────────────────────
+function initFirebase() {
+  const cfgStr = localStorage.getItem('firebase_config');
+  if (!cfgStr) return false;
+  try {
+    const cfg = JSON.parse(cfgStr);
+    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    db = firebase.firestore();
+    return true;
+  } catch(e) {
+    console.warn('Firebase init failed:', e.message);
+    return false;
+  }
 }
 
-function buildPrompt(patient, date, time, template, transcript) {
-  return `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist.
-
-Your task is to structure the following voice transcription from a psychiatric consultation into a formal, professional Progress Note. Use ONLY information present in the transcript — do not infer or add clinical details not mentioned.
-
-SESSION CONTEXT:
-- Patient first name: ${patient || 'see transcript'}
-- Date: ${date || 'see transcript'}
-- Time: ${time || 'see transcript'}
-- Clinician: Dr Lushan Vasantha, Psychiatrist
-- Session type: ${template}
-
-OUTPUT FORMAT — use exactly this structure:
-
-Progress Note
-
-Patient: [first name only]
-Date: [DD Month YYYY]
-Time: [HH:MM – HH:MM]
-Clinician: Dr Lushan Vasantha, Psychiatrist
-
-Current Presentation:
-• [bullet point]
-• [bullet point]
-
-Past Medical & Psychiatric History:
-• [bullet point or "Not discussed" if absent]
-
-Mental Status Examination:
-[document observable findings mentioned; if not explicitly discussed write "Not formally assessed in this consultation"]
-
-Session Content:
-• [key point discussed]
-• [key point discussed]
-
-Risk Assessment and Management:
-[document any risk factors, protective factors, and safety planning discussed; if not explicitly discussed write "No specific risk concerns raised in this consultation"]
-
-Session Summary:
-[2–4 sentence narrative paragraph summarising the presentation, key history and discussion]
-
-Next Steps:
-• [action item]
-• [action item]
-
----
-TRANSCRIPT:
-${transcript}`;
+async function fbSaveNote(fields) {
+  if (!db) return null;
+  const payload = { ...fields, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+  if (state.currentNoteId) {
+    await db.collection(COLLECTION).doc(state.currentNoteId).set(payload, { merge: true });
+    return state.currentNoteId;
+  }
+  payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+  const ref = await db.collection(COLLECTION).add(payload);
+  state.currentNoteId = ref.id;
+  return ref.id;
 }
 
-function copyPrompt() {
-  if (!state.generatedPrompt) { toast('Generate a prompt first.'); return; }
-  copyToClipboard(state.generatedPrompt);
-  toast('Prompt copied to clipboard!');
+async function fbLoadHistory() {
+  if (!db) return null;
+  const snap = await db.collection(COLLECTION).orderBy('createdAt', 'desc').limit(200).get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-// ── Parse Gemini Response ─────────────────────────────────────────────────
-function parseGeminiResponse() {
-  const raw = document.getElementById('s-gemini').value.trim();
-  if (!raw) { toast('Please paste Gemini\'s response first.'); return; }
-
-  // Extract fields via regex
-  const get = (pattern, flags = 'is') =>
-    (raw.match(new RegExp(pattern, flags)) || [])[1]?.trim() || '';
-
-  const patient   = get('Patient:\\s*(.+?)(?:\\n|Date:)');
-  const date      = get('Date:\\s*(.+?)(?:\\n|Time:)');
-  const time      = get('Time:\\s*(.+?)(?:\\n|Clinician:)');
-  const clinician = get('Clinician:\\s*(.+?)(?:\\n|Current)');
-
-  const presentation = extractSection(raw, 'Current Presentation', nextSectionHeaders('Current Presentation'));
-  const history      = extractSection(raw, 'Past Medical.*?History', nextSectionHeaders('Past Medical'));
-  const mse          = extractSection(raw, 'Mental Status Examination', nextSectionHeaders('Mental Status'));
-  const content      = extractSection(raw, 'Session Content', nextSectionHeaders('Session Content'));
-  const risk         = extractSection(raw, 'Risk Assessment.*?Management', nextSectionHeaders('Risk Assessment'));
-  const summary      = extractSection(raw, 'Session Summary', nextSectionHeaders('Session Summary'));
-  const nextsteps    = extractSection(raw, 'Next Steps', nextSectionHeaders('Next Steps'));
-
-  // Populate edit fields
-  if (patient)      document.getElementById('e-patient').value    = patient;
-  if (date)         document.getElementById('e-date').value       = date;
-  if (time)         document.getElementById('e-time').value       = time;
-  if (clinician)    document.getElementById('e-clinician').value  = clinician;
-  if (presentation) document.getElementById('e-presentation').value = presentation;
-  if (history)      document.getElementById('e-history').value    = history;
-  if (mse)          document.getElementById('e-mse').value        = mse;
-  if (content)      document.getElementById('e-content').value    = content;
-  if (risk)         document.getElementById('e-risk').value       = risk;
-  if (summary)      document.getElementById('e-summary').value    = summary;
-  if (nextsteps)    document.getElementById('e-nextsteps').value  = nextsteps;
-
-  // Sync meta to generate tab
-  if (patient) document.getElementById('g-patient').value = patient;
-  if (date)    document.getElementById('g-date').value    = date;
-  if (time)    document.getElementById('g-time').value    = time;
-
-  updateEmailSubject();
-  toast('Fields populated! Switch to Step 3 to review.');
-  switchTab('edit');
+async function fbDeleteNote(id) {
+  if (!db) return;
+  await db.collection(COLLECTION).doc(id).delete();
 }
 
-function nextSectionHeaders(current) {
-  const all = [
-    'Current Presentation',
-    'Past Medical',
-    'Mental Status Examination',
-    'Session Content',
-    'Risk Assessment',
-    'Session Summary',
-    'Next Steps',
-  ];
-  const idx = all.findIndex(h => current.startsWith(h));
-  return all.slice(idx + 1);
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings Modal
+// ─────────────────────────────────────────────────────────────────────────────
+function showSettings() {
+  const groqKey = localStorage.getItem('groq_api_key') || '';
+  const fbCfg   = localStorage.getItem('firebase_config') || '';
+  document.getElementById('s-groq-key').value       = groqKey;
+  document.getElementById('s-firebase-config').value = fbCfg;
+  document.getElementById('settings-overlay').style.display = 'flex';
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').style.display = 'none';
+}
+function overlayClick(e) {
+  if (e.target === document.getElementById('settings-overlay')) closeSettings();
+}
+function saveSettings() {
+  const groqKey = document.getElementById('s-groq-key').value.trim();
+  const fbCfg   = document.getElementById('s-firebase-config').value.trim();
+  if (groqKey) localStorage.setItem('groq_api_key', groqKey);
+  else         localStorage.removeItem('groq_api_key');
+  if (fbCfg) {
+    try { JSON.parse(fbCfg); localStorage.setItem('firebase_config', fbCfg); }
+    catch { toast('Firebase config is not valid JSON'); return; }
+  } else {
+    localStorage.removeItem('firebase_config');
+  }
+  closeSettings();
+  // Re-init firebase with new config
+  db = null;
+  if (!firebase.apps.length) {
+    initFirebase();
+  } else {
+    // Already initialized — we can't re-init, so rely on existing app
+    try { db = firebase.firestore(); } catch(e) {}
+  }
+  updateApiStatusBar();
+  toast('Settings saved');
 }
 
-function extractSection(text, header, nextHeaders) {
-  const startRe = new RegExp(`${header}[:\\s]*\\n`, 'i');
-  const startMatch = text.match(startRe);
-  if (!startMatch) return '';
-  const start = startMatch.index + startMatch[0].length;
+// ─────────────────────────────────────────────────────────────────────────────
+// Status Bar
+// ─────────────────────────────────────────────────────────────────────────────
+function updateApiStatusBar() {
+  const hasGroq = !!localStorage.getItem('groq_api_key');
+  const hasFb   = !!db;
 
-  let end = text.length;
-  for (const nh of nextHeaders) {
-    const nhRe = new RegExp(`\\n${nh}`, 'i');
-    const m = text.slice(start).match(nhRe);
-    if (m && (start + m.index) < end) end = start + m.index;
+  const groqDot  = document.getElementById('groq-dot');
+  const groqText = document.getElementById('groq-status-text');
+  groqDot.className  = 'status-dot ' + (hasGroq ? 'dot-green' : 'dot-red');
+  groqText.textContent = hasGroq ? 'Groq API ready' : 'Groq API key missing';
+
+  const fbDot  = document.getElementById('fb-dot');
+  const fbText = document.getElementById('fb-status-text');
+  fbDot.className  = 'status-dot ' + (hasFb ? 'dot-green' : 'dot-yellow');
+  fbText.textContent = hasFb ? 'Firebase connected' : 'Firebase not connected (local only)';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Generate Report (Paste + Groq)
+// ─────────────────────────────────────────────────────────────────────────────
+async function pasteAndGenerate() {
+  const groqKey = localStorage.getItem('groq_api_key');
+  if (!groqKey) { showSettings(); toast('Please set your Groq API key first'); return; }
+
+  let transcript;
+  try {
+    transcript = await navigator.clipboard.readText();
+  } catch(e) {
+    toast('Clipboard access denied — please allow clipboard access in your browser');
+    return;
+  }
+  if (!transcript.trim()) {
+    toast('Clipboard is empty — copy your transcript first');
+    return;
   }
 
-  // Also stop at --- separator
-  const sep = text.slice(start).match(/\n---/);
-  if (sep && (start + sep.index) < end) end = start + sep.index;
+  const wordCount = transcript.trim().split(/\s+/).length;
+  setLoading(true, 'Reading transcript & generating report…');
+  try {
+    const structured = await callGroq(transcript, groqKey);
+    const data = parseJson(structured);
+    if (!data) throw new Error('Could not parse AI response as JSON. Try again.');
+    populateFields(data);
+    livePreview();
+    updateExportPreview();
+    updateEmailSubject();
 
-  return text.slice(start, end).trim();
+    // Show transcript chip
+    const chip = document.getElementById('transcript-chip');
+    document.getElementById('transcript-chip-text').textContent = `Transcript loaded — ${wordCount} words`;
+    chip.style.display = 'inline-flex';
+
+    // Auto-save to Firebase
+    if (db) {
+      state.currentNoteId = null; // new note
+      await saveCurrentNote(true);
+    }
+
+    switchTab('edit');
+    toast('Report generated!');
+  } catch(e) {
+    toast('Error: ' + e.message);
+    console.error(e);
+  } finally {
+    setLoading(false);
+  }
 }
 
-// ── Preview ───────────────────────────────────────────────────────────────
-function updatePreview() {
+async function callGroq(transcript, apiKey) {
+  const res = await fetch(GROQ_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: `Structure this consultation transcript into a Progress Note:\n\n${transcript}` }
+      ],
+      temperature: 0.1,
+      max_tokens: 2048,
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Groq API error ${res.status}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+function parseJson(raw) {
+  // Strip markdown code fences if present
+  const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  try { return JSON.parse(clean); } catch(e) {
+    // Try extracting first {...} block
+    const m = clean.match(/\{[\s\S]*\}/);
+    if (m) { try { return JSON.parse(m[0]); } catch(e2) {} }
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Field population
+// ─────────────────────────────────────────────────────────────────────────────
+function populateFields(d) {
+  const set = (id, val) => { if (val) document.getElementById(id).value = val; };
+  set('e-patient',      d.patient);
+  set('e-date',         d.date);
+  set('e-time',         d.time);
+  set('e-clinician',    d.clinician || 'Dr Lushan Vasantha, Psychiatrist');
+  set('e-presentation', d.presentation);
+  set('e-history',      d.history);
+  set('e-mse',          d.mse);
+  set('e-content',      d.content);
+  set('e-risk',         d.risk);
+  set('e-summary',      d.summary);
+  set('e-nextsteps',    d.nextsteps);
+
+  // Show note bar
+  updateNoteBar();
+}
+
+function getFields() {
   const v = id => document.getElementById(id).value.trim();
-  const patient   = v('e-patient')   || '—';
-  const date      = v('e-date')      || '—';
-  const time      = v('e-time')      || '—';
-  const clinician = v('e-clinician') || 'Dr Lushan Vasantha, Psychiatrist';
-
-  const renderBullets = txt => {
-    if (!txt) return '<p><em>—</em></p>';
-    const lines = txt.split('\n').map(l => l.trim()).filter(Boolean);
-    const isBullet = lines.some(l => l.startsWith('•') || l.startsWith('-') || l.startsWith('*'));
-    if (isBullet) {
-      return '<ul>' + lines.map(l => `<li>${escHtml(l.replace(/^[•\-\*]\s*/, ''))}</li>`).join('') + '</ul>';
-    }
-    return lines.map(l => `<p>${escHtml(l)}</p>`).join('');
+  return {
+    patient:      v('e-patient'),
+    date:         v('e-date'),
+    time:         v('e-time'),
+    clinician:    v('e-clinician') || 'Dr Lushan Vasantha, Psychiatrist',
+    presentation: v('e-presentation'),
+    history:      v('e-history'),
+    mse:          v('e-mse'),
+    content:      v('e-content'),
+    risk:         v('e-risk'),
+    summary:      v('e-summary'),
+    nextsteps:    v('e-nextsteps'),
   };
+}
 
-  const renderPara = txt => txt
-    ? txt.split('\n').map(l => l.trim()).filter(Boolean).map(l => `<p>${escHtml(l)}</p>`).join('')
-    : '<p><em>—</em></p>';
+function newNote() {
+  state.currentNoteId = null;
+  ['e-patient','e-date','e-time','e-presentation','e-history','e-mse',
+   'e-content','e-risk','e-summary','e-nextsteps'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('e-clinician').value = 'Dr Lushan Vasantha, Psychiatrist';
+  document.getElementById('current-note-bar').style.display = 'none';
+  livePreview();
+  switchTab('generate');
+  document.getElementById('transcript-chip').style.display = 'none';
+  toast('Ready for a new note');
+}
 
-  document.getElementById('preview-pane').innerHTML = `
+function updateNoteBar() {
+  const f = getFields();
+  const bar = document.getElementById('current-note-bar');
+  bar.style.display = 'flex';
+  document.getElementById('current-note-label').textContent =
+    `Editing: ${f.patient || 'Unnamed patient'}${f.date ? '  ·  ' + f.date : ''}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Firebase Save
+// ─────────────────────────────────────────────────────────────────────────────
+async function saveCurrentNote(silent = false) {
+  const fields = getFields();
+  if (!fields.patient && !fields.summary) { if (!silent) toast('Nothing to save yet'); return; }
+  if (!db) { if (!silent) toast('Firebase not connected — configure in Settings'); return; }
+  try {
+    await fbSaveNote(fields);
+    updateNoteBar();
+    if (!silent) toast('Saved to history');
+    // Refresh history cache
+    loadHistoryData();
+  } catch(e) {
+    toast('Save failed: ' + e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Live Preview
+// ─────────────────────────────────────────────────────────────────────────────
+function livePreview() {
+  const f = getFields();
+  document.getElementById('preview-pane').innerHTML = buildPreviewHTML(f);
+  updateNoteBar();
+}
+
+function updateExportPreview() {
+  document.getElementById('export-preview-pane').innerHTML = buildPreviewHTML(getFields());
+}
+
+function buildPreviewHTML(f) {
+  if (!f.patient && !f.summary && !f.presentation) {
+    return '<p class="empty-state">Fill in the fields to see the preview.</p>';
+  }
+  const bullets = txt => {
+    if (!txt) return '<p><em style="color:#9ca3af">—</em></p>';
+    const lines = txt.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.some(l => /^[•\-\*]/.test(l))) {
+      return '<ul>' + lines.map(l => `<li>${esc(l.replace(/^[•\-\*]\s*/, ''))}</li>`).join('') + '</ul>';
+    }
+    return lines.map(l => `<p>${esc(l)}</p>`).join('');
+  };
+  const para = txt => txt
+    ? txt.split('\n').map(l => l.trim()).filter(Boolean).map(l => `<p>${esc(l)}</p>`).join('')
+    : '<p><em style="color:#9ca3af">—</em></p>';
+
+  return `
     <h3>Progress Note</h3>
     <div class="meta">
-      <p><strong>Patient:</strong> ${escHtml(patient)}</p>
-      <p><strong>Date:</strong> ${escHtml(date)}</p>
-      <p><strong>Time:</strong> ${escHtml(time)}</p>
-      <p><strong>Clinician:</strong> ${escHtml(clinician)}</p>
+      <p><strong>Patient:</strong> ${esc(f.patient || '—')}</p>
+      <p><strong>Date:</strong> ${esc(f.date || '—')}</p>
+      <p><strong>Time:</strong> ${esc(f.time || '—')}</p>
+      <p><strong>Clinician:</strong> ${esc(f.clinician)}</p>
     </div>
-    <div class="section"><p class="section-head">Current Presentation:</p>${renderBullets(v('e-presentation'))}</div>
-    <div class="section"><p class="section-head">Past Medical &amp; Psychiatric History:</p>${renderBullets(v('e-history'))}</div>
-    <div class="section"><p class="section-head">Mental Status Examination:</p>${renderPara(v('e-mse'))}</div>
-    <div class="section"><p class="section-head">Session Content:</p>${renderBullets(v('e-content'))}</div>
-    <div class="section"><p class="section-head">Risk Assessment and Management:</p>${renderPara(v('e-risk'))}</div>
-    <div class="section"><p class="section-head">Session Summary:</p>${renderPara(v('e-summary'))}</div>
-    <div class="section"><p class="section-head">Next Steps:</p>${renderBullets(v('e-nextsteps'))}</div>
-  `;
+    <div class="p-section"><p class="p-head">Current Presentation:</p>${bullets(f.presentation)}</div>
+    <div class="p-section"><p class="p-head">Past Medical &amp; Psychiatric History:</p>${bullets(f.history)}</div>
+    <div class="p-section"><p class="p-head">Mental Status Examination:</p>${para(f.mse)}</div>
+    <div class="p-section"><p class="p-head">Session Content:</p>${bullets(f.content)}</div>
+    <div class="p-section"><p class="p-head">Risk Assessment and Management:</p>${para(f.risk)}</div>
+    <div class="p-section"><p class="p-head">Session Summary:</p>${para(f.summary)}</div>
+    <div class="p-section"><p class="p-head">Next Steps:</p>${bullets(f.nextsteps)}</div>`;
+}
 
+// ─────────────────────────────────────────────────────────────────────────────
+// History
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadHistoryData() {
+  if (!db) {
+    document.getElementById('history-no-firebase').style.display = 'block';
+    return;
+  }
+  document.getElementById('history-no-firebase').style.display = 'none';
+  try {
+    state.allNotes = await fbLoadHistory();
+    renderHistory(state.allNotes);
+  } catch(e) {
+    document.getElementById('history-list').innerHTML =
+      `<div class="warn-box">Could not load history: ${e.message}</div>`;
+  }
+}
+
+function filterHistory() {
+  const q = document.getElementById('history-search').value.toLowerCase();
+  const filtered = q
+    ? state.allNotes.filter(n =>
+        (n.patient || '').toLowerCase().includes(q) ||
+        (n.date    || '').toLowerCase().includes(q))
+    : state.allNotes;
+  renderHistory(filtered);
+}
+
+function renderHistory(notes) {
+  const list = document.getElementById('history-list');
+  const empty = document.getElementById('history-empty');
+
+  if (!notes.length) {
+    list.querySelectorAll('.history-card').forEach(c => c.remove());
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const cards = notes.map(note => {
+    const snippet = (note.summary || '').replace(/\n/g,' ').slice(0, 120);
+    return `
+    <div class="history-card" onclick="loadNoteFromHistory(${JSON.stringify(note).replace(/"/g,'&quot;')})">
+      <div class="history-card-info">
+        <h3>${esc(note.patient || 'Unknown patient')}</h3>
+        <div class="meta">${esc(note.date || '')}${note.date && note.time ? '  ·  ' : ''}${esc(note.time || '')}</div>
+        ${snippet ? `<div class="snippet">${esc(snippet)}${(note.summary||'').length > 120 ? '…' : ''}</div>` : ''}
+      </div>
+      <div class="history-card-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-primary btn-sm" onclick="loadNoteFromHistory(${JSON.stringify(note).replace(/"/g,'&quot;')})">Load</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteHistoryNote('${note.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Replace all existing cards
+  list.querySelectorAll('.history-card').forEach(c => c.remove());
+  list.insertAdjacentHTML('beforeend', cards);
+}
+
+function loadNoteFromHistory(note) {
+  if (typeof note === 'string') note = JSON.parse(note);
+  state.currentNoteId = note.id;
+  populateFields(note);
+  livePreview();
+  updateExportPreview();
   updateEmailSubject();
+  switchTab('edit');
+  toast(`Loaded: ${note.patient || 'note'}`);
 }
 
-function escHtml(s) {
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
+async function deleteHistoryNote(id) {
+  if (!confirm('Delete this note permanently?')) return;
+  try {
+    await fbDeleteNote(id);
+    state.allNotes = state.allNotes.filter(n => n.id !== id);
+    renderHistory(state.allNotes);
+    toast('Note deleted');
+  } catch(e) {
+    toast('Delete failed: ' + e.message);
+  }
 }
 
-// ── Email ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Export – PDF
+// ─────────────────────────────────────────────────────────────────────────────
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const f   = getFields();
+  const mL  = 54, mR = 54;
+  const pgW = doc.internal.pageSize.width;
+  const pgH = doc.internal.pageSize.height;
+  const maxW = pgW - mL - mR;
+  let y = mL;
+  const lh = 14;
+
+  function checkPage(n = 20) {
+    if (y + n > pgH - mR) { doc.addPage(); y = mL; }
+  }
+  function text(t, x, opts = {}) {
+    if (opts.bold) doc.setFont('helvetica','bold');
+    if (opts.size) doc.setFontSize(opts.size);
+    doc.text(t, x, y);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(10);
+  }
+  function wrapped(t, indent = 0) {
+    if (!t) { y += 8; return; }
+    doc.splitTextToSize(t, maxW - indent).forEach(line => {
+      checkPage(); doc.text(line, mL + indent, y); y += lh;
+    });
+    y += 6;
+  }
+  function section(heading, val, bullets = false) {
+    checkPage(30); y += 4;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text(heading, mL, y); y += lh;
+    doc.setFont('helvetica','normal');
+    if (!val) { doc.setTextColor(160); wrapped('—'); doc.setTextColor(0); return; }
+    if (bullets) {
+      val.split('\n').map(l => l.trim()).filter(Boolean).forEach(l => {
+        const clean = l.replace(/^[•\-\*]\s*/,'');
+        checkPage();
+        doc.text('•', mL + 4, y);
+        doc.splitTextToSize(clean, maxW - 16).forEach((line, i) => {
+          checkPage(); doc.text(line, mL + 14, y); y += lh;
+        });
+      });
+      y += 4;
+    } else {
+      wrapped(val);
+    }
+  }
+
+  // Title
+  doc.setFont('helvetica','bold'); doc.setFontSize(14);
+  doc.text('Progress Note', pgW / 2, y, { align: 'center' }); y += 24;
+
+  // Meta
+  doc.setFontSize(10); doc.setFont('helvetica','normal');
+  [['Patient:', f.patient],['Date:', f.date],['Time:', f.time],['Clinician:', f.clinician]].forEach(([lbl, val]) => {
+    checkPage();
+    doc.setFont('helvetica','bold'); doc.text(lbl, mL, y);
+    doc.setFont('helvetica','normal'); doc.text(val || '—', mL + 68, y); y += lh;
+  });
+  y += 6;
+  doc.setDrawColor(200); doc.line(mL, y, mL + maxW, y); y += 10;
+
+  section('Current Presentation:', f.presentation, true);
+  section('Past Medical & Psychiatric History:', f.history, true);
+  section('Mental Status Examination:', f.mse);
+  section('Session Content:', f.content, true);
+  section('Risk Assessment and Management:', f.risk);
+  section('Session Summary:', f.summary);
+  section('Next Steps:', f.nextsteps, true);
+
+  doc.save(`ProgressNote-${f.patient || 'patient'}-${(f.date||'').replace(/\s/g,'-') || 'date'}.pdf`);
+  toast('PDF downloaded');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Export – Email
+// ─────────────────────────────────────────────────────────────────────────────
 function updateEmailSubject() {
-  const patient = document.getElementById('e-patient').value.trim() || document.getElementById('g-patient').value.trim() || 'Patient';
-  const date    = document.getElementById('e-date').value.trim()    || document.getElementById('g-date').value.trim()    || '';
+  const f = getFields();
   document.getElementById('email-subject').value =
-    `Progress Note – ${patient}${date ? ' – ' + date : ''} – Dr Lushan Vasantha`;
+    `Progress Note – ${f.patient || 'Patient'}${f.date ? ' – ' + f.date : ''} – Dr Lushan Vasantha`;
 }
 
 function sendEmail() {
@@ -720,197 +1071,67 @@ function sendEmail() {
   const cc      = document.getElementById('email-cc').value.trim();
   const subject = document.getElementById('email-subject').value.trim();
   const pretext = document.getElementById('email-pretext').value.trim();
-  const noteText = buildPlainText();
+  const f       = getFields();
 
-  const body = `${pretext}\n\n${'─'.repeat(60)}\n\n${noteText}`;
-  const params = new URLSearchParams();
-  if (cc) params.set('cc', cc);
-  params.set('subject', subject);
-  params.set('body', body);
-  const mailto = `mailto:${encodeURIComponent(to)}?${params.toString()}`;
-  window.location.href = mailto;
-}
-
-function buildPlainText() {
-  const v = id => document.getElementById(id).value.trim();
-  return [
-    'Progress Note',
-    '',
-    `Patient: ${v('e-patient')}`,
-    `Date: ${v('e-date')}`,
-    `Time: ${v('e-time')}`,
-    `Clinician: ${v('e-clinician')}`,
-    '',
-    'Current Presentation:',
-    v('e-presentation'),
-    '',
-    'Past Medical & Psychiatric History:',
-    v('e-history'),
-    '',
-    'Mental Status Examination:',
-    v('e-mse'),
-    '',
-    'Session Content:',
-    v('e-content'),
-    '',
-    'Risk Assessment and Management:',
-    v('e-risk'),
-    '',
-    'Session Summary:',
-    v('e-summary'),
-    '',
-    'Next Steps:',
-    v('e-nextsteps'),
+  const noteText = [
+    'Progress Note','',
+    `Patient: ${f.patient}`,`Date: ${f.date}`,`Time: ${f.time}`,`Clinician: ${f.clinician}`,'',
+    'Current Presentation:', f.presentation, '',
+    'Past Medical & Psychiatric History:', f.history, '',
+    'Mental Status Examination:', f.mse, '',
+    'Session Content:', f.content, '',
+    'Risk Assessment and Management:', f.risk, '',
+    'Session Summary:', f.summary, '',
+    'Next Steps:', f.nextsteps,
   ].join('\n');
+
+  const body = `${pretext}\n\n${'─'.repeat(50)}\n\n${noteText}`;
+  const qs = new URLSearchParams();
+  if (cc) qs.set('cc', cc);
+  qs.set('subject', subject);
+  qs.set('body', body);
+  window.location.href = `mailto:${encodeURIComponent(to)}?${qs.toString()}`;
 }
 
-// ── PDF Export ────────────────────────────────────────────────────────────
-function exportPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-
-  const margin  = 54;
-  const maxW    = doc.internal.pageSize.width - margin * 2;
-  let y         = margin;
-  const lineH   = 14;
-  const paraGap = 10;
-
-  function checkPage(needed = 20) {
-    if (y + needed > doc.internal.pageSize.height - margin) {
-      doc.addPage();
-      y = margin;
-    }
-  }
-
-  function addLine(text, opts = {}) {
-    checkPage();
-    if (opts.bold)  doc.setFont('helvetica', 'bold');
-    if (opts.size)  doc.setFontSize(opts.size);
-    doc.text(text, margin, y);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    y += lineH;
-  }
-
-  function addWrapped(text, indent = 0) {
-    if (!text) { y += paraGap; return; }
-    const lines = doc.splitTextToSize(text, maxW - indent);
-    lines.forEach(line => {
-      checkPage();
-      doc.text(line, margin + indent, y);
-      y += lineH;
-    });
-    y += paraGap;
-  }
-
-  function addSection(heading, content, bullets = false) {
-    checkPage(30);
-    y += 4;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text(heading, margin, y);
-    y += lineH;
-    doc.setFont('helvetica', 'normal');
-    if (!content) { doc.setTextColor(150); addWrapped('—'); doc.setTextColor(0); return; }
-    if (bullets) {
-      content.split('\n').map(l => l.trim()).filter(Boolean).forEach(l => {
-        const clean = l.replace(/^[•\-\*]\s*/, '');
-        checkPage();
-        doc.text('•', margin + 4, y);
-        addWrapped(clean, 14);
-        y -= paraGap; // addWrapped adds gap; compensate for bullet lists
-        y += lineH;
-      });
-      y += paraGap;
-    } else {
-      addWrapped(content);
-    }
-  }
-
-  const v = id => document.getElementById(id).value.trim();
-
-  // Title
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('Progress Note', doc.internal.pageSize.width / 2, y, { align: 'center' });
-  y += 24;
-
-  // Meta
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  const meta = [
-    ['Patient:', v('e-patient')],
-    ['Date:', v('e-date')],
-    ['Time:', v('e-time')],
-    ['Clinician:', v('e-clinician')],
-  ];
-  meta.forEach(([label, val]) => {
-    checkPage();
-    doc.setFont('helvetica', 'bold'); doc.text(label, margin, y);
-    doc.setFont('helvetica', 'normal'); doc.text(val, margin + 70, y);
-    y += lineH;
-  });
-  y += paraGap;
-
-  // Horizontal rule
-  doc.setDrawColor(200);
-  doc.line(margin, y, margin + maxW, y);
-  y += paraGap;
-
-  addSection('Current Presentation:', v('e-presentation'), true);
-  addSection('Past Medical & Psychiatric History:', v('e-history'), true);
-  addSection('Mental Status Examination:', v('e-mse'));
-  addSection('Session Content:', v('e-content'), true);
-  addSection('Risk Assessment and Management:', v('e-risk'));
-  addSection('Session Summary:', v('e-summary'));
-  addSection('Next Steps:', v('e-nextsteps'), true);
-
-  const patient = v('e-patient') || 'note';
-  const date    = v('e-date').replace(/\s/g,'-') || 'date';
-  doc.save(`Progress-Note-${patient}-${date}.pdf`);
-  toast('PDF downloaded!');
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────
-function clearAll() {
-  ['g-transcript','g-patient','g-time'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('prompt-result-card').style.display = 'none';
-  toast('Cleared.');
+function setLoading(on, msg = '') {
+  const el = document.getElementById('loading-overlay');
+  el.classList.toggle('show', on);
+  if (msg) document.getElementById('loading-msg').textContent = msg;
 }
 
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-  }
-}
-
-let toastTimer;
+let _toastTimer;
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
 }
 
-// ── Auto-fill email subject on field changes ──────────────────────────────
-['e-patient','e-date','g-patient','g-date'].forEach(id => {
-  document.getElementById(id)?.addEventListener('input', updateEmailSubject);
-});
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if (name === 'history') loadHistoryData();
+  if (name === 'export')  updateExportPreview();
+}
+document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────────────────────────────────────
+(function init() {
+  initFirebase();
+  updateApiStatusBar();
+  // Show settings on first visit (no API key yet)
+  if (!localStorage.getItem('groq_api_key')) showSettings();
+})();
 </script>
-
-<style media="print">
-  header, .tabs, .card:not(#preview-card), #toast { display: none !important; }
-  #preview-pane { border: none; padding: 0; }
-</style>
-
 </body>
 </html>
