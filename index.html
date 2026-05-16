@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LushanNote – Psychiatric Progress Note Builder</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --blue:    #1a56db;
+      --blue-lt: #ebf0ff;
+      --teal:    #0e9f6e;
+      --teal-lt: #e3f9ee;
+      --gray:    #6b7280;
+      --border:  #d1d5db;
+      --bg:      #f9fafb;
+      --card:    #ffffff;
+      --danger:  #e02424;
+      --text:    #111827;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Header ── */
+    header {
+      background: var(--blue);
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    }
+    header svg { flex-shrink: 0; }
+    header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -.3px; }
+    header p  { font-size: .78rem; opacity: .8; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; border-bottom: 2px solid var(--border); background: var(--card); padding: 0 24px; }
+    .tab-btn {
+      padding: 12px 22px;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--gray);
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Layout ── */
+    main { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .card h2 .badge { font-size: .72rem; background: var(--blue-lt); color: var(--blue); border-radius: 20px; padding: 2px 8px; font-weight: 700; }
+
+    label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: 5px; color: #374151; }
+    textarea, input[type=text], input[type=email], select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: .88rem;
+      font-family: inherit;
+      color: var(--text);
+      resize: vertical;
+      background: #fff;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    textarea:focus, input:focus, select:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(26,86,219,.15);
+    }
+    .field-row { margin-bottom: 14px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 7px; font-size: .88rem; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s, transform .1s; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary   { background: var(--blue); color: #fff; }
+    .btn-teal      { background: var(--teal); color: #fff; }
+    .btn-outline   { background: #fff; color: var(--blue); border: 1.5px solid var(--blue); }
+    .btn-danger    { background: var(--danger); color: #fff; }
+    .btn-gray      { background: #e5e7eb; color: #374151; }
+    .btn:hover     { opacity: .88; }
+    .btn-group     { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+    /* ── Prompt box ── */
+    .prompt-display {
+      background: #f3f4f6;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: .82rem;
+      font-family: 'Courier New', monospace;
+      white-space: pre-wrap;
+      max-height: 260px;
+      overflow-y: auto;
+      color: #374151;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: #111827;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .3s, transform .3s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── Section divider ── */
+    .section-title {
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--gray);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      margin: 20px 0 14px;
+    }
+
+    /* ── Info box ── */
+    .info-box {
+      background: var(--blue-lt);
+      border-left: 4px solid var(--blue);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: .83rem;
+      color: #1e40af;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+    .info-box strong { display: block; margin-bottom: 4px; }
+
+    /* ── Step indicators ── */
+    .steps { display: flex; gap: 0; margin-bottom: 24px; }
+    .step {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      font-size: .82rem;
+      color: var(--gray);
+    }
+    .step:first-child { border-radius: 8px 0 0 8px; }
+    .step:last-child  { border-radius: 0 8px 8px 0; }
+    .step .num {
+      width: 24px; height: 24px;
+      background: var(--border);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .step.done .num  { background: var(--teal); }
+    .step.active .num { background: var(--blue); }
+    .step.active { color: var(--text); font-weight: 600; border-color: var(--blue); background: var(--blue-lt); }
+
+    /* ── Preview pane ── */
+    #preview-pane {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 30px 36px;
+      font-family: 'Times New Roman', serif;
+      font-size: .93rem;
+      line-height: 1.7;
+      color: #111;
+    }
+    #preview-pane h3 {
+      font-size: 1.1rem;
+      text-align: center;
+      font-weight: 700;
+      margin-bottom: 14px;
+      text-decoration: underline;
+    }
+    #preview-pane .meta { margin-bottom: 16px; }
+    #preview-pane .meta p { margin-bottom: 2px; }
+    #preview-pane .section { margin-top: 14px; }
+    #preview-pane .section-head { font-weight: 700; }
+    #preview-pane ul { margin: 4px 0 0 18px; }
+    #preview-pane ul li { margin-bottom: 3px; }
+
+    @media (max-width: 680px) {
+      .two-col, .three-col { grid-template-columns: 1fr; }
+      .steps { flex-direction: column; }
+      .step:first-child, .step:last-child { border-radius: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+    <rect width="34" height="34" rx="8" fill="white" fill-opacity=".15"/>
+    <path d="M9 10h16M9 17h10M9 24h13" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="27" cy="24" r="4" fill="#0e9f6e"/>
+    <path d="M25 24l1.5 1.5L29 22.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div>
+    <h1>LushanNote</h1>
+    <p>Psychiatric Progress Note Builder – Dr Lushan Vasantha</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="generate">1 · Generate Prompt</button>
+  <button class="tab-btn" data-tab="structure">2 · Paste &amp; Structure</button>
+  <button class="tab-btn" data-tab="edit">3 · Edit &amp; Preview</button>
+  <button class="tab-btn" data-tab="export">4 · Export / Send</button>
+</div>
+
+<main>
+
+  <!-- ══════════════════════ TAB 1 – GENERATE ══════════════════════ -->
+  <div id="tab-generate" class="tab-panel active">
+    <div class="info-box">
+      <strong>How it works</strong>
+      Paste your voice-app transcript below, choose the session template, then click <em>Generate &amp; Copy Prompt</em>.
+      Open Gemini, paste (Ctrl+V), and copy Gemini's full response for Step 2.
+    </div>
+
+    <div class="card">
+      <h2>Session Details <span class="badge">Quick Fill</span></h2>
+      <div class="three-col">
+        <div class="field-row">
+          <label>Patient First Name</label>
+          <input type="text" id="g-patient" placeholder="e.g. Jason" />
+        </div>
+        <div class="field-row">
+          <label>Session Date</label>
+          <input type="text" id="g-date" placeholder="26 November 2025" />
+        </div>
+        <div class="field-row">
+          <label>Session Time</label>
+          <input type="text" id="g-time" placeholder="09:54 – 10:09" />
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Session Template / Focus</label>
+        <select id="g-template">
+          <option value="standard">Standard Outpatient Psychiatric Consultation</option>
+          <option value="followup">Follow-up Appointment</option>
+          <option value="initial">Initial Assessment</option>
+          <option value="emergency">Post-ED / Acute Presentation</option>
+          <option value="medication">Medication Review</option>
+          <option value="psychosis">Psychosis / First Episode</option>
+          <option value="mood">Mood Disorder Review</option>
+          <option value="custom">Custom (describe below)</option>
+        </select>
+      </div>
+      <div class="field-row" id="custom-template-row" style="display:none;">
+        <label>Custom Template Description</label>
+        <textarea id="g-custom" rows="2" placeholder="Describe the session type or any special focus areas..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Voice Transcription</h2>
+      <div class="field-row">
+        <label>Paste your raw transcript here</label>
+        <textarea id="g-transcript" rows="14" placeholder="Paste the transcript from your voice app here...&#10;&#10;Example:&#10;Doctor: So Jason, can you tell me about what you've been experiencing at home?&#10;Patient: Yeah so I keep hearing these noises through the speakers in the light globes..."></textarea>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="generatePrompt()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Generate &amp; Copy Prompt
+        </button>
+        <button class="btn btn-gray" onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+
+    <div class="card" id="prompt-result-card" style="display:none;">
+      <h2>Generated Prompt
+        <button class="btn btn-outline" style="margin-left:auto;font-size:.78rem;padding:5px 12px;" onclick="copyPrompt()">Copy Again</button>
+      </h2>
+      <div class="prompt-display" id="prompt-display"></div>
+      <div class="btn-group">
+        <button class="btn btn-teal" onclick="switchTab('structure')">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M13 5l7 7-7 7M5 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Next: Paste Gemini Response →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ TAB 2 – STRUCTURE ══════════════════════ -->
+  <div id="tab-structure" class="tab-panel">
+    <div class="info-box">
+      <strong>Step 2 – Paste Gemini's structured response</strong>
+      After Gemini generates the Progress Note, copy the entire response and paste it below.
+      The app will automatically extract and populate the fields for you.
+    </div>
+
+    <div class="card">
+      <h2>Gemini Response</h2>
+      <div class="field-row">
+        <label>Paste Gemini's full response here</label>
+        <textarea id="s-gemini" rows="22" placeholder="Paste the full structured Progress Note from Gemini here...&#10;&#10;The app will automatically detect:&#10;• Patient name, date, time&#10;• Current Presentation bullet points&#10;• Past Medical History&#10;• Mental Status Examination&#10;• Session Content&#10;• Risk Assessment&#10;• Session Summary&#10;• Next Steps"></textarea>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="parseGeminiResponse()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Auto-Populate Fields
+        </button>
+        <button class="btn btn-gray" onclick="document.getElementById('s-gemini').value=''">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ TAB 3 – EDIT ══════════════════════ -->
+  <div id="tab-edit" class="tab-panel">
+    <div class="card">
+      <h2>Progress Note Fields <span class="badge">Editable</span></h2>
+
+      <div class="section-title">Patient &amp; Session Info</div>
+      <div class="three-col">
+        <div class="field-row">
+          <label>Patient Name</label>
+          <input type="text" id="e-patient" placeholder="First name only" />
+        </div>
+        <div class="field-row">
+          <label>Date</label>
+          <input type="text" id="e-date" placeholder="26 November 2025" />
+        </div>
+        <div class="field-row">
+          <label>Time</label>
+          <input type="text" id="e-time" placeholder="09:54 – 10:09" />
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Clinician</label>
+        <input type="text" id="e-clinician" value="Dr Lushan Vasantha, Psychiatrist" />
+      </div>
+
+      <div class="section-title">Clinical Content</div>
+
+      <div class="field-row">
+        <label>Current Presentation</label>
+        <textarea id="e-presentation" rows="5" placeholder="• Bullet points (one per line, start each with •)"></textarea>
+      </div>
+      <div class="field-row">
+        <label>Past Medical &amp; Psychiatric History</label>
+        <textarea id="e-history" rows="4" placeholder="• Bullet points or narrative text"></textarea>
+      </div>
+      <div class="field-row">
+        <label>Mental Status Examination</label>
+        <textarea id="e-mse" rows="4" placeholder="Appearance, behaviour, speech, mood, affect, thought form, thought content, perception, cognition, insight, judgement..."></textarea>
+      </div>
+      <div class="field-row">
+        <label>Session Content</label>
+        <textarea id="e-content" rows="6" placeholder="• Bullet points describing what was discussed"></textarea>
+      </div>
+      <div class="field-row">
+        <label>Risk Assessment and Management</label>
+        <textarea id="e-risk" rows="4" placeholder="Suicidality, self-harm, harm to others, risk factors, protective factors, management plan..."></textarea>
+      </div>
+      <div class="field-row">
+        <label>Session Summary</label>
+        <textarea id="e-summary" rows="5" placeholder="Narrative paragraph summarising the session..."></textarea>
+      </div>
+      <div class="field-row">
+        <label>Next Steps / Plan</label>
+        <textarea id="e-nextsteps" rows="4" placeholder="• Next steps and action items"></textarea>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="updatePreview(); switchTab('export')">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke="currentColor" stroke-width="2"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" stroke-width="2"/></svg>
+          Preview &amp; Export →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ TAB 4 – EXPORT ══════════════════════ -->
+  <div id="tab-export" class="tab-panel">
+    <div class="card">
+      <h2>Preview</h2>
+      <div id="preview-pane">
+        <p style="color:var(--gray);font-style:italic;font-family:sans-serif;">Complete the fields in Step 3, then click "Preview &amp; Export" to see the formatted note here.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Export Options</h2>
+
+      <div class="section-title">PDF Export</div>
+      <div class="btn-group" style="margin-top:0;">
+        <button class="btn btn-primary" onclick="exportPDF()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Download as PDF
+        </button>
+        <button class="btn btn-outline" onclick="window.print()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm1-4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Print
+        </button>
+      </div>
+
+      <div class="section-title">Email</div>
+      <div class="two-col">
+        <div class="field-row">
+          <label>Recipient Email</label>
+          <input type="email" id="email-to" placeholder="recipient@hospital.com.au" />
+        </div>
+        <div class="field-row">
+          <label>CC (optional)</label>
+          <input type="email" id="email-cc" placeholder="admin@clinic.com.au" />
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Email Subject (auto-filled)</label>
+        <input type="text" id="email-subject" placeholder="Will be auto-filled from note details" />
+      </div>
+      <div class="field-row">
+        <label>Pre-text / Cover Note</label>
+        <textarea id="email-pretext" rows="4">Dear Colleague,
+
+Please find attached the psychiatric progress note for the above-named patient following their recent consultation with Dr Lushan Vasantha.
+
+Please do not hesitate to contact our rooms if you require any further information.
+
+Kind regards,
+Dr Lushan Vasantha
+Psychiatrist</textarea>
+      </div>
+      <div class="btn-group" style="margin-top:0;">
+        <button class="btn btn-teal" onclick="sendEmail()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Open in Email Client
+        </button>
+      </div>
+      <p style="font-size:.78rem;color:var(--gray);margin-top:8px;">Opens your default email client. Attach the PDF separately.</p>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+const state = { generatedPrompt: '' };
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ── Template selector ─────────────────────────────────────────────────────
+document.getElementById('g-template').addEventListener('change', function() {
+  document.getElementById('custom-template-row').style.display =
+    this.value === 'custom' ? 'block' : 'none';
+});
+
+// ── Set today's date ──────────────────────────────────────────────────────
+(function() {
+  const d = new Date();
+  const months = ['January','February','March','April','May','June','July',
+                  'August','September','October','November','December'];
+  document.getElementById('g-date').value =
+    `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+})();
+
+// ── Template descriptions ─────────────────────────────────────────────────
+const TEMPLATES = {
+  standard: 'Standard outpatient psychiatric consultation',
+  followup:  'Follow-up psychiatric appointment to review progress and treatment',
+  initial:   'Initial psychiatric assessment and mental state examination',
+  emergency: 'Post-Emergency Department presentation for acute psychiatric review',
+  medication:'Medication review and adjustment appointment',
+  psychosis: 'Assessment of psychotic symptoms / first episode psychosis',
+  mood:      'Mood disorder review (depression / bipolar / anxiety)',
+  custom:    null,
+};
+
+// ── Generate Prompt ───────────────────────────────────────────────────────
+function generatePrompt() {
+  const transcript = document.getElementById('g-transcript').value.trim();
+  if (!transcript) { toast('Please paste a transcript first.'); return; }
+
+  const patient  = document.getElementById('g-patient').value.trim() || '[patient]';
+  const date     = document.getElementById('g-date').value.trim();
+  const time     = document.getElementById('g-time').value.trim();
+  const tmplKey  = document.getElementById('g-template').value;
+  const tmplDesc = tmplKey === 'custom'
+    ? document.getElementById('g-custom').value.trim()
+    : TEMPLATES[tmplKey];
+
+  const prompt = buildPrompt(patient, date, time, tmplDesc, transcript);
+  state.generatedPrompt = prompt;
+
+  document.getElementById('prompt-display').textContent = prompt;
+  document.getElementById('prompt-result-card').style.display = 'block';
+
+  copyToClipboard(prompt);
+  toast('Prompt generated and copied to clipboard!');
+}
+
+function buildPrompt(patient, date, time, template, transcript) {
+  return `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist.
+
+Your task is to structure the following voice transcription from a psychiatric consultation into a formal, professional Progress Note. Use ONLY information present in the transcript — do not infer or add clinical details not mentioned.
+
+SESSION CONTEXT:
+- Patient first name: ${patient || 'see transcript'}
+- Date: ${date || 'see transcript'}
+- Time: ${time || 'see transcript'}
+- Clinician: Dr Lushan Vasantha, Psychiatrist
+- Session type: ${template}
+
+OUTPUT FORMAT — use exactly this structure:
+
+Progress Note
+
+Patient: [first name only]
+Date: [DD Month YYYY]
+Time: [HH:MM – HH:MM]
+Clinician: Dr Lushan Vasantha, Psychiatrist
+
+Current Presentation:
+• [bullet point]
+• [bullet point]
+
+Past Medical & Psychiatric History:
+• [bullet point or "Not discussed" if absent]
+
+Mental Status Examination:
+[document observable findings mentioned; if not explicitly discussed write "Not formally assessed in this consultation"]
+
+Session Content:
+• [key point discussed]
+• [key point discussed]
+
+Risk Assessment and Management:
+[document any risk factors, protective factors, and safety planning discussed; if not explicitly discussed write "No specific risk concerns raised in this consultation"]
+
+Session Summary:
+[2–4 sentence narrative paragraph summarising the presentation, key history and discussion]
+
+Next Steps:
+• [action item]
+• [action item]
+
+---
+TRANSCRIPT:
+${transcript}`;
+}
+
+function copyPrompt() {
+  if (!state.generatedPrompt) { toast('Generate a prompt first.'); return; }
+  copyToClipboard(state.generatedPrompt);
+  toast('Prompt copied to clipboard!');
+}
+
+// ── Parse Gemini Response ─────────────────────────────────────────────────
+function parseGeminiResponse() {
+  const raw = document.getElementById('s-gemini').value.trim();
+  if (!raw) { toast('Please paste Gemini\'s response first.'); return; }
+
+  // Extract fields via regex
+  const get = (pattern, flags = 'is') =>
+    (raw.match(new RegExp(pattern, flags)) || [])[1]?.trim() || '';
+
+  const patient   = get('Patient:\\s*(.+?)(?:\\n|Date:)');
+  const date      = get('Date:\\s*(.+?)(?:\\n|Time:)');
+  const time      = get('Time:\\s*(.+?)(?:\\n|Clinician:)');
+  const clinician = get('Clinician:\\s*(.+?)(?:\\n|Current)');
+
+  const presentation = extractSection(raw, 'Current Presentation', nextSectionHeaders('Current Presentation'));
+  const history      = extractSection(raw, 'Past Medical.*?History', nextSectionHeaders('Past Medical'));
+  const mse          = extractSection(raw, 'Mental Status Examination', nextSectionHeaders('Mental Status'));
+  const content      = extractSection(raw, 'Session Content', nextSectionHeaders('Session Content'));
+  const risk         = extractSection(raw, 'Risk Assessment.*?Management', nextSectionHeaders('Risk Assessment'));
+  const summary      = extractSection(raw, 'Session Summary', nextSectionHeaders('Session Summary'));
+  const nextsteps    = extractSection(raw, 'Next Steps', nextSectionHeaders('Next Steps'));
+
+  // Populate edit fields
+  if (patient)      document.getElementById('e-patient').value    = patient;
+  if (date)         document.getElementById('e-date').value       = date;
+  if (time)         document.getElementById('e-time').value       = time;
+  if (clinician)    document.getElementById('e-clinician').value  = clinician;
+  if (presentation) document.getElementById('e-presentation').value = presentation;
+  if (history)      document.getElementById('e-history').value    = history;
+  if (mse)          document.getElementById('e-mse').value        = mse;
+  if (content)      document.getElementById('e-content').value    = content;
+  if (risk)         document.getElementById('e-risk').value       = risk;
+  if (summary)      document.getElementById('e-summary').value    = summary;
+  if (nextsteps)    document.getElementById('e-nextsteps').value  = nextsteps;
+
+  // Sync meta to generate tab
+  if (patient) document.getElementById('g-patient').value = patient;
+  if (date)    document.getElementById('g-date').value    = date;
+  if (time)    document.getElementById('g-time').value    = time;
+
+  updateEmailSubject();
+  toast('Fields populated! Switch to Step 3 to review.');
+  switchTab('edit');
+}
+
+function nextSectionHeaders(current) {
+  const all = [
+    'Current Presentation',
+    'Past Medical',
+    'Mental Status Examination',
+    'Session Content',
+    'Risk Assessment',
+    'Session Summary',
+    'Next Steps',
+  ];
+  const idx = all.findIndex(h => current.startsWith(h));
+  return all.slice(idx + 1);
+}
+
+function extractSection(text, header, nextHeaders) {
+  const startRe = new RegExp(`${header}[:\\s]*\\n`, 'i');
+  const startMatch = text.match(startRe);
+  if (!startMatch) return '';
+  const start = startMatch.index + startMatch[0].length;
+
+  let end = text.length;
+  for (const nh of nextHeaders) {
+    const nhRe = new RegExp(`\\n${nh}`, 'i');
+    const m = text.slice(start).match(nhRe);
+    if (m && (start + m.index) < end) end = start + m.index;
+  }
+
+  // Also stop at --- separator
+  const sep = text.slice(start).match(/\n---/);
+  if (sep && (start + sep.index) < end) end = start + sep.index;
+
+  return text.slice(start, end).trim();
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────
+function updatePreview() {
+  const v = id => document.getElementById(id).value.trim();
+  const patient   = v('e-patient')   || '—';
+  const date      = v('e-date')      || '—';
+  const time      = v('e-time')      || '—';
+  const clinician = v('e-clinician') || 'Dr Lushan Vasantha, Psychiatrist';
+
+  const renderBullets = txt => {
+    if (!txt) return '<p><em>—</em></p>';
+    const lines = txt.split('\n').map(l => l.trim()).filter(Boolean);
+    const isBullet = lines.some(l => l.startsWith('•') || l.startsWith('-') || l.startsWith('*'));
+    if (isBullet) {
+      return '<ul>' + lines.map(l => `<li>${escHtml(l.replace(/^[•\-\*]\s*/, ''))}</li>`).join('') + '</ul>';
+    }
+    return lines.map(l => `<p>${escHtml(l)}</p>`).join('');
+  };
+
+  const renderPara = txt => txt
+    ? txt.split('\n').map(l => l.trim()).filter(Boolean).map(l => `<p>${escHtml(l)}</p>`).join('')
+    : '<p><em>—</em></p>';
+
+  document.getElementById('preview-pane').innerHTML = `
+    <h3>Progress Note</h3>
+    <div class="meta">
+      <p><strong>Patient:</strong> ${escHtml(patient)}</p>
+      <p><strong>Date:</strong> ${escHtml(date)}</p>
+      <p><strong>Time:</strong> ${escHtml(time)}</p>
+      <p><strong>Clinician:</strong> ${escHtml(clinician)}</p>
+    </div>
+    <div class="section"><p class="section-head">Current Presentation:</p>${renderBullets(v('e-presentation'))}</div>
+    <div class="section"><p class="section-head">Past Medical &amp; Psychiatric History:</p>${renderBullets(v('e-history'))}</div>
+    <div class="section"><p class="section-head">Mental Status Examination:</p>${renderPara(v('e-mse'))}</div>
+    <div class="section"><p class="section-head">Session Content:</p>${renderBullets(v('e-content'))}</div>
+    <div class="section"><p class="section-head">Risk Assessment and Management:</p>${renderPara(v('e-risk'))}</div>
+    <div class="section"><p class="section-head">Session Summary:</p>${renderPara(v('e-summary'))}</div>
+    <div class="section"><p class="section-head">Next Steps:</p>${renderBullets(v('e-nextsteps'))}</div>
+  `;
+
+  updateEmailSubject();
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ── Email ─────────────────────────────────────────────────────────────────
+function updateEmailSubject() {
+  const patient = document.getElementById('e-patient').value.trim() || document.getElementById('g-patient').value.trim() || 'Patient';
+  const date    = document.getElementById('e-date').value.trim()    || document.getElementById('g-date').value.trim()    || '';
+  document.getElementById('email-subject').value =
+    `Progress Note – ${patient}${date ? ' – ' + date : ''} – Dr Lushan Vasantha`;
+}
+
+function sendEmail() {
+  const to      = document.getElementById('email-to').value.trim();
+  const cc      = document.getElementById('email-cc').value.trim();
+  const subject = document.getElementById('email-subject').value.trim();
+  const pretext = document.getElementById('email-pretext').value.trim();
+  const noteText = buildPlainText();
+
+  const body = `${pretext}\n\n${'─'.repeat(60)}\n\n${noteText}`;
+  const params = new URLSearchParams();
+  if (cc) params.set('cc', cc);
+  params.set('subject', subject);
+  params.set('body', body);
+  const mailto = `mailto:${encodeURIComponent(to)}?${params.toString()}`;
+  window.location.href = mailto;
+}
+
+function buildPlainText() {
+  const v = id => document.getElementById(id).value.trim();
+  return [
+    'Progress Note',
+    '',
+    `Patient: ${v('e-patient')}`,
+    `Date: ${v('e-date')}`,
+    `Time: ${v('e-time')}`,
+    `Clinician: ${v('e-clinician')}`,
+    '',
+    'Current Presentation:',
+    v('e-presentation'),
+    '',
+    'Past Medical & Psychiatric History:',
+    v('e-history'),
+    '',
+    'Mental Status Examination:',
+    v('e-mse'),
+    '',
+    'Session Content:',
+    v('e-content'),
+    '',
+    'Risk Assessment and Management:',
+    v('e-risk'),
+    '',
+    'Session Summary:',
+    v('e-summary'),
+    '',
+    'Next Steps:',
+    v('e-nextsteps'),
+  ].join('\n');
+}
+
+// ── PDF Export ────────────────────────────────────────────────────────────
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  const margin  = 54;
+  const maxW    = doc.internal.pageSize.width - margin * 2;
+  let y         = margin;
+  const lineH   = 14;
+  const paraGap = 10;
+
+  function checkPage(needed = 20) {
+    if (y + needed > doc.internal.pageSize.height - margin) {
+      doc.addPage();
+      y = margin;
+    }
+  }
+
+  function addLine(text, opts = {}) {
+    checkPage();
+    if (opts.bold)  doc.setFont('helvetica', 'bold');
+    if (opts.size)  doc.setFontSize(opts.size);
+    doc.text(text, margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    y += lineH;
+  }
+
+  function addWrapped(text, indent = 0) {
+    if (!text) { y += paraGap; return; }
+    const lines = doc.splitTextToSize(text, maxW - indent);
+    lines.forEach(line => {
+      checkPage();
+      doc.text(line, margin + indent, y);
+      y += lineH;
+    });
+    y += paraGap;
+  }
+
+  function addSection(heading, content, bullets = false) {
+    checkPage(30);
+    y += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(heading, margin, y);
+    y += lineH;
+    doc.setFont('helvetica', 'normal');
+    if (!content) { doc.setTextColor(150); addWrapped('—'); doc.setTextColor(0); return; }
+    if (bullets) {
+      content.split('\n').map(l => l.trim()).filter(Boolean).forEach(l => {
+        const clean = l.replace(/^[•\-\*]\s*/, '');
+        checkPage();
+        doc.text('•', margin + 4, y);
+        addWrapped(clean, 14);
+        y -= paraGap; // addWrapped adds gap; compensate for bullet lists
+        y += lineH;
+      });
+      y += paraGap;
+    } else {
+      addWrapped(content);
+    }
+  }
+
+  const v = id => document.getElementById(id).value.trim();
+
+  // Title
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('Progress Note', doc.internal.pageSize.width / 2, y, { align: 'center' });
+  y += 24;
+
+  // Meta
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const meta = [
+    ['Patient:', v('e-patient')],
+    ['Date:', v('e-date')],
+    ['Time:', v('e-time')],
+    ['Clinician:', v('e-clinician')],
+  ];
+  meta.forEach(([label, val]) => {
+    checkPage();
+    doc.setFont('helvetica', 'bold'); doc.text(label, margin, y);
+    doc.setFont('helvetica', 'normal'); doc.text(val, margin + 70, y);
+    y += lineH;
+  });
+  y += paraGap;
+
+  // Horizontal rule
+  doc.setDrawColor(200);
+  doc.line(margin, y, margin + maxW, y);
+  y += paraGap;
+
+  addSection('Current Presentation:', v('e-presentation'), true);
+  addSection('Past Medical & Psychiatric History:', v('e-history'), true);
+  addSection('Mental Status Examination:', v('e-mse'));
+  addSection('Session Content:', v('e-content'), true);
+  addSection('Risk Assessment and Management:', v('e-risk'));
+  addSection('Session Summary:', v('e-summary'));
+  addSection('Next Steps:', v('e-nextsteps'), true);
+
+  const patient = v('e-patient') || 'note';
+  const date    = v('e-date').replace(/\s/g,'-') || 'date';
+  doc.save(`Progress-Note-${patient}-${date}.pdf`);
+  toast('PDF downloaded!');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function clearAll() {
+  ['g-transcript','g-patient','g-time'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('prompt-result-card').style.display = 'none';
+  toast('Cleared.');
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── Auto-fill email subject on field changes ──────────────────────────────
+['e-patient','e-date','g-patient','g-date'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', updateEmailSubject);
+});
+</script>
+
+<style media="print">
+  header, .tabs, .card:not(#preview-card), #toast { display: none !important; }
+  #preview-pane { border: none; padding: 0; }
+</style>
+
+</body>
+</html>
