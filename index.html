@@ -278,11 +278,8 @@
       <button class="modal-close" onclick="closeSettings()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="info-box">API keys are stored in your browser only and never sent anywhere except the respective API.</div>
-
-      <div class="section-title">Groq API (required for AI generation)</div>
       <div class="field-row">
-        <label>Groq API Key <a class="link-sm" href="https://console.groq.com/keys" target="_blank">→ Get free key at console.groq.com</a></label>
+        <label>Groq API Key</label>
         <input type="password" id="s-groq-key" placeholder="gsk_..." autocomplete="off" />
       </div>
 
@@ -634,10 +631,8 @@ async function fbDeleteNote(id) {
 // Settings Modal
 // ─────────────────────────────────────────────────────────────────────────────
 function showSettings() {
-  const groqKey = localStorage.getItem('groq_api_key') || '';
-  const fbCfg   = localStorage.getItem('firebase_config') || '';
-  document.getElementById('s-groq-key').value       = groqKey;
-  document.getElementById('s-firebase-config').value = fbCfg;
+  document.getElementById('s-groq-key').value       = localStorage.getItem('groq_api_key') || '';
+  document.getElementById('s-firebase-config').value = localStorage.getItem('firebase_config') || '';
   document.getElementById('settings-overlay').style.display = 'flex';
 }
 function closeSettings() {
@@ -648,9 +643,9 @@ function overlayClick(e) {
 }
 function saveSettings() {
   const groqKey = document.getElementById('s-groq-key').value.trim();
-  const fbCfg   = document.getElementById('s-firebase-config').value.trim();
   if (groqKey) localStorage.setItem('groq_api_key', groqKey);
   else         localStorage.removeItem('groq_api_key');
+  const fbCfg = document.getElementById('s-firebase-config').value.trim();
   if (fbCfg) {
     try { JSON.parse(fbCfg); localStorage.setItem('firebase_config', fbCfg); }
     catch { toast('Firebase config is not valid JSON'); return; }
@@ -679,8 +674,8 @@ function updateApiStatusBar() {
 
   const groqDot  = document.getElementById('groq-dot');
   const groqText = document.getElementById('groq-status-text');
-  groqDot.className  = 'status-dot ' + (hasGroq ? 'dot-green' : 'dot-red');
-  groqText.textContent = hasGroq ? 'Groq API ready' : 'Groq API key missing';
+  groqDot.className    = 'status-dot ' + (hasGroq ? 'dot-green' : 'dot-yellow');
+  groqText.textContent = hasGroq ? 'Groq API ready' : 'Groq key not set — click Settings';
 
   const fbDot  = document.getElementById('fb-dot');
   const fbText = document.getElementById('fb-status-text');
@@ -693,7 +688,7 @@ function updateApiStatusBar() {
 // ─────────────────────────────────────────────────────────────────────────────
 async function pasteAndGenerate() {
   const groqKey = localStorage.getItem('groq_api_key');
-  if (!groqKey) { showSettings(); toast('Please set your Groq API key first'); return; }
+  if (!groqKey) { showSettings(); return; }
 
   let transcript;
   try {
@@ -1129,8 +1124,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click
 (function init() {
   initFirebase();
   updateApiStatusBar();
-  // Show settings on first visit (no API key yet)
-  if (!localStorage.getItem('groq_api_key')) showSettings();
 })();
 </script>
 </body>
