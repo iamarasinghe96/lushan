@@ -495,6 +495,74 @@
     }
     .user-menu-drop button:last-child { border-bottom: none; }
     .user-menu-drop button:hover { background: #f3f4f6; }
+
+    /* ── Responsive: Tablet (max 900px) ── */
+    @media (max-width: 900px) {
+      main { padding: 16px 14px 60px; }
+      .edit-grid { grid-template-columns: 1fr; }
+      .preview-sticky { position: static; }
+    }
+
+    /* ── Responsive: Mobile (max 640px) ── */
+    @media (max-width: 640px) {
+      header { padding: 10px 12px; }
+      header p { display: none; }
+      .wp-chip { display: none !important; }
+      .header-left svg { width: 30px; height: 30px; }
+      header h1 { font-size: 1rem; }
+      .settings-btn span { display: none; }
+      .settings-btn { padding: 6px 10px; min-width: 0; }
+      .user-avatar { width: 34px; height: 34px; font-size: .78rem; }
+
+      .tabs { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+      .tabs::-webkit-scrollbar { display: none; }
+      .tab-btn { font-size: .78rem; padding: 10px 10px; white-space: nowrap; }
+
+      main { padding: 10px 10px 80px; }
+      .card { padding: 14px 12px; border-radius: 8px; }
+      .card h2 { font-size: .88rem; }
+
+      .paste-hero { padding: 28px 14px 24px; border-radius: 10px; }
+      .paste-icon { font-size: 2.6rem; margin-bottom: 10px; }
+      .paste-hero h2 { font-size: 1.1rem; }
+      .paste-hero p { font-size: .84rem; margin-bottom: 20px; }
+      .btn-paste { font-size: .95rem; padding: 13px 28px; width: 100%; border-radius: 8px; }
+      .paste-hint { font-size: .76rem; }
+
+      .two-col, .three-col { grid-template-columns: 1fr; }
+      .field-row label { font-size: .78rem; }
+      .field-row input, .field-row select, .field-row textarea { font-size: .88rem; }
+
+      .history-card { flex-direction: column; gap: 10px; padding: 13px 12px; }
+      .history-card-actions { flex-shrink: 0; display: flex; gap: 8px; }
+      .history-card-actions .btn { flex: 1; text-align: center; }
+
+      #export-preview-pane { padding: 16px 12px; font-size: .84rem; }
+
+      .auth-box { margin: 16px 10px; padding: 22px 14px; border-radius: 10px; }
+      .auth-logo-area h1 { font-size: 1.4rem; }
+      .auth-input { font-size: .9rem; padding: 10px 12px; }
+      .auth-btn { font-size: .92rem; padding: 11px; }
+      .auth-tab-btn { font-size: .82rem; padding: 9px 14px; }
+
+      .onboarding-wrap { padding: 16px 10px 40px; }
+      .ob-card { padding: 20px 14px; border-radius: 10px; }
+      .ob-btn { font-size: .92rem; padding: 11px; }
+
+      #acct-modal > div {
+        width: 100% !important; max-width: 100% !important;
+        height: 100% !important; max-height: 100% !important;
+        border-radius: 0 !important;
+      }
+      .as-tab { padding: 6px 9px; font-size: .78rem; }
+    }
+
+    /* ── Responsive: Small phones (max 380px) ── */
+    @media (max-width: 380px) {
+      .tab-btn { font-size: .72rem; padding: 10px 8px; }
+      header h1 { font-size: .9rem; }
+      .btn-paste { font-size: .88rem; }
+    }
   </style>
 </head>
 <body>
@@ -531,7 +599,7 @@
         <input class="auth-input" type="text" id="reg-name" placeholder="Full name (e.g. Dr Lushan Vasantha)" autocomplete="name" />
         <input class="auth-input" type="email" id="reg-email" placeholder="Email address" autocomplete="email" />
         <input class="auth-input" type="password" id="reg-password" placeholder="Choose a password" autocomplete="new-password" />
-        <button class="auth-btn" onclick="regStep1Next()">Continue to Payment →</button>
+        <button class="auth-btn" onclick="regStep1Next()">Continue to Payment</button>
         <div class="auth-error" id="reg-step1-error"></div>
       </div>
 
@@ -547,7 +615,7 @@
           Once payment is made, click below to register. Your account will be activated after payment is confirmed (usually within 1 business day).
         </div>
         <button class="auth-btn" onclick="doRegister()">I've completed the payment — Register</button>
-        <span class="auth-back-link" onclick="regGoBack()">← Back</span>
+        <span class="auth-back-link" onclick="regGoBack()">Back</span>
         <div class="auth-error" id="reg-step2-error"></div>
       </div>
     </div>
@@ -604,7 +672,7 @@
           <label>Title / Credentials</label>
           <input type="text" id="ob-credentials" placeholder="Dr, MBBS, FRANZCP" />
         </div>
-        <button class="ob-btn" onclick="obNext(1)">Next →</button>
+        <button class="ob-btn" onclick="obNext(1)">Next</button>
       </div>
 
       <!-- Step 2: Workplace -->
@@ -640,8 +708,8 @@
           We recommend our YYYYMMDDNN format — e.g. 20250517001 (date + 2-digit sequence). This will be pre-suggested when you create patient IDs.
         </div>
         <div class="ob-notice">Your plan includes 1 active workplace. Upgrade to add more.</div>
-        <button class="ob-btn" onclick="obNext(2)">Next →</button>
-        <button class="ob-btn ob-btn-secondary" onclick="obBack(2)">← Back</button>
+        <button class="ob-btn" onclick="obNext(2)">Next</button>
+        <button class="ob-btn ob-btn-secondary" onclick="obBack(2)">Back</button>
       </div>
 
       <!-- Step 3: Email templates -->
@@ -685,8 +753,8 @@ With regards,
           <textarea id="ob-tpl-text-3" rows="5" placeholder="Type your own email introduction here…"></textarea>
         </div>
 
-        <button class="ob-btn" onclick="obNext(3)">Next →</button>
-        <button class="ob-btn ob-btn-secondary" onclick="obBack(3)">← Back</button>
+        <button class="ob-btn" onclick="obNext(3)">Next</button>
+        <button class="ob-btn ob-btn-secondary" onclick="obBack(3)">Back</button>
       </div>
 
       <!-- Step 4: Confirm -->
@@ -694,8 +762,8 @@ With regards,
         <div class="ob-step-label">Step 4 of 4</div>
         <h2>Confirm &amp; Start</h2>
         <div id="ob-summary" style="margin-bottom:20px;"></div>
-        <button class="ob-btn" onclick="obComplete()">Start Using LushNote →</button>
-        <button class="ob-btn ob-btn-secondary" onclick="obBack(4)">← Back</button>
+        <button class="ob-btn" onclick="obComplete()">Start Using LushNote</button>
+        <button class="ob-btn ob-btn-secondary" onclick="obBack(4)">Back</button>
       </div>
     </div>
   </div>
@@ -716,7 +784,7 @@ With regards,
 
       <div class="section-title">Firebase Firestore (optional – cross-device sync &amp; history)</div>
       <div class="info-box" style="margin-bottom:10px;">
-        Create a free Firebase project → Firestore Database → Project Settings → Your apps → Add web app → copy the config JSON below.
+        Create a free Firebase project. Open Firestore Database, then Project Settings, then Your apps. Add a web app and copy the config JSON below.
       </div>
       <div class="field-row">
         <label>Firebase Config (paste the firebaseConfig JSON object)</label>
@@ -786,7 +854,7 @@ With regards,
         <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Paste &amp; Generate Report
       </button>
-      <p class="paste-hint">Reads clipboard → sends to Groq AI → auto-fills all fields</p>
+      <p class="paste-hint">Reads clipboard, sends to Groq AI, auto-fills all fields</p>
       <div id="transcript-chip" style="display:none;" class="transcript-chip">
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span id="transcript-chip-text"></span>
@@ -936,7 +1004,7 @@ With regards,
 
           <div class="btn-group" style="margin-top:4px;">
             <button class="btn btn-teal" onclick="saveCurrentNote()">Save to History</button>
-            <button class="btn btn-primary" onclick="switchTab('export')">Export →</button>
+            <button class="btn btn-primary" onclick="switchTab('export')">Export</button>
           </div>
         </div>
       </div>
@@ -945,7 +1013,7 @@ With regards,
       <div class="preview-sticky">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <span style="font-size:.8rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;">Live Preview</span>
-          <button class="btn btn-outline btn-sm" onclick="switchTab('export')">Export →</button>
+          <button class="btn btn-outline btn-sm" onclick="switchTab('export')">Export</button>
         </div>
         <div id="preview-pane">
           <p class="empty-state">Fill in the fields to see the preview.</p>
@@ -2389,7 +2457,7 @@ function obPreviewRegFormat(val) {
   if (!val.trim()) { preview.innerHTML = ''; return; }
   const p = detectIdPattern(val.trim());
   if (!p) { preview.innerHTML = ''; return; }
-  preview.innerHTML = `Detected: <strong>${esc(p.description)}</strong> &rarr; pattern: <code style="background:#f3f4f6;padding:1px 5px;border-radius:3px;">${esc(p.template)}</code>`;
+  preview.innerHTML = `Detected: <strong>${esc(p.description)}</strong> — pattern: <code style="background:#f3f4f6;padding:1px 5px;border-radius:3px;">${esc(p.template)}</code>`;
 }
 
 function applyRegPattern() {
@@ -2554,7 +2622,7 @@ function asWpPreviewFormat(wpId, val) {
   if (!el) return;
   if (!val.trim()) { el.innerHTML = ''; return; }
   const p = detectIdPattern(val.trim());
-  el.innerHTML = p ? `Detected: <strong>${esc(p.description)}</strong> &rarr; <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">${esc(p.template)}</code>` : '';
+  el.innerHTML = p ? `Detected: <strong>${esc(p.description)}</strong> — <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">${esc(p.template)}</code>` : '';
 }
 
 function asSetTheme(wpId, themeIdx) {
@@ -2700,7 +2768,7 @@ async function saveAccountSettings() {
 
       <!-- Appearance tab -->
       <div id="as-pane-appearance" style="display:none;">
-        <p style="font-size:.85rem;color:#374151;margin-bottom:12px;">Window colour is set per-workplace. Go to the <strong>Workplaces</strong> tab → Edit → choose a colour theme.</p>
+        <p style="font-size:.85rem;color:#374151;margin-bottom:12px;">Window colour is set per-workplace. Go to the <strong>Workplaces</strong> tab, select Edit, then choose a colour theme.</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
           ${WP_THEMES.map((th, ti) => `
             <div style="text-align:center;">
