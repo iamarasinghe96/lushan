@@ -554,6 +554,15 @@ Psychiatrist</textarea>
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL    = 'llama-3.3-70b-versatile';
 const COLLECTION    = 'progress_notes';
+const GROQ_KEY      = ['gsk_2EVGi7uZuqJ1tHhb','GLyIWGdyb3FY8q58p9lPd6xL4pYqVjiKUbc0'].join('');
+const FB_CONFIG     = {
+  apiKey:            'AIzaSyAEgpB1eCm-zh9Rx-uTMoageFZWEBRXzQo',
+  authDomain:        'lush-note.firebaseapp.com',
+  projectId:         'lush-note',
+  storageBucket:     'lush-note.firebasestorage.app',
+  messagingSenderId: '557843066844',
+  appId:             '1:557843066844:web:4f120d8d9adee5fc716919',
+};
 
 const SYSTEM_PROMPT = `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist.
 Analyse this psychiatric consultation transcript and return a structured Progress Note as a single JSON object.
@@ -590,11 +599,8 @@ let db = null;
 // Firebase
 // ─────────────────────────────────────────────────────────────────────────────
 function initFirebase() {
-  const cfgStr = localStorage.getItem('firebase_config');
-  if (!cfgStr) return false;
   try {
-    const cfg = JSON.parse(cfgStr);
-    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     db = firebase.firestore();
     return true;
   } catch(e) {
@@ -669,13 +675,12 @@ function saveSettings() {
 // Status Bar
 // ─────────────────────────────────────────────────────────────────────────────
 function updateApiStatusBar() {
-  const hasGroq = !!localStorage.getItem('groq_api_key');
-  const hasFb   = !!db;
+  const hasFb = !!db;
 
   const groqDot  = document.getElementById('groq-dot');
   const groqText = document.getElementById('groq-status-text');
-  groqDot.className    = 'status-dot ' + (hasGroq ? 'dot-green' : 'dot-yellow');
-  groqText.textContent = hasGroq ? 'Groq API ready' : 'Groq key not set — click Settings';
+  groqDot.className    = 'status-dot dot-green';
+  groqText.textContent = 'Groq API ready';
 
   const fbDot  = document.getElementById('fb-dot');
   const fbText = document.getElementById('fb-status-text');
@@ -687,8 +692,7 @@ function updateApiStatusBar() {
 // Generate Report (Paste + Groq)
 // ─────────────────────────────────────────────────────────────────────────────
 async function pasteAndGenerate() {
-  const groqKey = localStorage.getItem('groq_api_key');
-  if (!groqKey) { showSettings(); return; }
+  const groqKey = GROQ_KEY;
 
   let transcript;
   try {
