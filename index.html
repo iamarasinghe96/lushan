@@ -595,8 +595,8 @@ The JSON must have exactly these keys:
 
 {
   "patient":        "patient first name only, from the transcript",
-  "date":           "session date in DD Month YYYY format; leave empty string if not explicitly stated in the transcript",
-  "time":           "session time as HH:MM – HH:MM; leave empty string if not mentioned",
+  "date":           "",
+  "time":           "",
   "clinician":      "Dr Lushan Vasantha, Psychiatrist",
   "session_number": "session number or episode context if mentioned (e.g. Session 4 of ongoing treatment); leave empty string if not mentioned",
   "attendance":     "brief attendance and consent note inferred from transcript (e.g. Patient attended on time. Verbal consent for session confirmed.); leave empty string if nothing inferable",
@@ -737,10 +737,20 @@ async function pasteAndGenerate() {
   const wordCount = transcript.trim().split(/\s+/).length;
   setLoading(true, 'Reading transcript & generating report…');
   try {
+    // Compute date/time from upload moment
+    const now = new Date();
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const autoDate = `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+    const endH = now.getHours(), endM = now.getMinutes();
+    const autoTime = `${String(endH).padStart(2,'0')}:00 – ${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
+
     const structured = await callGroq(transcript, groqKey);
     const data = parseJson(structured);
     if (!data) throw new Error('Could not parse AI response as JSON. Try again.');
     populateFields(data);
+    // Always use JS-computed date/time — more reliable than AI inference
+    document.getElementById('e-date').value = autoDate;
+    document.getElementById('e-time').value = autoTime;
     livePreview();
     updateExportPreview();
     updateEmailSubject();
