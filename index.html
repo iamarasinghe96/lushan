@@ -437,7 +437,7 @@
               <label>Patient Name</label>
               <div class="patient-combo">
                 <input type="text" id="e-patient" placeholder="First name" autocomplete="off"
-                  oninput="patientInput(this.value)" onblur="onPatientBlur()" />
+                  oninput="patientInput(this.value)" onblur="closePatientDrop()" />
                 <div id="patient-drop" class="autocomplete-drop" style="display:none;"></div>
               </div>
             </div>
@@ -853,12 +853,6 @@ async function pasteAndGenerate() {
     const chip = document.getElementById('transcript-chip');
     document.getElementById('transcript-chip-text').textContent = `Transcript loaded — ${wordCount} words`;
     chip.style.display = 'inline-flex';
-
-    // Auto-generate patient ID if not already set
-    if (!document.getElementById('e-reg-number').value.trim()) {
-      document.getElementById('e-reg-number').value = await generatePatientId();
-      livePreview();
-    }
 
     // Auto-save to Firebase
     if (db) {
@@ -1537,35 +1531,6 @@ function scheduleAutoSave() {
       setTimeout(() => { if (bar) bar.style.borderColor = ''; }, 800);
     } catch(e) { console.warn('Auto-save failed:', e.message); }
   }, 800);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Patient ID auto-generation  YYYYMMDDNN
-// ─────────────────────────────────────────────────────────────────────────────
-async function generatePatientId() {
-  const now    = new Date();
-  const prefix = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-  if (!db) return prefix + '01';
-  try {
-    const snap = await db.collection(COLLECTION)
-      .where('reg_number', '>=', prefix + '00')
-      .where('reg_number', '<=', prefix + '99')
-      .get();
-    const ids = new Set(snap.docs.map(d => d.data().reg_number).filter(r => r && r.startsWith(prefix)));
-    return prefix + String(ids.size + 1).padStart(2, '0');
-  } catch(e) {
-    return prefix + '01';
-  }
-}
-
-async function onPatientBlur() {
-  closePatientDrop();
-  const regEl = document.getElementById('e-reg-number');
-  if (regEl.value.trim()) return; // already has an ID
-  const name = document.getElementById('e-patient').value.trim();
-  if (!name) return;
-  regEl.value = await generatePatientId();
-  livePreview();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
