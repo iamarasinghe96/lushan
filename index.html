@@ -391,9 +391,23 @@
             <label>Clinician</label>
             <input type="text" id="e-clinician" value="Dr Lushan Vasantha, Psychiatrist" oninput="livePreview()" />
           </div>
+          <div class="two-col">
+            <div class="field-row">
+              <label>Session Number / Episode</label>
+              <input type="text" id="e-session-number" placeholder="e.g. Session 4 of ongoing treatment" oninput="livePreview()" />
+            </div>
+            <div class="field-row">
+              <label>Attendance &amp; Consent</label>
+              <input type="text" id="e-attendance" placeholder="e.g. Attended on time. Verbal consent confirmed." oninput="livePreview()" />
+            </div>
+          </div>
 
           <div class="section-title">Clinical Content</div>
 
+          <div class="field-row">
+            <label>Diagnosis (ICD-10)</label>
+            <textarea id="e-diagnosis" rows="3" placeholder="• PTSD – F43.1&#10;• Insomnia – G47.00" oninput="livePreview()"></textarea>
+          </div>
           <div class="field-row">
             <label>Current Presentation</label>
             <textarea id="e-presentation" rows="5" placeholder="• Bullet points" oninput="livePreview()"></textarea>
@@ -403,12 +417,26 @@
             <textarea id="e-history" rows="4" placeholder="• Bullet points" oninput="livePreview()"></textarea>
           </div>
           <div class="field-row">
+            <label>Medications &amp; Changes</label>
+            <textarea id="e-medications" rows="3" placeholder="• Prazosin 1mg nocte — commenced this session" oninput="livePreview()"></textarea>
+          </div>
+          <div class="field-row">
             <label>Mental Status Examination</label>
             <textarea id="e-mse" rows="4" placeholder="Appearance, behaviour, speech, mood, affect, thought, perception, cognition, insight…" oninput="livePreview()"></textarea>
           </div>
           <div class="field-row">
             <label>Session Content</label>
             <textarea id="e-content" rows="6" placeholder="• Key points discussed" oninput="livePreview()"></textarea>
+          </div>
+          <div class="two-col">
+            <div class="field-row">
+              <label>Psychometric Scales</label>
+              <textarea id="e-scales" rows="3" placeholder="• PHQ-9: 14/27&#10;• PCL-5: 42/80" oninput="livePreview()"></textarea>
+            </div>
+            <div class="field-row">
+              <label>Referrals</label>
+              <textarea id="e-referrals" rows="3" placeholder="• EMDR therapist – trauma-focused therapy" oninput="livePreview()"></textarea>
+            </div>
           </div>
           <div class="field-row">
             <label>Risk Assessment and Management</label>
@@ -550,27 +578,41 @@ const FB_CONFIG     = {
   appId:             '1:557843066844:web:4f120d8d9adee5fc716919',
 };
 
-const SYSTEM_PROMPT = `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist.
+const SYSTEM_PROMPT = `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist, practising in New South Wales and Victoria, Australia.
 Analyse this psychiatric consultation transcript and return a structured Progress Note as a single JSON object.
 
 Return ONLY the raw JSON object — no markdown fences, no explanation, no surrounding text.
+
+INSTRUCTIONS:
+- Use ONLY information from the transcript. Do not fabricate clinical details.
+- DATE: if the date is not explicitly stated in the transcript, leave it as an empty string "". Do NOT guess or infer it.
+- MSE: even without a formal MSE, infer what is observable — appearance, speech, affect, mood, thought content, insight, cognition — from the patient's behaviour and language in the transcript. Mark inferred items with "(from transcript)". Only write "Not formally assessed" if truly nothing can be inferred.
+- SESSION SUMMARY: capture the clinical texture — emotional shifts, therapeutic moments, patient insight gained, rapport, any change from prior sessions if mentioned. Write 3–5 sentences useful to a clinician reading the note cold, not a generic recap.
+- SESSION CONTENT: include emotional disclosures, psychoeducation given, patient questions and responses, and therapeutic exchanges — not just presenting facts.
+- Use ICD-10 diagnostic codes (preferred in Australia).
+
 The JSON must have exactly these keys:
 
 {
-  "patient":      "patient first name only, from the transcript",
-  "date":         "session date in DD Month YYYY format; infer from context or use today if unclear",
-  "time":         "session time as HH:MM – HH:MM; leave empty string if not mentioned",
-  "clinician":    "Dr Lushan Vasantha, Psychiatrist",
-  "presentation": "current presentation as bullet points, each line starting with • ",
-  "history":      "past medical and psychiatric history as bullet points starting with • ; write • Not discussed if absent",
-  "mse":          "mental status examination as narrative; write Not formally assessed in this consultation if not discussed",
-  "content":      "session content key points as bullet points starting with • ",
-  "risk":         "risk assessment and management narrative; write No specific risk concerns raised in this consultation if not discussed",
-  "summary":      "2-4 sentence narrative paragraph summarising the presentation, context and discussion",
-  "nextsteps":    "next steps and plan as bullet points starting with • ; write • None specified if absent"
-}
+  "patient":        "patient first name only, from the transcript",
+  "date":           "session date in DD Month YYYY format; leave empty string if not explicitly stated in the transcript",
+  "time":           "session time as HH:MM – HH:MM; leave empty string if not mentioned",
+  "clinician":      "Dr Lushan Vasantha, Psychiatrist",
+  "session_number": "session number or episode context if mentioned (e.g. Session 4 of ongoing treatment); leave empty string if not mentioned",
+  "attendance":     "brief attendance and consent note inferred from transcript (e.g. Patient attended on time. Verbal consent for session confirmed.); leave empty string if nothing inferable",
+  "diagnosis":      "active working diagnoses with ICD-10 codes where inferable from transcript (e.g. • PTSD – F43.1); write • To be confirmed if diagnoses are not discussed",
+  "presentation":   "current presentation as bullet points, each line starting with • ",
+  "history":        "past medical and psychiatric history as bullet points starting with • ; write • Not discussed if absent",
+  "medications":    "current medications and any changes made this session as bullet points starting with • ; include dose and instructions if mentioned; write • Not discussed if absent",
+  "mse":            "mental status examination as narrative paragraph; infer from observable transcript behaviour and language; note inferred items",
+  "content":        "session content as bullet points starting with • ; include emotional disclosures, therapeutic exchanges, psychoeducation given, patient insights and questions",
+  "scales":         "psychometric tools administered and scores (e.g. • PHQ-9: 14/27); write • Not administered this session if none",
+  "risk":           "risk assessment and management narrative; write No specific risk concerns raised in this consultation if not discussed",
+  "referrals":      "referrals initiated this session as bullet points starting with • ; include clinician name and specialty if mentioned; write • None initiated if absent",
+  "summary":        "3–5 sentence narrative capturing: the nature of the session, significant emotional or therapeutic shifts, patient engagement and insight, and clinical direction",
+  "nextsteps":      "next steps and plan as bullet points starting with • ; write • None specified if absent"
+}`;
 
-Use ONLY information from the transcript. Do not add clinical details not mentioned.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // State
@@ -764,43 +806,54 @@ function parseJson(raw) {
 // ─────────────────────────────────────────────────────────────────────────────
 function populateFields(d) {
   const set = (id, val) => { if (val) document.getElementById(id).value = val; };
-  set('e-patient',      d.patient);
-  set('e-date',         d.date);
-  set('e-time',         d.time);
-  set('e-clinician',    d.clinician || 'Dr Lushan Vasantha, Psychiatrist');
-  set('e-presentation', d.presentation);
-  set('e-history',      d.history);
-  set('e-mse',          d.mse);
-  set('e-content',      d.content);
-  set('e-risk',         d.risk);
-  set('e-summary',      d.summary);
-  set('e-nextsteps',    d.nextsteps);
-
-  // Show note bar
+  set('e-patient',        d.patient);
+  set('e-date',           d.date);
+  set('e-time',           d.time);
+  set('e-clinician',      d.clinician || 'Dr Lushan Vasantha, Psychiatrist');
+  set('e-session-number', d.session_number);
+  set('e-attendance',     d.attendance);
+  set('e-diagnosis',      d.diagnosis);
+  set('e-presentation',   d.presentation);
+  set('e-history',        d.history);
+  set('e-medications',    d.medications);
+  set('e-mse',            d.mse);
+  set('e-content',        d.content);
+  set('e-scales',         d.scales);
+  set('e-risk',           d.risk);
+  set('e-referrals',      d.referrals);
+  set('e-summary',        d.summary);
+  set('e-nextsteps',      d.nextsteps);
   updateNoteBar();
 }
 
 function getFields() {
   const v = id => document.getElementById(id).value.trim();
   return {
-    patient:      v('e-patient'),
-    date:         v('e-date'),
-    time:         v('e-time'),
-    clinician:    v('e-clinician') || 'Dr Lushan Vasantha, Psychiatrist',
-    presentation: v('e-presentation'),
-    history:      v('e-history'),
-    mse:          v('e-mse'),
-    content:      v('e-content'),
-    risk:         v('e-risk'),
-    summary:      v('e-summary'),
-    nextsteps:    v('e-nextsteps'),
+    patient:        v('e-patient'),
+    date:           v('e-date'),
+    time:           v('e-time'),
+    clinician:      v('e-clinician') || 'Dr Lushan Vasantha, Psychiatrist',
+    session_number: v('e-session-number'),
+    attendance:     v('e-attendance'),
+    diagnosis:      v('e-diagnosis'),
+    presentation:   v('e-presentation'),
+    history:        v('e-history'),
+    medications:    v('e-medications'),
+    mse:            v('e-mse'),
+    content:        v('e-content'),
+    scales:         v('e-scales'),
+    risk:           v('e-risk'),
+    referrals:      v('e-referrals'),
+    summary:        v('e-summary'),
+    nextsteps:      v('e-nextsteps'),
   };
 }
 
 function newNote() {
   state.currentNoteId = null;
-  ['e-patient','e-date','e-time','e-presentation','e-history','e-mse',
-   'e-content','e-risk','e-summary','e-nextsteps'].forEach(id => {
+  ['e-patient','e-date','e-time','e-session-number','e-attendance',
+   'e-diagnosis','e-presentation','e-history','e-medications','e-mse',
+   'e-content','e-scales','e-risk','e-referrals','e-summary','e-nextsteps'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('e-clinician').value = 'Dr Lushan Vasantha, Psychiatrist';
@@ -867,20 +920,26 @@ function buildPreviewHTML(f) {
     : '<p><em style="color:#9ca3af">—</em></p>';
 
   return `
-    <h3>Progress Note</h3>
+    <h3>Psychiatric Progress Note</h3>
     <div class="meta">
       <p><strong>Patient:</strong> ${esc(f.patient || '—')}</p>
       <p><strong>Date:</strong> ${esc(f.date || '—')}</p>
       <p><strong>Time:</strong> ${esc(f.time || '—')}</p>
       <p><strong>Clinician:</strong> ${esc(f.clinician)}</p>
+      ${f.session_number ? `<p><strong>Session:</strong> ${esc(f.session_number)}</p>` : ''}
+      ${f.attendance ? `<p><strong>Attendance:</strong> ${esc(f.attendance)}</p>` : ''}
     </div>
+    ${f.diagnosis ? `<div class="p-section"><p class="p-head">Diagnosis:</p>${bullets(f.diagnosis)}</div>` : ''}
     <div class="p-section"><p class="p-head">Current Presentation:</p>${bullets(f.presentation)}</div>
     <div class="p-section"><p class="p-head">Past Medical &amp; Psychiatric History:</p>${bullets(f.history)}</div>
+    ${f.medications ? `<div class="p-section"><p class="p-head">Medications &amp; Changes:</p>${bullets(f.medications)}</div>` : ''}
     <div class="p-section"><p class="p-head">Mental Status Examination:</p>${para(f.mse)}</div>
     <div class="p-section"><p class="p-head">Session Content:</p>${bullets(f.content)}</div>
+    ${f.scales ? `<div class="p-section"><p class="p-head">Psychometric Scales:</p>${bullets(f.scales)}</div>` : ''}
     <div class="p-section"><p class="p-head">Risk Assessment and Management:</p>${para(f.risk)}</div>
+    ${f.referrals ? `<div class="p-section"><p class="p-head">Referrals:</p>${bullets(f.referrals)}</div>` : ''}
     <div class="p-section"><p class="p-head">Session Summary:</p>${para(f.summary)}</div>
-    <div class="p-section"><p class="p-head">Next Steps:</p>${bullets(f.nextsteps)}</div>`;
+    <div class="p-section"><p class="p-head">Next Steps / Plan:</p>${bullets(f.nextsteps)}</div>`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1020,25 +1079,34 @@ function exportPDF() {
 
   // Title
   doc.setFont('helvetica','bold'); doc.setFontSize(14);
-  doc.text('Progress Note', pgW / 2, y, { align: 'center' }); y += 24;
+  doc.text('Psychiatric Progress Note', pgW / 2, y, { align: 'center' }); y += 24;
 
   // Meta
   doc.setFontSize(10); doc.setFont('helvetica','normal');
-  [['Patient:', f.patient],['Date:', f.date],['Time:', f.time],['Clinician:', f.clinician]].forEach(([lbl, val]) => {
+  const metaRows = [
+    ['Patient:', f.patient], ['Date:', f.date], ['Time:', f.time], ['Clinician:', f.clinician],
+  ];
+  if (f.session_number) metaRows.push(['Session:', f.session_number]);
+  if (f.attendance)     metaRows.push(['Attendance:', f.attendance]);
+  metaRows.forEach(([lbl, val]) => {
     checkPage();
     doc.setFont('helvetica','bold'); doc.text(lbl, mL, y);
-    doc.setFont('helvetica','normal'); doc.text(val || '—', mL + 68, y); y += lh;
+    doc.setFont('helvetica','normal'); doc.text(val || '—', mL + 72, y); y += lh;
   });
   y += 6;
   doc.setDrawColor(200); doc.line(mL, y, mL + maxW, y); y += 10;
 
+  if (f.diagnosis)    section('Diagnosis:', f.diagnosis, true);
   section('Current Presentation:', f.presentation, true);
   section('Past Medical & Psychiatric History:', f.history, true);
+  if (f.medications)  section('Medications & Changes:', f.medications, true);
   section('Mental Status Examination:', f.mse);
   section('Session Content:', f.content, true);
+  if (f.scales)       section('Psychometric Scales:', f.scales, true);
   section('Risk Assessment and Management:', f.risk);
+  if (f.referrals)    section('Referrals:', f.referrals, true);
   section('Session Summary:', f.summary);
-  section('Next Steps:', f.nextsteps, true);
+  section('Next Steps / Plan:', f.nextsteps, true);
 
   doc.save(`ProgressNote-${f.patient || 'patient'}-${(f.date||'').replace(/\s/g,'-') || 'date'}.pdf`);
   toast('PDF downloaded');
@@ -1061,15 +1129,22 @@ function sendEmail() {
   const f       = getFields();
 
   const noteText = [
-    'Progress Note','',
-    `Patient: ${f.patient}`,`Date: ${f.date}`,`Time: ${f.time}`,`Clinician: ${f.clinician}`,'',
+    'Psychiatric Progress Note','',
+    `Patient: ${f.patient}`,`Date: ${f.date}`,`Time: ${f.time}`,`Clinician: ${f.clinician}`,
+    ...(f.session_number ? [`Session: ${f.session_number}`] : []),
+    ...(f.attendance     ? [`Attendance: ${f.attendance}`]  : []),
+    '',
+    ...(f.diagnosis   ? ['Diagnosis:', f.diagnosis, ''] : []),
     'Current Presentation:', f.presentation, '',
     'Past Medical & Psychiatric History:', f.history, '',
+    ...(f.medications ? ['Medications & Changes:', f.medications, ''] : []),
     'Mental Status Examination:', f.mse, '',
     'Session Content:', f.content, '',
+    ...(f.scales    ? ['Psychometric Scales:', f.scales, ''] : []),
     'Risk Assessment and Management:', f.risk, '',
+    ...(f.referrals ? ['Referrals:', f.referrals, ''] : []),
     'Session Summary:', f.summary, '',
-    'Next Steps:', f.nextsteps,
+    'Next Steps / Plan:', f.nextsteps,
   ].join('\n');
 
   const body = `${pretext}\n\n${'─'.repeat(50)}\n\n${noteText}`;
