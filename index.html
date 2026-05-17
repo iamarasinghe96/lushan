@@ -590,39 +590,20 @@
 
     <div class="card">
       <h2>Send by Email</h2>
-      <div class="two-col">
-        <div class="field-row">
-          <label>Recipient Email</label>
-          <input type="email" id="email-to" placeholder="colleague@hospital.com.au" />
-        </div>
-        <div class="field-row">
-          <label>CC (optional)</label>
-          <input type="email" id="email-cc" placeholder="admin@clinic.com.au" />
-        </div>
-      </div>
-      <div class="field-row">
-        <label>Subject</label>
-        <input type="text" id="email-subject" placeholder="Auto-filled from note" />
-      </div>
-      <div class="field-row">
-        <label>Cover Note (pre-text)</label>
-        <textarea id="email-pretext" rows="5">Dear Colleague,
-
-Please find attached the psychiatric progress note for the above-named patient following their recent consultation with Dr Lushan Vasantha.
-
-Please do not hesitate to contact our rooms should you require any further information.
-
-Kind regards,
-Dr Lushan Vasantha
-Psychiatrist</textarea>
-      </div>
-      <div class="btn-group" style="margin-top:4px;">
+      <div class="btn-group">
         <button class="btn btn-teal" onclick="sendEmail()">
           <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Open in Email Client
+          Send to Colleague
+        </button>
+        <button class="btn btn-primary" onclick="submitReportAsText()">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Submit Report as Text
         </button>
       </div>
-      <p style="font-size:.76rem;color:var(--gray);margin-top:8px;">Opens your default mail app. Attach the PDF separately.</p>
+      <p style="font-size:.76rem;color:var(--gray);margin-top:10px;">
+        <strong>Send to Colleague</strong> — opens email with note + cover letter.<br>
+        <strong>Submit Report as Text</strong> — sends full note to yourself for offline records.
+      </p>
     </div>
 
   </div>
@@ -1256,16 +1237,11 @@ function updateEmailSubject() {
     `Progress Note – ${f.patient || 'Patient'}${f.date ? ' – ' + f.date : ''} – Dr Lushan Vasantha`;
 }
 
-function sendEmail() {
-  const to      = document.getElementById('email-to').value.trim();
-  const cc      = document.getElementById('email-cc').value.trim();
-  const subject = document.getElementById('email-subject').value.trim();
-  const pretext = document.getElementById('email-pretext').value.trim();
-  const f       = getFields();
-
-  const noteText = [
+function _buildNoteText(f) {
+  return [
     'Psychiatric Progress Note','',
-    `Patient: ${f.patient}${f.reg_number ? ' (ID: ' + f.reg_number + ')' : ''}`,`Date: ${f.date}`,`Time: ${f.time}`,`Clinician: ${f.clinician}`,
+    `Patient: ${f.patient}${f.reg_number ? ' (ID: ' + f.reg_number + ')' : ''}`,
+    `Date: ${f.date}`,`Time: ${f.time}`,`Clinician: ${f.clinician}`,
     ...(f.session_number ? [`Session: ${f.session_number}`] : []),
     ...(f.attendance     ? [`Attendance: ${f.attendance}`]  : []),
     '',
@@ -1281,13 +1257,33 @@ function sendEmail() {
     'Session Summary:', f.summary, '',
     'Next Steps / Plan:', f.nextsteps,
   ].join('\n');
+}
 
-  const body = `${pretext}\n\n${'─'.repeat(50)}\n\n${noteText}`;
-  const qs = new URLSearchParams();
-  if (cc) qs.set('cc', cc);
-  qs.set('subject', subject);
-  qs.set('body', body);
-  window.location.href = `mailto:${encodeURIComponent(to)}?${qs.toString()}`;
+function sendEmail() {
+  const f = getFields();
+  const noteText = _buildNoteText(f);
+  const coverLetter = [
+    'Dear Colleague,',
+    '',
+    `Please find below a psychiatric progress note for ${f.patient || 'the above patient'}, seen on ${f.date || 'the date noted below'}.`,
+    '',
+    'This note is provided for your information and ongoing management. Please do not hesitate to contact me should you require further information.',
+    '',
+    'Kind regards,',
+    f.clinician || 'Dr. Lushan Vasantha',
+  ].join('\n');
+  const body = `${coverLetter}\n\n${'─'.repeat(50)}\n\n${noteText}`;
+  const subject = `Psychiatric Progress Note – ${f.patient || 'Patient'}${f.date ? ', ' + f.date : ''}`;
+  const params = `subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = `mailto:?${params}`;
+}
+
+function submitReportAsText() {
+  const f = getFields();
+  const noteText = _buildNoteText(f);
+  const subject = `Progress Note – ${f.patient || 'Patient'}${f.date ? ', ' + f.date : ''}`;
+  const params = `subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(noteText)}`;
+  window.location.href = `mailto:?${params}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
