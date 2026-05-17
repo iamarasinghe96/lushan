@@ -641,8 +641,9 @@
           </div>
         </div>
         <div id="ob-regsys-existing" style="display:none;" class="ob-field">
-          <label>Describe the format</label>
-          <input type="text" id="ob-reg-format" placeholder="e.g. MRN: 8-digit number" />
+          <label>Paste an example patient ID</label>
+          <input type="text" id="ob-reg-format" placeholder="e.g. 4059257 or REG202238672 or Reg-12823-1292" oninput="obPreviewRegFormat(this.value)" autocomplete="off" />
+          <div id="ob-reg-preview" style="font-size:.78rem;margin-top:6px;color:#6b7280;min-height:18px;"></div>
         </div>
         <div id="ob-regsys-lushnote" class="ob-info-box">
           We recommend our YYYYMMDDNN format — e.g. 20250517001 (date + 2-digit sequence). This will be pre-suggested when you create patient IDs.
@@ -845,7 +846,8 @@ With regards,
             <!-- Patient reg number -->
             <div class="field-row">
               <label>Patient ID / Reg #</label>
-              <input type="text" id="e-reg-number" placeholder="e.g. 100234" oninput="livePreview()" />
+              <input type="text" id="e-reg-number" placeholder="e.g. 100234" oninput="validateRegNumber(); livePreview();" autocomplete="off" />
+              <div id="reg-number-hint" style="font-size:.72rem;margin-top:3px;min-height:14px;"></div>
             </div>
           </div>
 
@@ -1383,6 +1385,10 @@ function newNote() {
   document.getElementById('e-clinician').value = 'Dr Lushan Vasantha, Psychiatrist';
   document.getElementById('current-note-bar').style.display = 'none';
   document.getElementById('visit-history-chip').style.display = 'none';
+  const rh = document.getElementById('reg-number-hint');
+  if (rh) rh.textContent = '';
+  const ri = document.getElementById('e-reg-number');
+  if (ri) ri.style.borderColor = '';
   livePreview();
   switchTab('generate');
   document.getElementById('transcript-chip').style.display = 'none';
@@ -2231,6 +2237,8 @@ function obNext(currentStep) {
       type: document.getElementById('ob-wp-type').value,
       regSystem: regSys,
       regFormat: regSys === 'existing' ? document.getElementById('ob-reg-format').value.trim() : 'YYYYMMDDNN',
+      regPattern: (function() { if (regSys !== 'existing') return null; const p = detectIdPattern(document.getElementById('ob-reg-format').value.trim()); return p ? p.regex : null; })(),
+      regTemplate: (function() { if (regSys !== 'existing') return null; const p = detectIdPattern(document.getElementById('ob-reg-format').value.trim()); return p ? p.template : null; })(),
     };
     obShowStep(3);
   } else if (currentStep === 3) {
@@ -2244,7 +2252,7 @@ function obNext(currentStep) {
       <div class="ob-summary-row"><span class="ob-summary-label">Name</span><span>${esc(p.displayName)}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Credentials</span><span>${esc(p.credentials || '—')}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Workplace</span><span>${esc(wp.name)} (${esc(wp.type)})</span></div>
-      <div class="ob-summary-row"><span class="ob-summary-label">Registration</span><span>${wp.regSystem === 'existing' ? esc(wp.regFormat) : 'LushNote YYYYMMDDNN'}</span></div>
+      <div class="ob-summary-row"><span class="ob-summary-label">Registration</span><span>${wp.regSystem === 'existing' ? (wp.regTemplate ? esc(wp.regTemplate) + ' <span style="color:#6b7280;font-size:.85em;">(from: ' + esc(wp.regFormat) + ')</span>' : esc(wp.regFormat)) : 'LushNote YYYYMMDDNN'}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Email template</span><span>${esc((p.emailPretext || '').slice(0,60))}…</span></div>
     `;
     obShowStep(4);
@@ -2330,9 +2338,110 @@ async function migrateNotes(uid) {
 // ─────────────────────────────────────────────────────────────────────────────
 // initApp (called after auth + onboarding complete)
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Patient ID pattern detection
+// ─────────────────────────────────────────────────────────────────────────────
+function detectIdPattern(example) {
+  if (!example || !example.trim()) return null;
+  example = example.trim();
+  const tokens = [];
+  let i = 0;
+  while (i < example.length) {
+    if (/[A-Za-z]/.test(example[i])) {
+      let j = i;
+      while (j < example.length && /[A-Za-z]/.test(example[j])) j++;
+      tokens.push({ type: 'alpha', value: example.slice(i, j) });
+      i = j;
+    } else if (/\d/.test(example[i])) {
+      let j = i;
+      while (j < example.length && /\d/.test(example[j])) j++;
+      tokens.push({ type: 'digit', value: example.slice(i, j) });
+      i = j;
+    } else {
+      tokens.push({ type: 'sep', value: example[i] });
+      i++;
+    }
+  }
+  const regexParts = [], templateParts = [], descParts = [];
+  for (const tok of tokens) {
+    if (tok.type === 'alpha') {
+      regexParts.push(tok.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      templateParts.push(tok.value);
+      descParts.push(`"${tok.value}"`);
+    } else if (tok.type === 'digit') {
+      regexParts.push(`\\d{${tok.value.length}}`);
+      templateParts.push('#'.repeat(tok.value.length));
+      descParts.push(`${tok.value.length} digit${tok.value.length > 1 ? 's' : ''}`);
+    } else {
+      regexParts.push(tok.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      templateParts.push(tok.value);
+    }
+  }
+  return {
+    example,
+    regex: `^${regexParts.join('')}$`,
+    template: templateParts.join(''),
+    description: descParts.join(' + '),
+  };
+}
+
+function obPreviewRegFormat(val) {
+  const preview = document.getElementById('ob-reg-preview');
+  if (!preview) return;
+  if (!val.trim()) { preview.innerHTML = ''; return; }
+  const p = detectIdPattern(val.trim());
+  if (!p) { preview.innerHTML = ''; return; }
+  preview.innerHTML = `Detected: <strong>${esc(p.description)}</strong> &rarr; pattern: <code style="background:#f3f4f6;padding:1px 5px;border-radius:3px;">${esc(p.template)}</code>`;
+}
+
+function applyRegPattern() {
+  if (!currentUser || !currentUser.profile) return;
+  const p = currentUser.profile;
+  const wps = p.workplaces || [];
+  const activeWp = wps.find(w => w.id === p.activeWorkplaceId) || wps[0];
+  const regInput = document.getElementById('e-reg-number');
+  if (!regInput) return;
+  if (activeWp && activeWp.regSystem === 'existing' && activeWp.regTemplate) {
+    regInput.placeholder = activeWp.regTemplate;
+    regInput.dataset.regPattern = activeWp.regPattern || '';
+    regInput.dataset.regTemplate = activeWp.regTemplate || '';
+  } else {
+    regInput.placeholder = 'e.g. ' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '001';
+    regInput.dataset.regPattern = '';
+    regInput.dataset.regTemplate = '';
+  }
+}
+
+function validateRegNumber() {
+  const regInput = document.getElementById('e-reg-number');
+  const hint = document.getElementById('reg-number-hint');
+  if (!regInput || !hint) return;
+  const val = regInput.value.trim();
+  const pattern = regInput.dataset.regPattern;
+  const template = regInput.dataset.regTemplate;
+  if (!pattern || !val) {
+    hint.textContent = '';
+    regInput.style.borderColor = '';
+    return;
+  }
+  try {
+    const ok = new RegExp(pattern).test(val);
+    if (ok) {
+      hint.innerHTML = '<span style="color:#16a34a;">&#10003; Valid format</span>';
+      regInput.style.borderColor = '#16a34a';
+    } else {
+      hint.innerHTML = `<span style="color:#dc2626;">Expected format: <code>${esc(template)}</code></span>`;
+      regInput.style.borderColor = '#dc2626';
+    }
+  } catch(e) {
+    hint.textContent = '';
+  }
+}
+
 function initApp() {
   updateApiStatusBar();
   loadPatientIndex();
+  applyRegPattern();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
