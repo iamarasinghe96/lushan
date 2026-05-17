@@ -1681,9 +1681,10 @@ function exportPDF() {
 // Export – Email
 // ─────────────────────────────────────────────────────────────────────────────
 function updateEmailSubject() {
+  const el = document.getElementById('email-subject');
+  if (!el) return;
   const f = getFields();
-  document.getElementById('email-subject').value =
-    `Progress Note – ${f.patient || 'Patient'}${f.date ? ' – ' + f.date : ''} – Dr Lushan Vasantha`;
+  el.value = `Progress Note – ${f.patient || 'Patient'}${f.date ? ' – ' + f.date : ''} – Dr Lushan Vasantha`;
 }
 
 function _buildNoteText(f) {
