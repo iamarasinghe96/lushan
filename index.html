@@ -1509,14 +1509,14 @@ function renderHistory(notes) {
   const cards = notes.map(note => {
     const snippet = (note.summary || '').replace(/\n/g,' ').slice(0, 120);
     return `
-    <div class="history-card" onclick="loadNoteFromHistory(${JSON.stringify(note).replace(/"/g,'&quot;')})">
+    <div class="history-card" onclick="loadNoteById('${note.id}')">
       <div class="history-card-info">
         <h3>${esc(note.patient || 'Unknown patient')}</h3>
         <div class="meta">${esc(note.date || '')}${note.date && note.time ? '  ·  ' : ''}${esc(note.time || '')}</div>
         ${snippet ? `<div class="snippet">${esc(snippet)}${(note.summary||'').length > 120 ? '…' : ''}</div>` : ''}
       </div>
       <div class="history-card-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-primary btn-sm" onclick="loadNoteFromHistory(${JSON.stringify(note).replace(/"/g,'&quot;')})">Load</button>
+        <button class="btn btn-primary btn-sm" onclick="loadNoteById('${note.id}')">Load</button>
         <button class="btn btn-danger btn-sm" onclick="deleteHistoryNote('${note.id}')">Delete</button>
       </div>
     </div>`;
@@ -1527,8 +1527,12 @@ function renderHistory(notes) {
   list.insertAdjacentHTML('beforeend', cards);
 }
 
+function loadNoteById(id) {
+  const note = state.allNotes.find(n => n.id === id);
+  if (note) loadNoteFromHistory(note);
+}
+
 function loadNoteFromHistory(note) {
-  if (typeof note === 'string') note = JSON.parse(note);
   state.currentNoteId = note.id;
   populateFields(note);
   livePreview();
@@ -2480,6 +2484,14 @@ function renderAccountWorkplaces() {
   const wps = p.workplaces || [];
   const activeId = p.activeWorkplaceId;
   const container = document.getElementById('as-wp-list');
+  const addArea = document.getElementById('as-add-wp-area');
+  if (addArea) {
+    if (canAddWorkplace()) {
+      addArea.innerHTML = '<button class="as-btn-primary" onclick="addWorkplace()">+ Add workplace</button>';
+    } else {
+      addArea.innerHTML = '<p style="font-size:.78rem;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:7px;padding:8px 12px;margin:0;">Your plan includes 1 active workplace. <a href="mailto:admin@lushnote.com" style="color:var(--blue);">Contact us to upgrade.</a></p>';
+    }
+  }
   container.innerHTML = wps.map((wp, i) => `
     <div class="as-wp-card ${wp.id === activeId ? 'as-wp-active' : ''}" id="as-wp-card-${wp.id}">
       <div class="as-wp-card-header">
@@ -2575,8 +2587,22 @@ function deleteWorkplace(wpId) {
   renderAccountWorkplaces();
 }
 
+function isAdminUser() {
+  return currentUser && currentUser.profile && currentUser.profile.tier === 'admin';
+}
+
+function canAddWorkplace() {
+  if (isAdminUser()) return true;
+  const wps = (currentUser && currentUser.profile && currentUser.profile.workplaces) || [];
+  return wps.length < 1;
+}
+
 function addWorkplace() {
   if (!currentUser || !currentUser.profile) return;
+  if (!canAddWorkplace()) {
+    alert('Your plan includes 1 active workplace. Contact us to upgrade.');
+    return;
+  }
   const wps = currentUser.profile.workplaces || [];
   const newId = 'wp_' + Date.now();
   wps.push({ id: newId, name: 'New Workplace', type: 'Private Practice', regSystem: 'lushnote', regFormat: 'YYYYMMDDNN', themeIndex: wps.length % WP_THEMES.length });
@@ -2659,7 +2685,7 @@ async function saveAccountSettings() {
       <!-- Workplace tab -->
       <div id="as-pane-workplace" style="display:none;">
         <div id="as-wp-list"></div>
-        <button class="as-btn-primary" style="margin-top:12px;" onclick="addWorkplace()">+ Add workplace</button>
+        <div id="as-add-wp-area" style="margin-top:12px;"></div>
       </div>
 
       <!-- Email template tab -->
