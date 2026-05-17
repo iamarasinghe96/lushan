@@ -1269,6 +1269,109 @@ function updateApiStatusBar() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Generate Report (Paste + Groq)
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Transcript validation (client-side only, no AI)
+// ─────────────────────────────────────────────────────────────────────────────
+function validateTranscript(text) {
+  const words = text.trim().split(/\s+/);
+  if (words.length < 80) {
+    return `Too short — only ${words.length} words detected. A consultation transcript is usually at least 80 words. Please copy the full transcript.`;
+  }
+
+  const lower = text.toLowerCase();
+
+  // Check for clinical/conversation signals
+  const clinicalTerms = [
+    'patient','doctor','dr ','presenting','history','medication','symptoms',
+    'diagnosis','treatment','assessment','referral','follow','appointment',
+    'complaint','examination','prescribed','dose','therapy','anxiety',
+    'depression','pain','sleep','mood','review','consultation','nurse',
+    'clinic','hospital','reported','denies','appears','affect','insight',
+    'plan','risk','mental','psychiatric','psycholog','counsell'
+  ];
+  const conversationSignals = [
+    'doctor:','patient:','dr.','clinician:','therapist:','client:',
+    '?','said','asked','told','mentioned','described','reported','felt'
+  ];
+
+  const hasClinical = clinicalTerms.some(t => lower.includes(t));
+  const hasConversation = conversationSignals.some(t => lower.includes(t));
+
+  if (!hasClinical && !hasConversation) {
+    return 'This does not look like a clinical consultation transcript. Please copy your session transcript and try again.';
+  }
+
+  return null; // passes
+}
+
+function transcriptConfirmModal(text) {
+  return new Promise(resolve => {
+    const words = text.trim().split(/\s+/);
+    const sentences = text.trim().split(/(?<=[.!?])\s+/);
+    const preview = sentences.slice(0, 3).join(' ').slice(0, 280).trim();
+    const more = text.trim().length > 280;
+
+    const modal = document.createElement('div');
+    modal.id = 'transcript-confirm-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0);z-index:9100;display:flex;align-items:center;justify-content:center;transition:background .25s;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:14px;width:min(520px,94vw);box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;transform:translateY(12px);opacity:0;transition:transform .25s,opacity .25s;" id="tcm-inner">
+        <div style="padding:20px 22px 0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b7280;">Clipboard preview</span>
+            <span style="font-size:.72rem;color:#9ca3af;">${words.length} words</span>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:9px;padding:14px 16px;font-size:.85rem;line-height:1.65;color:#1f2937;max-height:140px;overflow:hidden;position:relative;">
+            <span>${esc(preview)}${more ? '…' : ''}</span>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,#f8fafc);pointer-events:none;"></div>
+          </div>
+          <p style="font-size:.8rem;color:#6b7280;margin:12px 0 0;">Does this look like your consultation transcript?</p>
+        </div>
+        <div style="display:flex;gap:10px;padding:16px 22px;">
+          <button id="tcm-cancel" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.88rem;cursor:pointer;font-weight:500;">Cancel</button>
+          <button id="tcm-confirm" style="flex:2;padding:10px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;">Yes, generate report</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    requestAnimationFrame(() => {
+      modal.style.background = 'rgba(0,0,0,.45)';
+      const inner = document.getElementById('tcm-inner');
+      inner.style.transform = 'translateY(0)';
+      inner.style.opacity = '1';
+    });
+
+    function close(result) {
+      modal.style.background = 'rgba(0,0,0,0)';
+      const inner = document.getElementById('tcm-inner');
+      if (inner) { inner.style.opacity = '0'; inner.style.transform = 'translateY(10px)'; }
+      setTimeout(() => { modal.remove(); resolve(result); }, 220);
+    }
+
+    document.getElementById('tcm-confirm').onclick = () => close(true);
+    document.getElementById('tcm-cancel').onclick  = () => close(false);
+    modal.addEventListener('click', e => { if (e.target === modal) close(false); });
+  });
+}
+
+function showTranscriptRejection(message) {
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9100;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:14px;width:min(440px,92vw);box-shadow:0 20px 50px rgba(0,0,0,.22);overflow:hidden;">
+      <div style="background:#fef2f2;padding:18px 22px 14px;border-bottom:1px solid #fecaca;">
+        <div style="font-weight:700;color:#dc2626;font-size:.95rem;margin-bottom:4px;">Transcript not accepted</div>
+        <div style="font-size:.84rem;color:#7f1d1d;line-height:1.55;">${esc(message)}</div>
+      </div>
+      <div style="padding:14px 22px;">
+        <button id="tcr-ok" style="width:100%;padding:10px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-weight:700;font-size:.88rem;cursor:pointer;">OK</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('tcr-ok').onclick = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
 async function pasteAndGenerate() {
   const groqKey = GROQ_KEY;
 
@@ -1284,7 +1387,17 @@ async function pasteAndGenerate() {
     return;
   }
 
-  const wordCount = transcript.trim().split(/\s+/).length;
+  // Show confirmation preview — user must confirm before Groq is called
+  const confirmed = await transcriptConfirmModal(transcript);
+  if (!confirmed) return;
+
+  // Hard validation after confirmation — all client-side, no AI
+  const rejection = validateTranscript(transcript);
+  if (rejection) {
+    showTranscriptRejection(rejection);
+    return;
+  }
+
   setLoading(true, 'Reading transcript & generating report…');
   try {
     // Compute date/time from upload moment
