@@ -223,8 +223,8 @@
     #preview-pane .meta p { margin-bottom: 2px; }
     #preview-pane .p-section { margin-top: 12px; }
     #preview-pane .p-head { font-weight: 700; }
-    #preview-pane ul { margin: 3px 0 0 16px; }
-    #preview-pane ul li { margin-bottom: 2px; }
+    #preview-pane ol { margin: 3px 0 0 20px; }
+    #preview-pane ol li { margin-bottom: 2px; }
     #preview-pane .empty-state { color: #9ca3af; font-style: italic; font-family: sans-serif; font-size: .84rem; }
 
     /* ── History ── */
@@ -692,17 +692,17 @@ The JSON must have exactly these keys:
   "clinician":      "Dr Lushan Vasantha, Psychiatrist",
   "session_number": "session number or episode context if mentioned (e.g. Session 4 of ongoing treatment); leave empty string if not mentioned",
   "attendance":     "brief attendance and consent note inferred from transcript (e.g. Patient attended on time. Verbal consent for session confirmed.); leave empty string if nothing inferable",
-  "diagnosis":      "active working diagnoses with ICD-10 codes where inferable from transcript (e.g. • PTSD – F43.1); write • To be confirmed if diagnoses are not discussed",
-  "presentation":   "current presentation as bullet points, each line starting with • ",
-  "history":        "past medical and psychiatric history as bullet points starting with • ; write • Not discussed if absent",
-  "medications":    "current medications and any changes made this session as bullet points starting with • ; include dose and instructions if mentioned; write • Not discussed if absent",
+  "diagnosis":      "active working diagnoses with ICD-10 codes where inferable from transcript (e.g. 1. PTSD – F43.1); write 1. To be confirmed if diagnoses are not discussed",
+  "presentation":   "current presentation as a numbered list, each line starting with 1. 2. 3. etc.",
+  "history":        "past medical and psychiatric history as a numbered list starting with 1. 2. 3.; write 1. Not discussed if absent",
+  "medications":    "current medications and any changes made this session as a numbered list starting with 1. 2. 3.; include dose and instructions if mentioned; write 1. Not discussed if absent",
   "mse":            "mental status examination as narrative paragraph; infer from observable transcript behaviour and language; note inferred items",
-  "content":        "session content as bullet points starting with • ; include emotional disclosures, therapeutic exchanges, psychoeducation given, patient insights and questions",
-  "scales":         "psychometric tools administered and scores (e.g. • PHQ-9: 14/27); write • Not administered this session if none",
+  "content":        "session content as a numbered list starting with 1. 2. 3.; include emotional disclosures, therapeutic exchanges, psychoeducation given, patient insights and questions",
+  "scales":         "psychometric tools administered and scores as a numbered list (e.g. 1. PHQ-9: 14/27); write 1. Not administered this session if none",
   "risk":           "risk assessment and management narrative; write No specific risk concerns raised in this consultation if not discussed",
-  "referrals":      "referrals initiated this session as bullet points starting with • ; include clinician name and specialty if mentioned; write • None initiated if absent",
+  "referrals":      "referrals initiated this session as a numbered list starting with 1. 2. 3.; include clinician name and specialty if mentioned; write 1. None initiated if absent",
   "summary":        "3–5 sentence narrative capturing: the nature of the session, significant emotional or therapeutic shifts, patient engagement and insight, and clinical direction",
-  "nextsteps":      "next steps and plan as bullet points starting with • ; write • None specified if absent"
+  "nextsteps":      "next steps and plan as a numbered list starting with 1. 2. 3.; write 1. None specified if absent"
 }`;
 
 
@@ -908,8 +908,23 @@ function parseJson(raw) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Field population
 // ─────────────────────────────────────────────────────────────────────────────
+function toNumbered(text) {
+  if (!text) return text;
+  // If already numbered, return as-is
+  if (/^\d+\./.test((text.trim().split('\n')[0] || ''))) return text;
+  let n = 0;
+  return text.split('\n').map(line => {
+    const t = line.trim();
+    if (/^[•\-\*]\s*/.test(t)) { n++; return n + '. ' + t.replace(/^[•\-\*]\s*/, ''); }
+    return line;
+  }).join('\n');
+}
+
+const LIST_FIELDS = ['e-diagnosis','e-presentation','e-history','e-medications',
+                     'e-content','e-scales','e-referrals','e-nextsteps'];
+
 function populateFields(d) {
-  const set = (id, val) => { if (val) document.getElementById(id).value = val; };
+  const set = (id, val) => { if (val) document.getElementById(id).value = LIST_FIELDS.includes(id) ? toNumbered(val) : val; };
   set('e-patient',        d.patient);
   set('e-reg-number',     d.reg_number);
   // Date: "DD Month YYYY" → "DD/MM/YYYY" display
@@ -1025,8 +1040,8 @@ function buildPreviewHTML(f) {
   const bullets = txt => {
     if (!txt) return '<p><em style="color:#9ca3af">—</em></p>';
     const lines = txt.split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.some(l => /^[•\-\*]/.test(l))) {
-      return '<ul>' + lines.map(l => `<li>${esc(l.replace(/^[•\-\*]\s*/, ''))}</li>`).join('') + '</ul>';
+    if (lines.some(l => /^(\d+\.|[•\-\*])/.test(l))) {
+      return '<ol>' + lines.map(l => `<li>${esc(l.replace(/^(\d+\.\s*|[•\-\*]\s*)/, ''))}</li>`).join('') + '</ol>';
     }
     return lines.map(l => `<p>${esc(l)}</p>`).join('');
   };
@@ -1179,12 +1194,15 @@ function exportPDF() {
     doc.setFont('helvetica','normal');
     if (!val) { doc.setTextColor(160); wrapped('—'); doc.setTextColor(0); return; }
     if (bullets) {
+      let n = 0;
       val.split('\n').map(l => l.trim()).filter(Boolean).forEach(l => {
-        const clean = l.replace(/^[•\-\*]\s*/,'');
+        n++;
+        const clean = l.replace(/^(\d+\.\s*|[•\-\*]\s*)/, '');
+        const numStr = `${n}.`;
         checkPage();
-        doc.text('•', mL + 4, y);
-        doc.splitTextToSize(clean, maxW - 16).forEach((line, i) => {
-          checkPage(); doc.text(line, mL + 14, y); y += lh;
+        doc.text(numStr, mL + 4, y);
+        doc.splitTextToSize(clean, maxW - 20).forEach(line => {
+          checkPage(); doc.text(line, mL + 18, y); y += lh;
         });
       });
       y += 4;
@@ -1509,6 +1527,24 @@ document.addEventListener('focusout', e => {
   if (e.target.closest('.form-panel') && e.target.matches('input[type=text], textarea')) {
     scheduleAutoSave();
   }
+});
+
+// Auto-continue numbering on Enter in list fields
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const ta = e.target;
+  if (!ta.matches('textarea') || !LIST_FIELDS.includes(ta.id)) return;
+  const pos   = ta.selectionStart;
+  const lines = ta.value.substring(0, pos).split('\n');
+  const last  = lines[lines.length - 1];
+  const match = last.match(/^(\d+)\.\s/);
+  if (!match) return;
+  e.preventDefault();
+  const next   = parseInt(match[1]) + 1;
+  const insert = '\n' + next + '. ';
+  ta.value = ta.value.substring(0, pos) + insert + ta.value.substring(ta.selectionEnd);
+  ta.selectionStart = ta.selectionEnd = pos + insert.length;
+  livePreview();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
