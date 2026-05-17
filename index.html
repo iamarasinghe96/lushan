@@ -1190,13 +1190,13 @@ function updateApiStatusBar() {
 
   const groqDot  = document.getElementById('groq-dot');
   const groqText = document.getElementById('groq-status-text');
-  groqDot.className    = 'status-dot dot-green';
-  groqText.textContent = 'Groq API ready';
+  if (groqDot)  groqDot.className    = 'status-dot dot-green';
+  if (groqText) groqText.textContent = 'Groq API ready';
 
   const fbDot  = document.getElementById('fb-dot');
   const fbText = document.getElementById('fb-status-text');
-  fbDot.className  = 'status-dot ' + (hasFb ? 'dot-green' : 'dot-yellow');
-  fbText.textContent = hasFb ? 'Firebase connected' : 'Firebase not connected (local only)';
+  if (fbDot)  fbDot.className  = 'status-dot ' + (hasFb ? 'dot-green' : 'dot-yellow');
+  if (fbText) fbText.textContent = hasFb ? 'Firebase connected' : 'Firebase not connected (local only)';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
