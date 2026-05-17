@@ -38,8 +38,11 @@
       position: sticky; top: 0; z-index: 90;
     }
     .header-left { display: flex; align-items: center; gap: 12px; }
-    header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -.3px; }
-    header p  { font-size: .75rem; opacity: .75; }
+    header h1 { font-size: 1.15rem; font-weight: 800; letter-spacing: -.3px; margin: 0; line-height: 1.2; }
+    header p  { font-size: .75rem; opacity: .8; margin: 0; line-height: 1.3; }
+    .header-wp-sep:not(:empty)::before { content: ' · '; opacity: .6; }
+    .header-brand { font-size: 1.1rem; font-weight: 800; letter-spacing: -.3px; opacity: .88; margin-right: 12px; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
     .settings-btn {
       background: rgba(255,255,255,.18);
       border: 1px solid rgba(255,255,255,.3);
@@ -468,7 +471,6 @@
     .ob-summary-label { color: var(--gray); font-weight: 600; }
 
     /* ── Header additions ── */
-    .header-right { display: flex; align-items: center; gap: 10px; }
     .wp-chip {
       display: inline-block; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3);
       border-radius: 12px; padding: 2px 9px; font-size: .7rem; font-weight: 600;
@@ -817,12 +819,12 @@ With regards,
       <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
     </svg>
     <div>
-      <h1>LushNote</h1>
-      <p id="header-subtitle">Dr Lushan Vasantha · LushNote</p>
-      <span class="wp-chip" id="header-wp-chip" style="display:none;"></span>
+      <h1 id="header-doctor-name">Dr Lushan Vasantha</h1>
+      <p id="header-subtitle"><span id="header-credentials"></span><span id="header-wp-chip" class="header-wp-sep"></span></p>
     </div>
   </div>
   <div class="header-right">
+    <span class="header-brand">LushNote</span>
     <div class="user-menu-wrap">
       <button class="user-avatar" id="user-avatar-btn" onclick="toggleUserMenu(event)" title="Account">LV</button>
       <div class="user-menu-drop" id="user-menu-drop">
@@ -2329,20 +2331,20 @@ function updateHeaderUser() {
   const p = currentUser.profile;
   const name = p.displayName || '';
   const cred = p.credentials || '';
-  const subtitle = [cred, name].filter(Boolean).join(' ');
-  document.getElementById('header-subtitle').textContent =
-    subtitle + (subtitle ? ' · LushNote' : 'LushNote');
+
+  const nameEl = document.getElementById('header-doctor-name');
+  if (nameEl) nameEl.textContent = name || 'LushNote';
+
+  const credEl = document.getElementById('header-credentials');
+  if (credEl) credEl.textContent = cred;
+
+  const wps = p.workplaces || [];
+  const activeWp = wps.find(w => w.id === p.activeWorkplaceId) || wps[0];
+  const wpChip = document.getElementById('header-wp-chip');
+  if (wpChip) wpChip.textContent = activeWp ? activeWp.name : '';
 
   const initials = name ? name.replace(/^Dr\s+/i,'').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : 'LN';
   document.getElementById('user-avatar-btn').textContent = initials;
-
-  const wpChip = document.getElementById('header-wp-chip');
-  const wps = p.workplaces || [];
-  const activeWp = wps.find(w => w.id === p.activeWorkplaceId) || wps[0];
-  if (activeWp) {
-    wpChip.textContent = activeWp.name;
-    wpChip.style.display = 'inline-block';
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2352,8 +2354,9 @@ function applyWorkspaceTheme() {
   if (!currentUser || !currentUser.profile) return;
   const p = currentUser.profile;
   const wps = p.workplaces || [];
-  const activeWpIdx = wps.findIndex(w => w.id === p.activeWorkplaceId);
-  const theme = WP_THEMES[Math.max(0, activeWpIdx) % WP_THEMES.length] || WP_THEMES[0];
+  const activeWp = wps.find(w => w.id === p.activeWorkplaceId) || wps[0];
+  const themeIdx = activeWp && activeWp.themeIndex != null ? activeWp.themeIndex : 0;
+  const theme = WP_THEMES[themeIdx % WP_THEMES.length] || WP_THEMES[0];
   const root = document.documentElement;
   root.style.setProperty('--blue',    theme.primary);
   root.style.setProperty('--blue-dk', theme.dk);
