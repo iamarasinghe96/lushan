@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LushanNote – Progress Note Builder</title>
+  <title>LushNote – Progress Note Builder</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='lgb' cx='42%25' cy='36%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%233da843'/%3E%3Cstop offset='100%25' stop-color='%231e6b22'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='url(%23lgb)'/%3E%3Crect x='11' y='19' width='34' height='62' rx='11' fill='none' stroke='white' stroke-width='5.5'/%3E%3Cellipse cx='28' cy='50' rx='10' ry='15' fill='white' transform='rotate(-8 28 50)'/%3E%3Cpath d='M28 35 Q31 50 28 65' fill='none' stroke='%232a7a2a' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M52 21 L52 79 L74 21 L74 79' fill='none' stroke='white' stroke-width='6.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
@@ -341,9 +343,371 @@
       header, .tabs, #api-status-bar, .paste-hero, .card:not(#print-card), #toast { display: none !important; }
       #preview-pane { border: none; padding: 0; max-height: none; }
     }
+
+    /* ── Auth page ── */
+    .view-auth-page {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #e3f9ee 0%, #ebf5ff 50%, #f0fdf4 100%);
+      padding: 20px;
+    }
+    .auth-box {
+      background: #fff; border-radius: 16px; padding: 36px 32px;
+      max-width: 420px; width: 100%;
+      box-shadow: 0 8px 40px rgba(0,0,0,.12);
+    }
+    .auth-logo-area { text-align: center; margin-bottom: 24px; }
+    .auth-logo-area h1 { font-size: 1.7rem; font-weight: 800; color: #1a1a1a; margin: 10px 0 4px; }
+    .auth-logo-area p  { font-size: .85rem; color: var(--gray); }
+    .auth-tab-bar {
+      display: flex; background: #f3f4f6; border-radius: 10px; padding: 3px; margin-bottom: 22px;
+    }
+    .auth-tab-btn {
+      flex: 1; padding: 8px; border: none; background: transparent; border-radius: 8px;
+      font-size: .85rem; font-weight: 600; cursor: pointer; color: var(--gray);
+      transition: background .15s, color .15s;
+    }
+    .auth-tab-btn.active { background: #fff; color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+    .auth-input {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 9px;
+      padding: 10px 13px; font-size: .9rem; font-family: inherit;
+      color: var(--text); background: #fff; margin-bottom: 12px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .auth-input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,159,110,.14); }
+    .auth-btn {
+      width: 100%; padding: 12px; border: none; border-radius: 9px;
+      background: var(--teal); color: #fff; font-size: .95rem; font-weight: 700;
+      cursor: pointer; margin-top: 4px; transition: opacity .15s, transform .1s;
+    }
+    .auth-btn:hover { opacity: .9; }
+    .auth-btn:active { transform: scale(.98); }
+    .auth-error { color: var(--danger); font-size: .82rem; margin-top: 8px; min-height: 18px; }
+    .payid-box {
+      background: #e3f9ee; border: 1.5px solid #6ee7b7; border-radius: 12px;
+      padding: 18px 20px; margin: 16px 0; text-align: center;
+    }
+    .payid-box .payid-label { font-size: .75rem; font-weight: 700; color: #065f46; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+    .payid-box .payid-number { font-size: 1.5rem; font-weight: 800; color: #047857; letter-spacing: 1px; }
+    .payid-box .payid-ref { font-size: .8rem; color: #065f46; margin-top: 6px; }
+    .auth-back-link { display: block; text-align: center; font-size: .82rem; margin-top: 12px; color: var(--gray); cursor: pointer; }
+    .auth-back-link:hover { color: var(--teal); }
+
+    /* ── Pending page ── */
+    .view-pending-page {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+      padding: 20px;
+    }
+    .pending-box {
+      background: #fff; border-radius: 16px; padding: 40px 32px;
+      max-width: 460px; width: 100%; text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,.12);
+    }
+    .pending-box h2 { font-size: 1.3rem; font-weight: 700; margin: 16px 0 10px; }
+    .pending-box p  { color: var(--gray); font-size: .88rem; line-height: 1.6; }
+    .pending-email  { font-weight: 700; color: var(--text); }
+    .pending-signout { margin-top: 20px; color: var(--teal); font-size: .85rem; cursor: pointer; background: none; border: none; }
+
+    /* ── Onboarding ── */
+    .view-onboarding-page {
+      min-height: 100vh; background: linear-gradient(135deg, #e3f9ee 0%, #ebf5ff 100%);
+      display: flex; align-items: flex-start; justify-content: center; padding: 40px 20px;
+    }
+    .onboarding-wrap { max-width: 580px; width: 100%; }
+    .onboarding-wrap .ob-logo { text-align: center; margin-bottom: 28px; }
+    .onboarding-wrap .ob-logo h1 { font-size: 1.5rem; font-weight: 800; color: #1a1a1a; margin: 8px 0 2px; }
+    .onboarding-wrap .ob-logo p  { font-size: .83rem; color: var(--gray); }
+    .ob-progress { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 28px; }
+    .step-dot {
+      width: 32px; height: 8px; border-radius: 4px;
+      background: #d1d5db; transition: background .3s;
+    }
+    .step-dot.active { background: var(--teal); }
+    .step-dot.done   { background: #6ee7b7; }
+    .ob-card {
+      background: #fff; border-radius: 14px; padding: 30px 28px;
+      box-shadow: 0 6px 30px rgba(0,0,0,.1); margin-bottom: 16px;
+    }
+    .ob-card h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+    .ob-card .ob-step-label { font-size: .75rem; font-weight: 700; color: var(--teal); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
+    .ob-field { margin-bottom: 14px; }
+    .ob-field label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: 4px; color: #374151; }
+    .ob-field input, .ob-field select, .ob-field textarea {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 9px 12px; font-size: .88rem; font-family: inherit; color: var(--text); background: #fff;
+    }
+    .ob-field input:focus, .ob-field select:focus, .ob-field textarea:focus {
+      outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,159,110,.12);
+    }
+    .ob-radio-group { display: flex; gap: 12px; margin-top: 4px; }
+    .ob-radio-label {
+      display: flex; align-items: center; gap: 7px;
+      font-size: .85rem; cursor: pointer; color: #374151;
+    }
+    .ob-info-box {
+      background: #e3f9ee; border: 1px solid #6ee7b7; border-radius: 8px;
+      padding: 12px 14px; font-size: .81rem; color: #065f46; line-height: 1.5;
+      margin-top: 10px;
+    }
+    .ob-notice {
+      background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px;
+      padding: 10px 14px; font-size: .79rem; color: #78350f; margin-top: 12px;
+    }
+    .ob-btn { display: block; width: 100%; padding: 12px; border: none; border-radius: 9px;
+      background: var(--teal); color: #fff; font-size: .95rem; font-weight: 700;
+      cursor: pointer; text-align: center; margin-top: 8px;
+      transition: opacity .15s; }
+    .ob-btn:hover { opacity: .9; }
+    .ob-btn-secondary { background: #e5e7eb; color: #374151; margin-top: 8px; }
+    .ob-template-opt { border: 1.5px solid var(--border); border-radius: 9px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: border-color .15s; }
+    .ob-template-opt.selected { border-color: var(--teal); background: #f0fdf4; }
+    .ob-template-opt textarea { border: none; background: transparent; resize: vertical; font-size: .8rem; color: #374151; width: 100%; margin-top: 6px; }
+    .ob-template-opt textarea:focus { outline: none; box-shadow: none; border: none; }
+    .ob-summary-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f3f4f6; font-size: .86rem; }
+    .ob-summary-row:last-child { border-bottom: none; }
+    .ob-summary-label { color: var(--gray); font-weight: 600; }
+
+    /* ── Header additions ── */
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .wp-chip {
+      display: inline-block; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3);
+      border-radius: 12px; padding: 2px 9px; font-size: .7rem; font-weight: 600;
+      color: rgba(255,255,255,.9); margin-top: 3px;
+    }
+    .user-avatar {
+      width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.95);
+      color: var(--teal); font-size: .8rem; font-weight: 800;
+      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2); flex-shrink: 0;
+      position: relative;
+    }
+    .user-menu-wrap { position: relative; }
+    .user-menu-drop {
+      display: none; position: absolute; right: 0; top: calc(100% + 8px);
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.14); min-width: 160px; z-index: 300; overflow: hidden;
+    }
+    .user-menu-drop.open { display: block; }
+    .user-menu-drop button {
+      display: block; width: 100%; padding: 11px 16px; background: none; border: none;
+      font-size: .85rem; font-weight: 500; color: #1f2937; cursor: pointer; text-align: left;
+      border-bottom: 1px solid var(--border); transition: background .12s;
+    }
+    .user-menu-drop button:last-child { border-bottom: none; }
+    .user-menu-drop button:hover { background: #f3f4f6; }
   </style>
 </head>
 <body>
+
+<!-- ══════════════════════ VIEW: AUTH ══════════════════════ -->
+<div id="view-auth" style="display:none;">
+  <div class="view-auth-page">
+    <div class="auth-box">
+      <div class="auth-logo-area">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="56" height="56">
+          <defs><radialGradient id="lgb2" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
+          <circle cx="50" cy="50" r="50" fill="url(#lgb2)"/>
+          <rect x="11" y="19" width="34" height="62" rx="11" fill="none" stroke="white" stroke-width="5.5"/>
+          <ellipse cx="28" cy="50" rx="10" ry="15" fill="white" transform="rotate(-8 28 50)"/>
+          <path d="M28 35 Q31 50 28 65" fill="none" stroke="#2a7a2a" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M52 21 L52 79 L74 21 L74 79" fill="none" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1>LushNote</h1>
+        <p>Psychiatric Progress Note Builder</p>
+      </div>
+
+      <div class="auth-tab-bar">
+        <button class="auth-tab-btn active" id="auth-tab-signin" onclick="switchAuthTab('signin')">Sign In</button>
+        <button class="auth-tab-btn" id="auth-tab-register" onclick="switchAuthTab('register')">Register</button>
+      </div>
+
+      <!-- Sign In Form -->
+      <div id="auth-signin-form">
+        <input class="auth-input" type="email" id="signin-email" placeholder="Email address" autocomplete="email" />
+        <input class="auth-input" type="password" id="signin-password" placeholder="Password" autocomplete="current-password" />
+        <button class="auth-btn" onclick="doLogin()">Sign In</button>
+        <div class="auth-error" id="signin-error"></div>
+      </div>
+
+      <!-- Register Step 1 -->
+      <div id="auth-register-step1" style="display:none;">
+        <input class="auth-input" type="text" id="reg-name" placeholder="Full name (e.g. Dr Lushan Vasantha)" autocomplete="name" />
+        <input class="auth-input" type="email" id="reg-email" placeholder="Email address" autocomplete="email" />
+        <input class="auth-input" type="password" id="reg-password" placeholder="Choose a password" autocomplete="new-password" />
+        <button class="auth-btn" onclick="regStep1Next()">Continue to Payment →</button>
+        <div class="auth-error" id="reg-step1-error"></div>
+      </div>
+
+      <!-- Register Step 2 -->
+      <div id="auth-register-step2" style="display:none;">
+        <div style="font-size:.88rem;color:#374151;margin-bottom:12px;font-weight:600;">Subscription — AU$300/year</div>
+        <div class="payid-box">
+          <div class="payid-label">Transfer via CBA PayID</div>
+          <div class="payid-number">0484 920 892</div>
+          <div class="payid-ref">Reference: <strong id="payid-ref-email">your email address</strong></div>
+        </div>
+        <div style="font-size:.8rem;color:var(--gray);margin-bottom:14px;line-height:1.5;">
+          Once payment is made, click below to register. Your account will be activated after payment is confirmed (usually within 1 business day).
+        </div>
+        <button class="auth-btn" onclick="doRegister()">I've completed the payment — Register</button>
+        <span class="auth-back-link" onclick="regGoBack()">← Back</span>
+        <div class="auth-error" id="reg-step2-error"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ VIEW: PENDING ══════════════════════ -->
+<div id="view-pending" style="display:none;">
+  <div class="view-pending-page">
+    <div class="pending-box">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="56" height="56">
+        <defs><radialGradient id="lgb3" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
+        <circle cx="50" cy="50" r="50" fill="url(#lgb3)"/>
+        <rect x="11" y="19" width="34" height="62" rx="11" fill="none" stroke="white" stroke-width="5.5"/>
+        <ellipse cx="28" cy="50" rx="10" ry="15" fill="white" transform="rotate(-8 28 50)"/>
+        <path d="M28 35 Q31 50 28 65" fill="none" stroke="#2a7a2a" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M52 21 L52 79 L74 21 L74 79" fill="none" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h2>Account Pending Approval</h2>
+      <p>Your registration is being reviewed. Once your payment is confirmed, your account will be activated.</p>
+      <p style="margin-top:10px;">Registered as: <span class="pending-email" id="pending-email"></span></p>
+      <button class="pending-signout" onclick="doSignOut()">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ VIEW: ONBOARDING ══════════════════════ -->
+<div id="view-onboarding" style="display:none;">
+  <div class="view-onboarding-page">
+    <div class="onboarding-wrap">
+      <div class="ob-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="48" height="48">
+          <defs><radialGradient id="lgb4" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
+          <circle cx="50" cy="50" r="50" fill="url(#lgb4)"/>
+          <rect x="11" y="19" width="34" height="62" rx="11" fill="none" stroke="white" stroke-width="5.5"/>
+          <ellipse cx="28" cy="50" rx="10" ry="15" fill="white" transform="rotate(-8 28 50)"/>
+          <path d="M28 35 Q31 50 28 65" fill="none" stroke="#2a7a2a" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M52 21 L52 79 L74 21 L74 79" fill="none" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1>LushNote</h1>
+        <p>Let's set up your account — takes about 2 minutes</p>
+      </div>
+
+      <div class="ob-progress">
+        <div class="step-dot active" id="sdot-1"></div>
+        <div class="step-dot" id="sdot-2"></div>
+        <div class="step-dot" id="sdot-3"></div>
+        <div class="step-dot" id="sdot-4"></div>
+      </div>
+
+      <!-- Step 1: Your details -->
+      <div id="ob-step-1" class="ob-card">
+        <div class="ob-step-label">Step 1 of 4</div>
+        <h2>Your Details</h2>
+        <div class="ob-field">
+          <label>How would you like your name shown on notes?</label>
+          <input type="text" id="ob-displayname" placeholder="e.g. Dr Lushan Vasantha" />
+        </div>
+        <div class="ob-field">
+          <label>Title / Credentials</label>
+          <input type="text" id="ob-credentials" placeholder="Dr, MBBS, FRANZCP" />
+        </div>
+        <button class="ob-btn" onclick="obNext(1)">Next →</button>
+      </div>
+
+      <!-- Step 2: Workplace -->
+      <div id="ob-step-2" class="ob-card" style="display:none;">
+        <div class="ob-step-label">Step 2 of 4</div>
+        <h2>Your Workplace</h2>
+        <div class="ob-field">
+          <label>Workplace name</label>
+          <input type="text" id="ob-wp-name" placeholder="e.g. Westmead Hospital" />
+        </div>
+        <div class="ob-field">
+          <label>Type</label>
+          <select id="ob-wp-type">
+            <option value="Private Practice">Private Practice</option>
+            <option value="Public Hospital">Public Hospital</option>
+            <option value="Community Health">Community Health</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="ob-field">
+          <label>Does your workplace already have a patient registration system?</label>
+          <div class="ob-radio-group">
+            <label class="ob-radio-label"><input type="radio" name="ob-regsys" value="existing" onchange="obRegSysChange(this.value)" /> Yes</label>
+            <label class="ob-radio-label"><input type="radio" name="ob-regsys" value="lushnote" onchange="obRegSysChange(this.value)" checked /> No</label>
+          </div>
+        </div>
+        <div id="ob-regsys-existing" style="display:none;" class="ob-field">
+          <label>Describe the format</label>
+          <input type="text" id="ob-reg-format" placeholder="e.g. MRN: 8-digit number" />
+        </div>
+        <div id="ob-regsys-lushnote" class="ob-info-box">
+          We recommend our YYYYMMDDNN format — e.g. 20250517001 (date + 2-digit sequence). This will be pre-suggested when you create patient IDs.
+        </div>
+        <div class="ob-notice">Your plan includes 1 active workplace. Upgrade to add more.</div>
+        <button class="ob-btn" onclick="obNext(2)">Next →</button>
+        <button class="ob-btn ob-btn-secondary" onclick="obBack(2)">← Back</button>
+      </div>
+
+      <!-- Step 3: Email templates -->
+      <div id="ob-step-3" class="ob-card" style="display:none;">
+        <div class="ob-step-label">Step 3 of 4</div>
+        <h2>Email Templates</h2>
+        <p style="font-size:.85rem;color:var(--gray);margin-bottom:16px;">How should your "Send to Colleague" emails begin?</p>
+
+        <div class="ob-template-opt selected" id="ob-tpl-0" onclick="obSelectTpl(0)">
+          <label class="ob-radio-label" style="margin-bottom:6px;"><input type="radio" name="ob-tpl" value="0" checked /> Option 1</label>
+          <textarea id="ob-tpl-text-0" rows="5">Dear Colleague,
+
+Please find below a psychiatric progress note for [patient], seen on [date]. This note is provided for your information and ongoing management.
+
+Kind regards,
+[name]</textarea>
+        </div>
+
+        <div class="ob-template-opt" id="ob-tpl-1" onclick="obSelectTpl(1)">
+          <label class="ob-radio-label" style="margin-bottom:6px;"><input type="radio" name="ob-tpl" value="1" /> Option 2</label>
+          <textarea id="ob-tpl-text-1" rows="6">Dear [Colleague's name],
+
+I am writing to share the enclosed psychiatric progress note for [patient] (DOB: [dob]), reviewed on [date]. Please feel free to contact me should you require further clarification.
+
+Yours sincerely,
+[name]</textarea>
+        </div>
+
+        <div class="ob-template-opt" id="ob-tpl-2" onclick="obSelectTpl(2)">
+          <label class="ob-radio-label" style="margin-bottom:6px;"><input type="radio" name="ob-tpl" value="2" /> Option 3</label>
+          <textarea id="ob-tpl-text-2" rows="5">To the Treating Team,
+
+Please find attached a progress note for [patient], prepared following their session on [date]. This note is intended for coordination of care.
+
+With regards,
+[name]</textarea>
+        </div>
+
+        <div class="ob-template-opt" id="ob-tpl-3" onclick="obSelectTpl(3)">
+          <label class="ob-radio-label" style="margin-bottom:6px;"><input type="radio" name="ob-tpl" value="3" /> Write your own</label>
+          <textarea id="ob-tpl-text-3" rows="5" placeholder="Type your own email introduction here…"></textarea>
+        </div>
+
+        <button class="ob-btn" onclick="obNext(3)">Next →</button>
+        <button class="ob-btn ob-btn-secondary" onclick="obBack(3)">← Back</button>
+      </div>
+
+      <!-- Step 4: Confirm -->
+      <div id="ob-step-4" class="ob-card" style="display:none;">
+        <div class="ob-step-label">Step 4 of 4</div>
+        <h2>Confirm &amp; Start</h2>
+        <div id="ob-summary" style="margin-bottom:20px;"></div>
+        <button class="ob-btn" onclick="obComplete()">Start Using LushNote →</button>
+        <button class="ob-btn ob-btn-secondary" onclick="obBack(4)">← Back</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════ SETTINGS MODAL ══════════════════════ -->
 <div id="settings-overlay" class="modal-overlay" style="display:none;" onclick="overlayClick(event)">
@@ -383,18 +747,31 @@
   </div>
 </div>
 
+<div id="view-app" style="display:none;">
 <!-- ══════════════════════ HEADER ══════════════════════ -->
 <header>
   <div class="header-left">
-    <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-      <rect width="34" height="34" rx="8" fill="white" fill-opacity=".15"/>
-      <path d="M9 10h16M9 17h10M9 24h13" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
-      <circle cx="27" cy="24" r="4" fill="#0e9f6e"/>
-      <path d="M25 24l1.5 1.5L29 22.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="36" height="36">
+      <defs><radialGradient id="lgb" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
+      <circle cx="50" cy="50" r="50" fill="url(#lgb)"/>
+      <rect x="11" y="19" width="34" height="62" rx="11" fill="none" stroke="white" stroke-width="5.5"/>
+      <ellipse cx="28" cy="50" rx="10" ry="15" fill="white" transform="rotate(-8 28 50)"/>
+      <path d="M28 35 Q31 50 28 65" fill="none" stroke="#2a7a2a" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M52 21 L52 79 L74 21 L74 79" fill="none" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <div>
-      <h1>LushanNote</h1>
-      <p>Dr Lushan Vasantha · Psychiatric Progress Note Builder</p>
+      <h1>LushNote</h1>
+      <p id="header-subtitle">Dr Lushan Vasantha · LushNote</p>
+      <span class="wp-chip" id="header-wp-chip" style="display:none;"></span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="user-menu-wrap">
+      <button class="user-avatar" id="user-avatar-btn" onclick="toggleUserMenu(event)" title="Account">LV</button>
+      <div class="user-menu-drop" id="user-menu-drop">
+        <button onclick="closeUserMenu()">Account</button>
+        <button onclick="doSignOut()">Sign Out</button>
+      </div>
     </div>
   </div>
 </header>
@@ -654,6 +1031,7 @@
   </div>
 
 </main>
+</div><!-- /view-app -->
 
 <div id="toast"></div>
 
@@ -665,6 +1043,13 @@ const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL    = 'llama-3.3-70b-versatile';
 const COLLECTION    = 'progress_notes';
 const GROQ_KEY      = ['gsk_2EVGi7uZuqJ1tHhb','GLyIWGdyb3FY8q58p9lPd6xL4pYqVjiKUbc0'].join('');
+const FREE_EMAIL    = 'lushhetti@gmail.com';
+const ADMIN_EMAIL   = 'iamarasinghe96@gmail.com';
+const WP_THEMES = [
+  { primary: '#1a56db', dk: '#1347b8', lt: '#ebf0ff' },
+  { primary: '#7c3aed', dk: '#6d28d9', lt: '#ede9fe' },
+  { primary: '#0e9f6e', dk: '#0a7d57', lt: '#e3f9ee' },
+];
 const FB_CONFIG     = {
   apiKey:            'AIzaSyAEgpB1eCm-zh9Rx-uTMoageFZWEBRXzQo',
   authDomain:        'lush-note.firebaseapp.com',
@@ -718,6 +1103,8 @@ const state = {
   allNotes: [],
 };
 let db = null;
+let currentUser = null;
+let onboardingData = {};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Firebase
@@ -736,6 +1123,7 @@ function initFirebase() {
 async function fbSaveNote(fields) {
   if (!db) return null;
   const payload = { ...fields, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+  if (currentUser) payload.userId = currentUser.uid;
   if (state.currentNoteId) {
     await db.collection(COLLECTION).doc(state.currentNoteId).set(payload, { merge: true });
     return state.currentNoteId;
@@ -748,7 +1136,10 @@ async function fbSaveNote(fields) {
 
 async function fbLoadHistory() {
   if (!db) return null;
-  const snap = await db.collection(COLLECTION).orderBy('createdAt', 'desc').limit(200).get();
+  let q = db.collection(COLLECTION);
+  if (currentUser) q = q.where('userId', '==', currentUser.uid);
+  q = q.orderBy('createdAt', 'desc').limit(200);
+  const snap = await q.get();
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
@@ -1621,12 +2012,335 @@ function scheduleAutoSave() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// View management
+// ─────────────────────────────────────────────────────────────────────────────
+function showView(name) {
+  ['auth','pending','onboarding','app'].forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (el) el.style.display = (v === name) ? '' : 'none';
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auth listener
+// ─────────────────────────────────────────────────────────────────────────────
+function startAuthListener() {
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) { showView('auth'); return; }
+    const profile = await loadUserProfile(user.uid);
+    if (!profile || profile.status === 'pending') {
+      document.getElementById('pending-email').textContent = user.email;
+      showView('pending');
+      return;
+    }
+    currentUser = { uid: user.uid, email: user.email, profile };
+    if (!profile.onboardingComplete) {
+      showView('onboarding');
+      startOnboarding();
+      return;
+    }
+    applyWorkspaceTheme();
+    updateHeaderUser();
+    showView('app');
+    initApp();
+  });
+}
+
+async function loadUserProfile(uid) {
+  if (!db) return null;
+  try {
+    const doc = await db.collection('users').doc(uid).get();
+    return doc.exists ? doc.data() : null;
+  } catch(e) { return null; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sign In / Sign Out
+// ─────────────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('signin-email').value.trim();
+  const pass  = document.getElementById('signin-password').value;
+  const errEl = document.getElementById('signin-error');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; return; }
+  try {
+    await firebase.auth().signInWithEmailAndPassword(email, pass);
+  } catch(e) {
+    errEl.textContent = e.message || 'Sign in failed.';
+  }
+}
+
+async function doSignOut() {
+  closeUserMenu();
+  await firebase.auth().signOut();
+  currentUser = null;
+  showView('auth');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Register flow
+// ─────────────────────────────────────────────────────────────────────────────
+let _regName = '', _regEmail = '', _regPass = '';
+
+function switchAuthTab(tab) {
+  document.getElementById('auth-tab-signin').classList.toggle('active', tab === 'signin');
+  document.getElementById('auth-tab-register').classList.toggle('active', tab === 'register');
+  document.getElementById('auth-signin-form').style.display       = tab === 'signin'   ? '' : 'none';
+  document.getElementById('auth-register-step1').style.display    = tab === 'register' ? '' : 'none';
+  document.getElementById('auth-register-step2').style.display    = 'none';
+}
+
+function regStep1Next() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass  = document.getElementById('reg-password').value;
+  const errEl = document.getElementById('reg-step1-error');
+  errEl.textContent = '';
+  if (!name)  { errEl.textContent = 'Please enter your full name.'; return; }
+  if (!email) { errEl.textContent = 'Please enter your email.'; return; }
+  if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  _regName = name; _regEmail = email; _regPass = pass;
+  document.getElementById('payid-ref-email').textContent = email;
+  document.getElementById('auth-register-step1').style.display = 'none';
+  document.getElementById('auth-register-step2').style.display = '';
+}
+
+function regGoBack() {
+  document.getElementById('auth-register-step2').style.display = 'none';
+  document.getElementById('auth-register-step1').style.display = '';
+}
+
+async function doRegister() {
+  const errEl = document.getElementById('reg-step2-error');
+  errEl.textContent = '';
+  try {
+    const cred = await firebase.auth().createUserWithEmailAndPassword(_regEmail, _regPass);
+    const uid  = cred.user.uid;
+    const isFree = _regEmail.toLowerCase() === FREE_EMAIL.toLowerCase();
+    const status = isFree ? 'active' : 'pending';
+    const ts = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection('users').doc(uid).set({
+      email: _regEmail, displayName: _regName, status,
+      tier: 'free', onboardingComplete: false, createdAt: ts
+    });
+    await db.collection('pending_registrations').doc(uid).set({
+      email: _regEmail, name: _regName, submittedAt: ts, status: 'pending'
+    });
+    if (!isFree) {
+      const subj = encodeURIComponent('New LushNote Registration – ' + _regName);
+      const body = encodeURIComponent('New registration pending approval:\n\nName: ' + _regName + '\nEmail: ' + _regEmail + '\nUID: ' + uid + '\n\nPlease verify payment and activate the account.');
+      window.open('mailto:' + ADMIN_EMAIL + '?subject=' + subj + '&body=' + body);
+    }
+  } catch(e) {
+    errEl.textContent = e.message || 'Registration failed.';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Header user display
+// ─────────────────────────────────────────────────────────────────────────────
+function updateHeaderUser() {
+  if (!currentUser || !currentUser.profile) return;
+  const p = currentUser.profile;
+  const name = p.displayName || '';
+  const cred = p.credentials || '';
+  const subtitle = [cred, name].filter(Boolean).join(' ');
+  document.getElementById('header-subtitle').textContent =
+    subtitle + (subtitle ? ' · LushNote' : 'LushNote');
+
+  const initials = name ? name.replace(/^Dr\s+/i,'').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : 'LN';
+  document.getElementById('user-avatar-btn').textContent = initials;
+
+  const wpChip = document.getElementById('header-wp-chip');
+  const wps = p.workplaces || [];
+  const activeWp = wps.find(w => w.id === p.activeWorkplaceId) || wps[0];
+  if (activeWp) {
+    wpChip.textContent = activeWp.name;
+    wpChip.style.display = 'inline-block';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Workspace theming
+// ─────────────────────────────────────────────────────────────────────────────
+function applyWorkspaceTheme() {
+  if (!currentUser || !currentUser.profile) return;
+  const p = currentUser.profile;
+  const wps = p.workplaces || [];
+  const activeWpIdx = wps.findIndex(w => w.id === p.activeWorkplaceId);
+  const theme = WP_THEMES[Math.max(0, activeWpIdx) % WP_THEMES.length] || WP_THEMES[0];
+  const root = document.documentElement;
+  root.style.setProperty('--blue',    theme.primary);
+  root.style.setProperty('--blue-dk', theme.dk);
+  root.style.setProperty('--blue-lt', theme.lt);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// User menu
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  document.getElementById('user-menu-drop').classList.toggle('open');
+}
+function closeUserMenu() {
+  document.getElementById('user-menu-drop').classList.remove('open');
+}
+document.addEventListener('click', () => closeUserMenu());
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Onboarding
+// ─────────────────────────────────────────────────────────────────────────────
+function startOnboarding() {
+  onboardingData = {};
+  // Pre-fill name from registration
+  if (currentUser && currentUser.profile && currentUser.profile.displayName) {
+    document.getElementById('ob-displayname').value = currentUser.profile.displayName;
+  }
+  obUpdateDots(1);
+}
+
+function obUpdateDots(step) {
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById('sdot-' + i);
+    dot.className = 'step-dot' + (i === step ? ' active' : (i < step ? ' done' : ''));
+  }
+}
+
+function obShowStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('ob-step-' + i).style.display = i === n ? '' : 'none';
+  }
+  obUpdateDots(n);
+}
+
+function obNext(currentStep) {
+  if (currentStep === 1) {
+    const name = document.getElementById('ob-displayname').value.trim();
+    if (!name) { alert('Please enter your display name.'); return; }
+    onboardingData.displayName  = name;
+    onboardingData.credentials  = document.getElementById('ob-credentials').value.trim();
+    obShowStep(2);
+  } else if (currentStep === 2) {
+    const wpName = document.getElementById('ob-wp-name').value.trim();
+    if (!wpName) { alert('Please enter your workplace name.'); return; }
+    const regSysEl = document.querySelector('input[name="ob-regsys"]:checked');
+    const regSys   = regSysEl ? regSysEl.value : 'lushnote';
+    onboardingData.workplace = {
+      id: 'wp_1',
+      name: wpName,
+      type: document.getElementById('ob-wp-type').value,
+      regSystem: regSys,
+      regFormat: regSys === 'existing' ? document.getElementById('ob-reg-format').value.trim() : 'YYYYMMDDNN',
+    };
+    obShowStep(3);
+  } else if (currentStep === 3) {
+    const selRadio = document.querySelector('input[name="ob-tpl"]:checked');
+    const selIdx   = selRadio ? parseInt(selRadio.value) : 0;
+    onboardingData.emailPretext = document.getElementById('ob-tpl-text-' + selIdx).value;
+    // Build summary
+    const p = onboardingData;
+    const wp = p.workplace || {};
+    document.getElementById('ob-summary').innerHTML = `
+      <div class="ob-summary-row"><span class="ob-summary-label">Name</span><span>${esc(p.displayName)}</span></div>
+      <div class="ob-summary-row"><span class="ob-summary-label">Credentials</span><span>${esc(p.credentials || '—')}</span></div>
+      <div class="ob-summary-row"><span class="ob-summary-label">Workplace</span><span>${esc(wp.name)} (${esc(wp.type)})</span></div>
+      <div class="ob-summary-row"><span class="ob-summary-label">Registration</span><span>${wp.regSystem === 'existing' ? esc(wp.regFormat) : 'LushNote YYYYMMDDNN'}</span></div>
+      <div class="ob-summary-row"><span class="ob-summary-label">Email template</span><span>${esc((p.emailPretext || '').slice(0,60))}…</span></div>
+    `;
+    obShowStep(4);
+  }
+}
+
+function obBack(currentStep) {
+  obShowStep(currentStep - 1);
+}
+
+function obRegSysChange(val) {
+  document.getElementById('ob-regsys-existing').style.display  = val === 'existing' ? '' : 'none';
+  document.getElementById('ob-regsys-lushnote').style.display  = val === 'lushnote' ? '' : 'none';
+}
+
+function obSelectTpl(idx) {
+  for (let i = 0; i <= 3; i++) {
+    const el = document.getElementById('ob-tpl-' + i);
+    if (el) el.classList.toggle('selected', i === idx);
+  }
+  const radio = document.querySelector(`input[name="ob-tpl"][value="${idx}"]`);
+  if (radio) radio.checked = true;
+}
+
+async function obComplete() {
+  if (!currentUser || !db) return;
+  const d = onboardingData;
+  const wp = d.workplace || { id: 'wp_1', name: 'My Practice', type: 'Private Practice', regSystem: 'lushnote', regFormat: 'YYYYMMDDNN' };
+  try {
+    await db.collection('users').doc(currentUser.uid).update({
+      displayName: d.displayName,
+      credentials: d.credentials || '',
+      workplaces: [wp],
+      activeWorkplaceId: 'wp_1',
+      emailPretext: d.emailPretext || '',
+      onboardingComplete: true,
+    });
+    currentUser.profile = {
+      ...currentUser.profile,
+      displayName: d.displayName,
+      credentials: d.credentials || '',
+      workplaces: [wp],
+      activeWorkplaceId: 'wp_1',
+      emailPretext: d.emailPretext || '',
+      onboardingComplete: true,
+    };
+    // Run migration
+    if (!currentUser.profile.notesMigrated) {
+      await migrateNotes(currentUser.uid);
+    }
+    applyWorkspaceTheme();
+    updateHeaderUser();
+    showView('app');
+    initApp();
+  } catch(e) {
+    alert('Error saving onboarding data: ' + e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Note migration
+// ─────────────────────────────────────────────────────────────────────────────
+async function migrateNotes(uid) {
+  if (!db) return;
+  try {
+    const snap = await db.collection(COLLECTION).orderBy('createdAt','desc').limit(500).get();
+    const batch = db.batch();
+    let count = 0;
+    snap.docs.forEach(doc => {
+      if (!doc.data().userId) {
+        batch.update(doc.ref, { userId: uid });
+        count++;
+      }
+    });
+    if (count > 0) await batch.commit();
+    await db.collection('users').doc(uid).update({ notesMigrated: true });
+    currentUser.profile.notesMigrated = true;
+  } catch(e) {
+    console.warn('Migration failed:', e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// initApp (called after auth + onboarding complete)
+// ─────────────────────────────────────────────────────────────────────────────
+function initApp() {
+  updateApiStatusBar();
+  loadPatientIndex();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Init
 // ─────────────────────────────────────────────────────────────────────────────
 (function init() {
-  initFirebase();
-  updateApiStatusBar();
-  loadPatientIndex();
+  if (initFirebase()) startAuthListener();
+  else showView('auth');
 })();
 </script>
 </body>
