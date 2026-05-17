@@ -2657,7 +2657,7 @@ function closeAccountSettings() {
 }
 
 function acctTab(tab) {
-  ['profile','workplace','email','appearance'].forEach(t => {
+  ['profile','workplace','email'].forEach(t => {
     document.getElementById('as-tab-' + t).classList.toggle('active', t === tab);
     document.getElementById('as-pane-' + t).style.display = t === tab ? '' : 'none';
   });
@@ -2857,7 +2857,6 @@ async function saveAccountSettings() {
       <button id="as-tab-profile"    class="as-tab active" onclick="acctTab('profile')">Profile</button>
       <button id="as-tab-workplace"  class="as-tab"        onclick="acctTab('workplace')">Workplaces</button>
       <button id="as-tab-email"      class="as-tab"        onclick="acctTab('email')">Email Template</button>
-      <button id="as-tab-appearance" class="as-tab"        onclick="acctTab('appearance')">Appearance</button>
     </div>
     <div style="overflow-y:auto;flex:1;padding:20px 22px;">
 
@@ -2882,18 +2881,6 @@ async function saveAccountSettings() {
         </div>
       </div>
 
-      <!-- Appearance tab -->
-      <div id="as-pane-appearance" style="display:none;">
-        <p style="font-size:.85rem;color:#374151;margin-bottom:12px;">Window colour is set per-workplace. Go to the <strong>Workplaces</strong> tab, select Edit, then choose a colour theme.</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          ${WP_THEMES.map((th, ti) => `
-            <div style="text-align:center;">
-              <div style="width:48px;height:48px;border-radius:50%;background:${th.primary};margin:0 auto 4px;border:2px solid #e5e7eb;"></div>
-              <span style="font-size:.72rem;color:#6b7280;">Theme ${ti+1}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
     </div>
     <div style="padding:14px 22px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px;">
       <button onclick="closeAccountSettings()" style="padding:8px 16px;border:1px solid #d1d5db;border-radius:7px;background:#fff;cursor:pointer;font-size:.88rem;">Cancel</button>
