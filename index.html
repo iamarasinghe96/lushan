@@ -94,6 +94,26 @@
     .btn:hover   { opacity: .88; }
     .btn-group   { display: flex; gap: 9px; flex-wrap: wrap; }
 
+    /* ── Export dropdown ── */
+    .export-drop-wrap { position: relative; display: inline-block; }
+    .export-drop-menu {
+      display: none; position: absolute; right: 0; top: calc(100% + 6px);
+      background: #fff; border: 1px solid var(--border); border-radius: 9px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.13); min-width: 210px; z-index: 200;
+      overflow: hidden;
+    }
+    .export-drop-menu.open { display: block; }
+    .export-drop-menu button {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 11px 16px; background: none; border: none; border-bottom: 1px solid var(--border);
+      font-size: .84rem; font-weight: 500; color: #1f2937; cursor: pointer; text-align: left;
+      transition: background .12s;
+    }
+    .export-drop-menu button:last-child { border-bottom: none; }
+    .export-drop-menu button:hover { background: #f3f4f6; }
+    .export-drop-menu button svg { flex-shrink: 0; color: var(--blue); }
+    .export-drop-menu .drop-divider { height: 1px; background: var(--border); margin: 0; }
+
     /* ── Info / status boxes ── */
     .info-box {
       background: var(--blue-lt); border-left: 4px solid var(--blue);
@@ -568,42 +588,41 @@
   <div id="tab-export" class="tab-panel">
 
     <div class="card" id="print-card">
-      <h2>Progress Note Preview</h2>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <h2 style="margin:0;">Progress Note Preview</h2>
+        <div class="export-drop-wrap">
+          <button class="btn btn-primary btn-sm" id="export-drop-btn" onclick="toggleExportDrop(event)">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Export
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" style="margin-left:2px"><path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="export-drop-menu" id="export-drop-menu">
+            <button onclick="exportFromDrop('pdf')">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Download PDF
+            </button>
+            <button onclick="exportFromDrop('print')">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm1-4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Print
+            </button>
+            <button onclick="exportFromDrop('clipboard')">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Copy to Clipboard
+            </button>
+            <button onclick="exportFromDrop('email')">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Send to Colleague
+            </button>
+            <button onclick="exportFromDrop('self')">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Submit Report as Text
+            </button>
+          </div>
+        </div>
+      </div>
       <div id="export-preview-pane" style="background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:28px 32px;font-family:'Times New Roman',serif;font-size:.91rem;line-height:1.75;">
         <p class="empty-state" style="color:#9ca3af;font-style:italic;font-family:sans-serif;font-size:.84rem;">Complete the fields in Edit &amp; Preview to see the note here.</p>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>Download &amp; Print</h2>
-      <div class="btn-group">
-        <button class="btn btn-primary" onclick="exportPDF()">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Download PDF
-        </button>
-        <button class="btn btn-outline" onclick="window.print()">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm1-4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Print
-        </button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Send by Email</h2>
-      <div class="btn-group">
-        <button class="btn btn-teal" onclick="sendEmail()">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Send to Colleague
-        </button>
-        <button class="btn btn-primary" onclick="submitReportAsText()">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Submit Report as Text
-        </button>
-      </div>
-      <p style="font-size:.76rem;color:var(--gray);margin-top:10px;">
-        <strong>Send to Colleague</strong> — opens email with note + cover letter.<br>
-        <strong>Submit Report as Text</strong> — sends full note to yourself for offline records.
-      </p>
     </div>
 
   </div>
@@ -1134,6 +1153,38 @@ async function deleteHistoryNote(id) {
     toast('Note deleted');
   } catch(e) {
     toast('Delete failed: ' + e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Export – dropdown
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleExportDrop(e) {
+  e.stopPropagation();
+  document.getElementById('export-drop-menu').classList.toggle('open');
+}
+function closeExportDrop() {
+  document.getElementById('export-drop-menu').classList.remove('open');
+}
+document.addEventListener('click', closeExportDrop);
+
+function exportFromDrop(action) {
+  closeExportDrop();
+  if      (action === 'pdf')       exportPDF();
+  else if (action === 'print')     window.print();
+  else if (action === 'clipboard') copyNoteToClipboard();
+  else if (action === 'email')     sendEmail();
+  else if (action === 'self')      submitReportAsText();
+}
+
+async function copyNoteToClipboard() {
+  const f = getFields();
+  const text = _buildNoteText(f);
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Note copied to clipboard');
+  } catch {
+    toast('Clipboard access denied');
   }
 }
 
