@@ -561,10 +561,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="56" height="56">
         <defs><radialGradient id="lgb3" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
         <circle cx="50" cy="50" r="50" fill="url(#lgb3)"/>
-        <rect x="11" y="19" width="34" height="62" rx="11" fill="none" stroke="white" stroke-width="5.5"/>
-        <ellipse cx="28" cy="50" rx="10" ry="15" fill="white" transform="rotate(-8 28 50)"/>
-        <path d="M28 35 Q31 50 28 65" fill="none" stroke="#2a7a2a" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M52 21 L52 79 L74 21 L74 79" fill="none" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
       </svg>
       <h2>Account Pending Approval</h2>
       <p>Your registration is being reviewed. Once your payment is confirmed, your account will be activated.</p>
@@ -749,10 +746,7 @@ With regards,
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="36" height="36">
       <defs><radialGradient id="lgb" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
       <circle cx="50" cy="50" r="50" fill="url(#lgb)"/>
-      <rect x="11" y="19" width="34" height="62" rx="11" fill="none" stroke="white" stroke-width="5.5"/>
-      <ellipse cx="28" cy="50" rx="10" ry="15" fill="white" transform="rotate(-8 28 50)"/>
-      <path d="M28 35 Q31 50 28 65" fill="none" stroke="#2a7a2a" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M52 21 L52 79 L74 21 L74 79" fill="none" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
     </svg>
     <div>
       <h1>LushNote</h1>
@@ -764,7 +758,7 @@ With regards,
     <div class="user-menu-wrap">
       <button class="user-avatar" id="user-avatar-btn" onclick="toggleUserMenu(event)" title="Account">LV</button>
       <div class="user-menu-drop" id="user-menu-drop">
-        <button onclick="closeUserMenu()">Account</button>
+        <button onclick="closeUserMenu(); openAccountSettings();">Account</button>
         <button onclick="doSignOut()">Sign Out</button>
       </div>
     </div>
@@ -2445,6 +2439,270 @@ function initApp() {
   if (initFirebase()) startAuthListener();
   else showView('auth');
 })();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Account Settings
+// ─────────────────────────────────────────────────────────────────────────────
+function openAccountSettings() {
+  if (!currentUser || !currentUser.profile) return;
+  const p = currentUser.profile;
+  const wps = p.workplaces || [];
+  const activeWp = wps.find(w => w.id === p.activeWorkplaceId) || wps[0] || {};
+
+  document.getElementById('as-name').value = p.displayName || '';
+  document.getElementById('as-credentials').value = p.credentials || '';
+  document.getElementById('as-email-pretext').value = p.emailPretext || '';
+
+  renderAccountWorkplaces();
+  acctTab('profile');
+  document.getElementById('acct-modal').style.display = 'flex';
+}
+
+function closeAccountSettings() {
+  document.getElementById('acct-modal').style.display = 'none';
+}
+
+function acctTab(tab) {
+  ['profile','workplace','email','appearance'].forEach(t => {
+    document.getElementById('as-tab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('as-pane-' + t).style.display = t === tab ? '' : 'none';
+  });
+}
+
+function renderAccountWorkplaces() {
+  if (!currentUser || !currentUser.profile) return;
+  const p = currentUser.profile;
+  const wps = p.workplaces || [];
+  const activeId = p.activeWorkplaceId;
+  const container = document.getElementById('as-wp-list');
+  container.innerHTML = wps.map((wp, i) => `
+    <div class="as-wp-card ${wp.id === activeId ? 'as-wp-active' : ''}" id="as-wp-card-${wp.id}">
+      <div class="as-wp-card-header">
+        <div>
+          <strong>${esc(wp.name)}</strong>
+          <span style="font-size:.75rem;color:#6b7280;margin-left:6px;">${esc(wp.type || '')}</span>
+          ${wp.id === activeId ? '<span style="font-size:.7rem;background:#d1fae5;color:#065f46;padding:1px 6px;border-radius:8px;margin-left:6px;">Active</span>' : ''}
+        </div>
+        <div style="display:flex;gap:6px;">
+          ${wps.length > 1 && wp.id !== activeId ? `<button class="as-btn-sm" onclick="switchActiveWorkplace('${wp.id}')">Set active</button>` : ''}
+          <button class="as-btn-sm" onclick="editWorkplace('${wp.id}')">Edit</button>
+          ${wps.length > 1 ? `<button class="as-btn-sm as-btn-danger" onclick="deleteWorkplace('${wp.id}')">Remove</button>` : ''}
+        </div>
+      </div>
+      <div id="as-wp-edit-${wp.id}" style="display:none;margin-top:10px;">
+        <div class="as-field"><label>Workplace name</label><input id="as-wp-name-${wp.id}" value="${esc(wp.name)}" /></div>
+        <div class="as-field"><label>Type</label>
+          <select id="as-wp-type-${wp.id}">
+            ${['Private Practice','Public Hospital','Private Hospital','Community Health','Other'].map(t => `<option ${wp.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="as-field"><label>Registration system</label>
+          <select id="as-wp-regsys-${wp.id}" onchange="asWpRegSysChange('${wp.id}',this.value)">
+            <option value="lushnote" ${wp.regSystem==='lushnote'?'selected':''}>LushNote (YYYYMMDDNN)</option>
+            <option value="existing" ${wp.regSystem==='existing'?'selected':''}>Existing system</option>
+          </select>
+        </div>
+        <div id="as-wp-regformat-wrap-${wp.id}" style="${wp.regSystem==='existing'?'':'display:none'}">
+          <div class="as-field"><label>Paste example patient ID</label>
+            <input id="as-wp-regformat-${wp.id}" value="${esc(wp.regFormat && wp.regSystem==='existing' ? wp.regFormat : '')}" oninput="asWpPreviewFormat('${wp.id}',this.value)" placeholder="e.g. Reg-12823-1292" />
+            <div id="as-wp-regpreview-${wp.id}" style="font-size:.75rem;color:#6b7280;margin-top:3px;"></div>
+          </div>
+        </div>
+        <div class="as-field"><label>Window colour theme</label>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            ${WP_THEMES.map((th, ti) => `
+              <button class="as-theme-swatch ${(wp.themeIndex||0)===ti?'as-theme-swatch-active':''}"
+                style="background:${th.primary};"
+                onclick="asSetTheme('${wp.id}',${ti})"
+                title="Theme ${ti+1}"></button>
+            `).join('')}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="as-btn-primary" onclick="saveWorkplace('${wp.id}')">Save</button>
+          <button class="as-btn-sm" onclick="document.getElementById('as-wp-edit-${wp.id}').style.display='none'">Cancel</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function asWpRegSysChange(wpId, val) {
+  document.getElementById('as-wp-regformat-wrap-' + wpId).style.display = val === 'existing' ? '' : 'none';
+}
+
+function asWpPreviewFormat(wpId, val) {
+  const el = document.getElementById('as-wp-regpreview-' + wpId);
+  if (!el) return;
+  if (!val.trim()) { el.innerHTML = ''; return; }
+  const p = detectIdPattern(val.trim());
+  el.innerHTML = p ? `Detected: <strong>${esc(p.description)}</strong> &rarr; <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">${esc(p.template)}</code>` : '';
+}
+
+function asSetTheme(wpId, themeIdx) {
+  if (!currentUser || !currentUser.profile) return;
+  const wps = currentUser.profile.workplaces || [];
+  const wp = wps.find(w => w.id === wpId);
+  if (wp) { wp.themeIndex = themeIdx; renderAccountWorkplaces(); applyWorkspaceTheme(); }
+}
+
+function editWorkplace(wpId) {
+  const card = document.getElementById('as-wp-edit-' + wpId);
+  if (card) card.style.display = card.style.display === 'none' ? '' : 'none';
+}
+
+function switchActiveWorkplace(wpId) {
+  if (!currentUser || !currentUser.profile) return;
+  currentUser.profile.activeWorkplaceId = wpId;
+  applyWorkspaceTheme();
+  updateHeaderUser();
+  applyRegPattern();
+  renderAccountWorkplaces();
+}
+
+function deleteWorkplace(wpId) {
+  if (!currentUser || !currentUser.profile) return;
+  if (!confirm('Remove this workplace?')) return;
+  currentUser.profile.workplaces = (currentUser.profile.workplaces || []).filter(w => w.id !== wpId);
+  if (currentUser.profile.activeWorkplaceId === wpId) {
+    currentUser.profile.activeWorkplaceId = (currentUser.profile.workplaces[0] || {}).id || '';
+  }
+  renderAccountWorkplaces();
+}
+
+function addWorkplace() {
+  if (!currentUser || !currentUser.profile) return;
+  const wps = currentUser.profile.workplaces || [];
+  const newId = 'wp_' + Date.now();
+  wps.push({ id: newId, name: 'New Workplace', type: 'Private Practice', regSystem: 'lushnote', regFormat: 'YYYYMMDDNN', themeIndex: wps.length % WP_THEMES.length });
+  currentUser.profile.workplaces = wps;
+  renderAccountWorkplaces();
+  setTimeout(() => editWorkplace(newId), 50);
+}
+
+function saveWorkplace(wpId) {
+  if (!currentUser || !currentUser.profile) return;
+  const wps = currentUser.profile.workplaces || [];
+  const wp = wps.find(w => w.id === wpId);
+  if (!wp) return;
+  wp.name = document.getElementById('as-wp-name-' + wpId).value.trim() || wp.name;
+  wp.type = document.getElementById('as-wp-type-' + wpId).value;
+  wp.regSystem = document.getElementById('as-wp-regsys-' + wpId).value;
+  if (wp.regSystem === 'existing') {
+    const rawFmt = document.getElementById('as-wp-regformat-' + wpId).value.trim();
+    const detected = detectIdPattern(rawFmt);
+    wp.regFormat = rawFmt;
+    wp.regPattern = detected ? detected.regex : null;
+    wp.regTemplate = detected ? detected.template : null;
+  } else {
+    wp.regFormat = 'YYYYMMDDNN'; wp.regPattern = null; wp.regTemplate = null;
+  }
+  renderAccountWorkplaces();
+  applyWorkspaceTheme();
+  updateHeaderUser();
+  applyRegPattern();
+}
+
+async function saveAccountSettings() {
+  if (!currentUser || !db) return;
+  const btn = document.getElementById('as-save-btn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  const p = currentUser.profile;
+  const name = document.getElementById('as-name').value.trim();
+  const creds = document.getElementById('as-credentials').value.trim();
+  const emailPretext = document.getElementById('as-email-pretext').value.trim();
+  try {
+    await db.collection('users').doc(currentUser.uid).update({
+      displayName: name, credentials: creds, emailPretext,
+      workplaces: p.workplaces || [],
+      activeWorkplaceId: p.activeWorkplaceId || '',
+    });
+    p.displayName = name; p.credentials = creds; p.emailPretext = emailPretext;
+    updateHeaderUser();
+    applyWorkspaceTheme();
+    applyRegPattern();
+    btn.textContent = 'Saved ✓'; btn.disabled = false;
+    setTimeout(() => { btn.textContent = 'Save changes'; }, 1800);
+  } catch(e) {
+    btn.textContent = 'Save changes'; btn.disabled = false;
+    alert('Error saving: ' + e.message);
+  }
+}
 </script>
+
+<!-- ══════════════════════ ACCOUNT SETTINGS MODAL ══════════════════════ -->
+<div id="acct-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:min(540px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 0;">
+      <h2 style="margin:0;font-size:1.15rem;">Account Settings</h2>
+      <button onclick="closeAccountSettings()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#6b7280;line-height:1;">&times;</button>
+    </div>
+    <div style="display:flex;gap:0;padding:14px 22px 0;border-bottom:1px solid #e5e7eb;">
+      <button id="as-tab-profile"    class="as-tab active" onclick="acctTab('profile')">Profile</button>
+      <button id="as-tab-workplace"  class="as-tab"        onclick="acctTab('workplace')">Workplaces</button>
+      <button id="as-tab-email"      class="as-tab"        onclick="acctTab('email')">Email Template</button>
+      <button id="as-tab-appearance" class="as-tab"        onclick="acctTab('appearance')">Appearance</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:20px 22px;">
+
+      <!-- Profile tab -->
+      <div id="as-pane-profile">
+        <div class="as-field"><label>Display name</label><input id="as-name" placeholder="e.g. Dr Jane Smith" /></div>
+        <div class="as-field"><label>Credentials / title</label><input id="as-credentials" placeholder="e.g. FRANZCP, MBChB" /></div>
+      </div>
+
+      <!-- Workplace tab -->
+      <div id="as-pane-workplace" style="display:none;">
+        <div id="as-wp-list"></div>
+        <button class="as-btn-primary" style="margin-top:12px;" onclick="addWorkplace()">+ Add workplace</button>
+      </div>
+
+      <!-- Email template tab -->
+      <div id="as-pane-email" style="display:none;">
+        <div class="as-field">
+          <label>Opening line for colleague emails</label>
+          <textarea id="as-email-pretext" rows="4" style="width:100%;border:1px solid #d1d5db;border-radius:7px;padding:8px 10px;font-size:.88rem;resize:vertical;"></textarea>
+          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">This text appears at the start of every "Send to Colleague" email.</p>
+        </div>
+      </div>
+
+      <!-- Appearance tab -->
+      <div id="as-pane-appearance" style="display:none;">
+        <p style="font-size:.85rem;color:#374151;margin-bottom:12px;">Window colour is set per-workplace. Go to the <strong>Workplaces</strong> tab → Edit → choose a colour theme.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          ${WP_THEMES.map((th, ti) => `
+            <div style="text-align:center;">
+              <div style="width:48px;height:48px;border-radius:50%;background:${th.primary};margin:0 auto 4px;border:2px solid #e5e7eb;"></div>
+              <span style="font-size:.72rem;color:#6b7280;">Theme ${ti+1}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 22px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px;">
+      <button onclick="closeAccountSettings()" style="padding:8px 16px;border:1px solid #d1d5db;border-radius:7px;background:#fff;cursor:pointer;font-size:.88rem;">Cancel</button>
+      <button id="as-save-btn" onclick="saveAccountSettings()" style="padding:8px 18px;border:none;border-radius:7px;background:var(--blue);color:#fff;font-weight:600;cursor:pointer;font-size:.88rem;">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.as-tab { background:none;border:none;border-bottom:2px solid transparent;padding:6px 12px;cursor:pointer;font-size:.85rem;color:#6b7280;margin-bottom:-1px; }
+.as-tab.active { border-bottom-color:var(--blue);color:var(--blue);font-weight:600; }
+.as-field { margin-bottom:12px; }
+.as-field label { display:block;font-size:.78rem;font-weight:600;color:#374151;margin-bottom:3px; }
+.as-field input,.as-field select,.as-field textarea { width:100%;border:1px solid #d1d5db;border-radius:7px;padding:7px 10px;font-size:.88rem;box-sizing:border-box; }
+.as-wp-card { border:1px solid #e5e7eb;border-radius:9px;padding:12px 14px;margin-bottom:10px; }
+.as-wp-card.as-wp-active { border-color:var(--blue);background:#f0f7ff; }
+.as-wp-card-header { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px; }
+.as-btn-sm { padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;background:#fff;font-size:.78rem;cursor:pointer; }
+.as-btn-sm:hover { background:#f3f4f6; }
+.as-btn-danger { border-color:#fca5a5;color:#dc2626; }
+.as-btn-danger:hover { background:#fef2f2; }
+.as-btn-primary { padding:7px 16px;border:none;border-radius:7px;background:var(--blue);color:#fff;font-size:.85rem;font-weight:600;cursor:pointer; }
+.as-theme-swatch { width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s; }
+.as-theme-swatch:hover { transform:scale(1.1); }
+.as-theme-swatch-active { border-color:#1a1a1a !important;transform:scale(1.15); }
+</style>
 </body>
 </html>
