@@ -241,10 +241,14 @@
     }
     #preview-pane h3 { font-size: 1.05rem; text-align: center; font-weight: 700; margin-bottom: 12px; text-decoration: underline; }
     #preview-pane .meta p { margin-bottom: 2px; }
-    #preview-pane .p-section { margin-top: 12px; }
-    #preview-pane .p-head { font-weight: 700; }
-    #preview-pane ol { margin: 3px 0 0 20px; }
-    #preview-pane ol li { margin-bottom: 2px; }
+    #preview-pane .p-section,
+    #export-preview-pane .p-section { margin-top: 12px; }
+    #preview-pane .p-head,
+    #export-preview-pane .p-head { font-weight: 700; }
+    #preview-pane ol,
+    #export-preview-pane ol { margin: 3px 0 0 20px; list-style-type: decimal; }
+    #preview-pane ol li,
+    #export-preview-pane ol li { margin-bottom: 2px; }
     #preview-pane .empty-state { color: #9ca3af; font-style: italic; font-family: sans-serif; font-size: .84rem; }
 
     /* ── History ── */
@@ -543,7 +547,7 @@
           <div class="two-col">
             <div class="field-row">
               <label>Psychometric Scales</label>
-              <textarea id="e-scales" rows="3" placeholder="• PHQ-9: 14/27&#10;• PCL-5: 42/80" oninput="livePreview()"></textarea>
+              <textarea id="e-scales" rows="3" placeholder="1. PHQ-9: 14/27&#10;2. PCL-5: 42/80" oninput="livePreview()"></textarea>
             </div>
             <div class="field-row">
               <label>Referrals</label>
