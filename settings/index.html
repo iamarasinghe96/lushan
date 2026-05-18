@@ -50,7 +50,7 @@
 
     /* Form fields */
     label { display:block;font-size:.8rem;font-weight:600;margin-bottom:4px;color:#374151; }
-    input[type=text], input[type=email], input[type=number], input[type=search], textarea, select {
+    input[type=text], input[type=email], input[type=number], input[type=search], input[type=date], input:not([type]), textarea, select {
       width:100%;border:1px solid var(--border);border-radius:7px;padding:8px 11px;font-size:.86rem;font-family:inherit;color:var(--text);resize:vertical;background:#fff;transition:border-color .15s,box-shadow .15s;
     }
     input:focus, textarea:focus, select:focus { outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.14); }
@@ -171,8 +171,8 @@
       <div class="st-section">
         <h2 class="st-section-h">Personal Information</h2>
         <div class="two-col">
-          <div class="field-row"><label>Display name</label><input id="st-name" placeholder="e.g. Dr Lushan Vasantha" /></div>
-          <div class="field-row"><label>Credentials</label><input id="st-credentials" placeholder="e.g. FRANZCP, MBChB" /></div>
+          <div class="field-row"><label>Display name</label><input type="text" id="st-name" placeholder="e.g. Dr Lushan Vasantha" /></div>
+          <div class="field-row"><label>Credentials</label><input type="text" id="st-credentials" placeholder="e.g. FRANZCP, MBChB" /></div>
         </div>
       </div>
       <div class="st-section">
