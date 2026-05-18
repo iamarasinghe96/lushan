@@ -770,6 +770,13 @@
 </head>
 <body>
 
+<!-- Global loading overlay — sits outside all views so it's always visible -->
+<div id="auth-loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+  <div style="width:40px;height:40px;border:3px solid #e5e7eb;border-top-color:#1d4ed8;border-radius:50%;animation:spin-global .7s linear infinite;"></div>
+  <div style="font-size:.88rem;color:#6b7280;font-weight:600;letter-spacing:.02em;">Setting up your session…</div>
+</div>
+<style>@keyframes spin-global{to{transform:rotate(360deg)}}</style>
+
 <!-- ══════════════════════ VIEW: LANDING ══════════════════════ -->
 <div id="view-landing" style="display:none;">
 <style>
@@ -986,11 +993,6 @@
 <!-- ══════════════════════ VIEW: AUTH ══════════════════════ -->
 <div id="view-auth" style="display:none;">
   <div class="view-auth-page">
-    <!-- Full-box loading overlay shown while auth listener fetches profile -->
-    <div id="auth-loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
-      <div style="width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#1d4ed8;border-radius:50%;animation:spin .7s linear infinite;"></div>
-      <div style="font-size:.88rem;color:#6b7280;font-weight:600;">Setting up your session</div>
-    </div>
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     <div class="auth-box">
       <div class="auth-logo-area">
@@ -1076,13 +1078,14 @@
         <circle cx="50" cy="50" r="50" fill="url(#lgb3)"/>
         <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
       </svg>
-      <h2>Account Pending Activation</h2>
-      <p>Your account is being set up. Please check your email to verify your address, then refresh this page. If the issue persists, contact support.</p>
+      <h2>Connection Issue</h2>
+      <p>We couldn't load your account data — this is usually a temporary network or security token issue. Please try again.</p>
       <div id="pending-verify-notice" style="display:none;background:#fffbeb;border:1px solid #fcd34d;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:.83rem;color:#92400e;line-height:1.55;">
         Please also <strong>verify your email address</strong> — check your inbox for a verification email from LushNote and click the link inside.
         <br><span id="pending-resend-wrap" style="display:inline-block;margin-top:6px;"><span class="auth-back-link" onclick="resendVerificationEmail()" style="color:#b45309;">Resend verification email</span></span>
       </div>
-      <p style="margin-top:10px;font-size:.84rem;color:#6b7280;">Registered as: <span class="pending-email" id="pending-email"></span></p>
+      <p style="margin-top:10px;font-size:.84rem;color:#6b7280;">Signed in as: <span class="pending-email" id="pending-email"></span></p>
+      <button class="btn-primary" style="margin-top:16px;padding:10px 28px;font-size:.9rem;" onclick="location.reload()">Try Again</button>
       <button class="pending-signout" onclick="doSignOut()">Sign out</button>
     </div>
   </div>
@@ -3395,13 +3398,16 @@ function startAuthListener() {
       return;
     }
     const loadingEl = document.getElementById('auth-loading-overlay');
-    if (loadingEl) loadingEl.style.display = '';
-    // Force token refresh so email_verified claim is current
+    if (loadingEl) loadingEl.style.display = 'flex';
+    // Force token refresh so email_verified claim is current in Firestore
     try { await user.getIdToken(true); } catch(e) {}
-    // Retry profile load up to 3 times — App Check token may need a moment
+    // Wait for App Check token — reCAPTCHA needs a moment after page load
+    try { await firebase.appCheck().getToken(false); } catch(e) {}
+    // Retry profile load up to 5 times with increasing delay
     let profile = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (attempt > 0) await new Promise(r => setTimeout(r, 1500));
+    const delays = [0, 1500, 2000, 2500, 3000];
+    for (let attempt = 0; attempt < delays.length; attempt++) {
+      if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]));
       profile = await loadUserProfile(user.uid);
       if (profile !== null) break;
     }
