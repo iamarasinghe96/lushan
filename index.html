@@ -1388,6 +1388,9 @@ With regards,
         <button class="btn btn-outline btn-sm" id="change-template-btn" onclick="changeTemplate()" style="display:none;">
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Change Template
         </button>
+        <button class="btn btn-outline btn-sm" onclick="reassignPatient()">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M2 21c0-4 3.1-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 16l-3 3 3 3M16 19h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Reassign
+        </button>
         <button class="btn btn-gray btn-sm" onclick="newNote()">New Note</button>
       </div>
     </div>
@@ -2389,6 +2392,94 @@ async function saveCurrentNote(silent = false) {
   } catch(e) {
     toast('Save failed: ' + e.message);
   }
+}
+
+async function reassignPatient() {
+  const currentPatient = document.getElementById('e-patient').value.trim() || 'Unnamed patient';
+
+  // Build modal
+  const overlay = document.createElement('div');
+  overlay.id = 'reassign-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:14px;max-width:420px;width:100%;padding:24px 22px;box-shadow:0 20px 50px rgba(0,0,0,.25);">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+        <span style="font-size:1.3rem;">⚠️</span>
+        <h3 style="font-size:.97rem;font-weight:800;margin:0;color:#111827;">Reassign Note to Another Patient</h3>
+      </div>
+      <p style="font-size:.82rem;color:#6b7280;margin:0 0 14px;line-height:1.5;">
+        Currently assigned to <strong style="color:#111827;">${esc(currentPatient)}</strong>.<br>
+        Reassigning will update the patient name on this note and re-save it. This does <em>not</em> move the note between Firestore records — it changes the name field only.
+      </p>
+      <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:.79rem;color:#92400e;line-height:1.5;">
+        <strong>Note:</strong> The original transcript audio (if any) remains unchanged. Only the patient name on this saved note is updated.
+      </div>
+      <label style="display:block;font-size:.78rem;font-weight:600;color:#374151;margin-bottom:4px;">New patient name</label>
+      <div style="position:relative;">
+        <input id="reassign-input" type="text" placeholder="Type patient name…" autocomplete="off"
+          style="width:100%;border:1.5px solid #d1d5db;border-radius:7px;padding:8px 11px;font-size:.86rem;font-family:inherit;">
+        <div id="reassign-drop" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #e5e7eb;border-radius:7px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:10;max-height:180px;overflow-y:auto;"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button id="reassign-confirm" style="flex:1;padding:9px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;" disabled>Reassign</button>
+        <button id="reassign-cancel" style="flex:1;padding:9px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const input    = overlay.querySelector('#reassign-input');
+  const drop     = overlay.querySelector('#reassign-drop');
+  const confirmBtn = overlay.querySelector('#reassign-confirm');
+  const cancelBtn  = overlay.querySelector('#reassign-cancel');
+
+  const close = () => overlay.remove();
+  cancelBtn.onclick = close;
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  // Autocomplete from patient index
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    confirmBtn.disabled = !input.value.trim();
+    if (!q || !_patientIndex) { drop.style.display = 'none'; return; }
+    const matches = Object.values(_patientIndex)
+      .filter(p => p.name.toLowerCase().includes(q) && p.name.toLowerCase() !== currentPatient.toLowerCase())
+      .slice(0, 6);
+    if (!matches.length) { drop.style.display = 'none'; return; }
+    drop.innerHTML = matches.map(p => `
+      <div class="autocomplete-item" data-name="${esc(p.name)}">
+        ${esc(p.name)}
+        <div class="sub">${p.visitCount} note${p.visitCount !== 1 ? 's' : ''}${p.regNumber ? ' · ' + p.regNumber : ''}</div>
+      </div>`).join('');
+    drop.style.display = 'block';
+    drop.querySelectorAll('.autocomplete-item').forEach(el => {
+      el.onmousedown = () => {
+        input.value = el.dataset.name;
+        drop.style.display = 'none';
+        confirmBtn.disabled = false;
+      };
+    });
+  });
+
+  confirmBtn.onclick = async () => {
+    const newName = input.value.trim();
+    if (!newName || newName.toLowerCase() === currentPatient.toLowerCase()) { close(); return; }
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Saving…';
+    try {
+      document.getElementById('e-patient').value = newName;
+      livePreview();
+      updateNoteBar();
+      await saveCurrentNote(true);
+      close();
+      toast(`Reassigned to ${newName}`, 'success');
+    } catch(e) {
+      toast('Reassign failed: ' + e.message, 'error');
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Reassign';
+    }
+  };
+
+  input.focus();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
