@@ -2952,7 +2952,7 @@ async function resendVerificationEmail() {
   const link = document.getElementById('pending-resend-wrap');
   if (link) link.innerHTML = 'Sending…';
   try {
-    await user.sendEmailVerification({ url: 'https://iamarasinghe96.github.io/lushan/email-verified/' });
+    await user.sendEmailVerification().catch(()=>{});
     if (link) link.innerHTML = '<span style="color:#166534;">Verification email sent — check your inbox</span>';
   } catch(e) {
     if (link) link.innerHTML = `<span style="color:#dc2626;">${e.message || 'Could not send email'}</span>`;
@@ -3043,7 +3043,7 @@ async function doRegister() {
       email, displayName: name, status: 'active',
       tier: 'free', onboardingComplete: false, createdAt: ts
     });
-    await cred.user.sendEmailVerification({ url: 'https://iamarasinghe96.github.io/lushan/email-verified/' });
+    await cred.user.sendEmailVerification().catch(()=>{});
     showVerifyScreen(email);
   } catch(e) {
     errEl.textContent = friendlyAuthError(e.code) || e.message || 'Registration failed.';
@@ -3085,7 +3085,7 @@ async function resendAndCooldown() {
   const btn = document.getElementById('verify-resend-btn');
   if (_resendCooldown) return;
   try {
-    await firebase.auth().currentUser.sendEmailVerification({ url: 'https://iamarasinghe96.github.io/lushan/email-verified/' });
+    await firebase.auth().currentUser.sendEmailVerification().catch(()=>{});
     _resendCooldown = true;
     btn.textContent = 'Email sent ✓ (wait 60s to resend)';
     btn.style.opacity = '.5'; btn.style.pointerEvents = 'none';
