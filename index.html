@@ -3013,9 +3013,12 @@ function switchAuthTab(tab) {
 }
 
 function showVerifyScreen(email) {
-  document.getElementById('verify-email-addr').textContent = email;
-  document.getElementById('verify-error').textContent = '';
-  document.getElementById('verify-success').style.display = 'none';
+  const addrEl = document.getElementById('verify-email-addr');
+  if (addrEl) addrEl.textContent = email;
+  const errEl = document.getElementById('verify-error');
+  if (errEl) errEl.textContent = '';
+  const sucEl = document.getElementById('verify-success');
+  if (sucEl) sucEl.style.display = 'none';
   const btn = document.getElementById('verify-check-btn');
   if (btn) { btn.disabled = false; btn.style.display = ''; btn.textContent = "I've verified my email"; }
   _showAuthPanel('auth-verify-form');
@@ -3058,25 +3061,26 @@ async function doRegister() {
 async function checkEmailVerification() {
   const btn   = document.getElementById('verify-check-btn');
   const errEl = document.getElementById('verify-error');
-  errEl.textContent = '';
-  btn.disabled = true; btn.textContent = 'Checking…';
+  if (errEl) errEl.textContent = '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
   try {
     await firebase.auth().currentUser.reload();
     const user = firebase.auth().currentUser;
     if (user.emailVerified) {
-      document.getElementById('verify-success').style.display = '';
-      btn.style.display = 'none';
+      const sucEl = document.getElementById('verify-success');
+      if (sucEl) sucEl.style.display = '';
+      if (btn) btn.style.display = 'none';
       const profile = await loadUserProfile(user.uid);
       currentUser = { uid: user.uid, email: user.email, profile };
       if (!profile || !profile.onboardingComplete) { showView('onboarding'); startOnboarding(); }
       else { applyWorkspaceTheme(); updateHeaderUser(); showView('app'); initApp(); }
     } else {
-      errEl.textContent = 'Not verified yet — please click the link in your inbox first, then try again.';
-      btn.disabled = false; btn.textContent = "I've verified my email";
+      if (errEl) errEl.textContent = 'Not verified yet — please click the link in your inbox first, then try again.';
+      if (btn) { btn.disabled = false; btn.textContent = "I've verified my email"; }
     }
   } catch(e) {
-    errEl.textContent = e.message || 'Could not check. Please try again.';
-    btn.disabled = false; btn.textContent = "I've verified my email";
+    if (errEl) errEl.textContent = e.message || 'Could not check. Please try again.';
+    if (btn) { btn.disabled = false; btn.textContent = "I've verified my email"; }
   }
 }
 
@@ -3095,7 +3099,8 @@ async function resendAndCooldown() {
       btn.style.opacity = ''; btn.style.pointerEvents = '';
     }, 60000);
   } catch(e) {
-    document.getElementById('verify-error').textContent = e.message || 'Could not resend email.';
+    const errEl = document.getElementById('verify-error');
+    if (errEl) errEl.textContent = e.message || 'Could not resend email.';
   }
 }
 
