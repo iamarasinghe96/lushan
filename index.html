@@ -8,6 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
@@ -1752,7 +1753,15 @@ let onboardingData = {};
 // ─────────────────────────────────────────────────────────────────────────────
 function initFirebase() {
   try {
-    if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FB_CONFIG);
+      // App Check — replace RECAPTCHA_SITE_KEY with your reCAPTCHA v3 site key
+      const appCheck = firebase.appCheck();
+      appCheck.activate(
+        new firebase.appCheck.ReCaptchaV3Provider('RECAPTCHA_SITE_KEY'),
+        true // auto-refresh tokens
+      );
+    }
     db = firebase.firestore();
     return true;
   } catch(e) {
