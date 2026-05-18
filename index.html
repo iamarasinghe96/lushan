@@ -344,6 +344,22 @@
     #toast.toast-error   { background: #991b1b; }
     #toast.toast-warning { background: #78350f; }
 
+    /* Rate-limit banner */
+    #rate-limit-banner {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 2000;
+      background: #78350f; color: #fff;
+      padding: 12px 20px;
+      display: none; align-items: center; gap: 12px;
+      font-size: .88rem; font-weight: 600;
+      box-shadow: 0 2px 12px rgba(0,0,0,.25);
+      animation: slideDown .25s ease;
+    }
+    #rate-limit-banner.show { display: flex; }
+    #rate-limit-banner .rl-icon { font-size: 1.2rem; flex-shrink: 0; }
+    #rate-limit-banner .rl-bar-wrap { flex: 1; background: rgba(255,255,255,.25); border-radius: 4px; height: 5px; overflow: hidden; margin-left: 8px; }
+    #rate-limit-banner .rl-bar { height: 100%; background: #fff; border-radius: 4px; transition: width 1s linear; }
+    @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
     /* ── Confirm modal ── */
     .confirm-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,.45);
@@ -1567,6 +1583,11 @@ With regards,
 </div><!-- /view-app -->
 
 <div id="toast"></div>
+<div id="rate-limit-banner">
+  <span class="rl-icon">⏳</span>
+  <span id="rl-msg">Rate limit reached — retrying in <strong id="rl-secs">0</strong>s</span>
+  <div class="rl-bar-wrap"><div class="rl-bar" id="rl-bar" style="width:100%"></div></div>
+</div>
 
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2005,20 +2026,33 @@ async function groqFetchWithRetry(url, init) {
   if (res.status !== 429) return res;
   // Parse wait time from Groq error body
   const errBody = await res.json().catch(() => ({}));
-  const msg = errBody.error?.message || '';
-  const waitMatch = msg.match(/try again in ([\d.]+)s/i);
+  const errMsg = errBody.error?.message || '';
+  const waitMatch = errMsg.match(/try again in ([\d.]+)s/i);
   const waitSecs = waitMatch ? Math.ceil(parseFloat(waitMatch[1])) + 1 : 15;
-  // Countdown toast
-  const countdown = (s) => toast(`Rate limit — retrying in ${s}s…`, 'warning');
-  countdown(waitSecs);
+  // Show prominent banner with countdown + progress bar
+  const banner  = document.getElementById('rate-limit-banner');
+  const secsEl  = document.getElementById('rl-secs');
+  const barEl   = document.getElementById('rl-bar');
+  if (banner) {
+    secsEl.textContent = waitSecs;
+    barEl.style.transition = 'none';
+    barEl.style.width = '100%';
+    banner.classList.add('show');
+    // Kick off bar shrink after a frame
+    requestAnimationFrame(() => {
+      barEl.style.transition = `width ${waitSecs}s linear`;
+      barEl.style.width = '0%';
+    });
+  }
   await new Promise(resolve => {
     let remaining = waitSecs;
     const iv = setInterval(() => {
       remaining--;
+      if (secsEl) secsEl.textContent = remaining;
       if (remaining <= 0) { clearInterval(iv); resolve(); }
-      else countdown(remaining);
     }, 1000);
   });
+  if (banner) banner.classList.remove('show');
   return doFetch();
 }
 
