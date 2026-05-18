@@ -1306,6 +1306,10 @@ With regards,
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" stroke="currentColor" stroke-width="2"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           Transcripts
         </button>
+        <button onclick="closeUserMenu(); window.location.href='settings/?tab=api';">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M10 20l4-16M6 9l-4 4 4 4M18 9l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          API Keys
+        </button>
         <button onclick="closeUserMenu(); window.location.href='settings/?tab=personalisation';">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           Personalisation
@@ -4156,9 +4160,14 @@ function showTemplatePickerModal(contentHint) {
 
     modal.innerHTML = `
       <div class="tpl-picker-box">
-        <div class="tpl-picker-head">
-          <h3>Select Clinical Template</h3>
-          <p>Choose a template, or skip to use the default progress note</p>
+        <div class="tpl-picker-head" style="display:flex;align-items:flex-start;gap:12px;">
+          <button id="tpl-back-btn" style="flex-shrink:0;background:none;border:1px solid #e5e7eb;border-radius:7px;padding:5px 10px;font-size:.78rem;color:#6b7280;cursor:pointer;display:flex;align-items:center;gap:4px;margin-top:2px;">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back
+          </button>
+          <div>
+            <h3 style="margin:0 0 3px;">Select Clinical Template</h3>
+            <p style="margin:0;">Choose a template, or skip to use the default progress note</p>
+          </div>
         </div>
         <div class="tpl-picker-body">
           <div id="tpl-top-sections"></div>
@@ -4257,6 +4266,7 @@ function showTemplatePickerModal(contentHint) {
     };
 
     document.getElementById('tpl-skip-btn').onclick = () => done(null);
+    document.getElementById('tpl-back-btn').onclick  = () => done(null);
     modal.addEventListener('click', e => { if (e.target === modal) done(null); });
   });
 }
@@ -4302,7 +4312,7 @@ function _checkGroqAudioKey(onProceed) {
 
   overlay.querySelector('#_gk-settings-btn').onclick = () => {
     overlay.remove();
-    window.location.href = 'settings/?tab=transcripts';
+    window.location.href = 'settings/?tab=api';
   };
   overlay.querySelector('#_gk-continue-btn').onclick = () => {
     overlay.remove();

@@ -151,6 +151,10 @@
       <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" stroke="currentColor" stroke-width="2"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       Transcripts
     </button>
+    <button class="stnav-btn" id="stnav-api"            onclick="settingsNav('api')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M10 20l4-16M6 9l-4 4 4 4M18 9l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      API Keys
+    </button>
     <button class="stnav-btn" id="stnav-personalisation" onclick="settingsNav('personalisation')">
       <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       Personalisation
@@ -245,33 +249,6 @@
       <p class="st-sub">Manage recording preferences and transcript privacy controls</p>
 
       <div class="st-section">
-        <h2 class="st-section-h">Groq API Key</h2>
-        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Required for audio features — Record Session, Dictate Note, and Upload Recording. Takes about 2 minutes to set up.</p>
-
-        <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
-          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:10px;">How to get your free API key</div>
-          <ol style="margin:0;padding-left:18px;font-size:.83rem;color:#374151;line-height:2;">
-            <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a> and sign in with your Google account</li>
-            <li>Click <strong>Create API key</strong></li>
-            <li>Give it a name (e.g. <em>LushNote</em>), then click <strong>Submit</strong></li>
-            <li>Copy the key shown — it starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">gsk_</code></li>
-            <li>Paste it in the field below and click <strong>Save Key</strong></li>
-          </ol>
-        </div>
-
-        <div class="field-row">
-          <label>Groq API Key</label>
-          <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" style="font-family:monospace;" />
-        </div>
-        <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:4px;">Save Key</button>
-        <span id="st-groq-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
-
-        <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:9px;padding:10px 14px;margin-top:14px;font-size:.8rem;color:#166534;line-height:1.6;">
-          <strong>Free key</strong> — no credit card needed.
-        </div>
-      </div>
-
-      <div class="st-section">
         <h2 class="st-section-h">Information Privacy</h2>
         <p style="font-size:.83rem;color:#6b7280;margin-bottom:16px;">Redact identifiable information from transcripts before they are sent to the AI.</p>
         <div class="st-toggle-row">
@@ -305,6 +282,35 @@
       </div>
       <div style="display:flex;justify-content:flex-end;">
         <button class="btn btn-primary" onclick="stSaveTranscripts()">Save changes</button>
+      </div>
+    </div>
+
+    <!-- API Keys -->
+    <div class="st-pane" id="st-pane-api">
+      <h1 class="st-h1">API Keys</h1>
+      <p class="st-sub">Connect external AI services used by LushNote</p>
+
+      <div class="st-section">
+        <h2 class="st-section-h">Groq API Key</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Required for audio features — Record Session, Dictate Note, and Upload Recording. Free to set up, no credit card needed.</p>
+
+        <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:10px;">How to get your free API key</div>
+          <ol style="margin:0;padding-left:18px;font-size:.83rem;color:#374151;line-height:2;">
+            <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a> and sign in with your Google account</li>
+            <li>Click <strong>Create API key</strong></li>
+            <li>Give it a name (e.g. <em>LushNote</em>), then click <strong>Submit</strong></li>
+            <li>Copy the key shown — it starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">gsk_</code></li>
+            <li>Paste it in the field below and click <strong>Save Key</strong></li>
+          </ol>
+        </div>
+
+        <div class="field-row">
+          <label>Groq API Key</label>
+          <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" style="font-family:monospace;" />
+        </div>
+        <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:4px;">Save Key</button>
+        <span id="st-groq-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
       </div>
     </div>
 
@@ -560,7 +566,7 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 2800);
 }
 function settingsNav(tab) {
-  ['profile','workplaces','templates','transcripts','personalisation','subscription'].forEach(t => {
+  ['profile','workplaces','templates','transcripts','api','personalisation','subscription'].forEach(t => {
     document.getElementById('stnav-' + t).classList.toggle('active', t === tab);
     document.getElementById('st-pane-' + t).classList.toggle('active', t === tab);
   });
