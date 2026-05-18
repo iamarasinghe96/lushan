@@ -498,11 +498,63 @@
     .user-menu-drop button:last-child { border-bottom: none; }
     .user-menu-drop button:hover { background: #f3f4f6; }
 
+    /* ── Input mode grid ── */
+    .input-mode-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; padding:28px 0 16px; }
+    .input-mode-card { background:#fff; border:1.5px solid #e5e7eb; border-radius:12px; padding:22px 14px 18px; display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; transition:all .15s; text-align:center; user-select:none; }
+    .input-mode-card:hover { border-color:var(--blue); box-shadow:0 4px 18px rgba(26,86,219,.13); transform:translateY(-2px); }
+    .input-mode-card .imc-icon { font-size:2rem; margin-bottom:4px; }
+    .input-mode-card strong { font-size:.88rem; font-weight:700; color:#111827; }
+    .input-mode-card span { font-size:.73rem; color:#6b7280; line-height:1.3; }
+    .imc-featured { border-color:var(--blue-lt); background:var(--blue-lt); }
+    .imc-featured:hover { background:#fff; }
+    .imc-muted { opacity:.52; pointer-events:none; }
+
+    /* ── Recording modal shared ── */
+    .rec-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9200;display:flex;align-items:center;justify-content:center; }
+    .rec-modal-box { background:#fff;border-radius:16px;width:min(560px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.28); }
+    .rec-modal-header { display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid #e5e7eb; }
+    .rec-modal-header h3 { margin:0;font-size:1rem;font-weight:700; }
+    .rec-modal-close { background:none;border:none;font-size:1.4rem;cursor:pointer;color:#6b7280;line-height:1; }
+    .rec-modal-body { padding:18px 22px 22px; }
+    .rec-guide { background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:13px 16px;margin-bottom:18px; }
+    .rec-guide h4 { margin:0 0 8px;font-size:.82rem;font-weight:700;color:#166534; }
+    .rec-guide ul { margin:0;padding-left:16px;font-size:.8rem;color:#166534;line-height:1.7; }
+    .rec-state { text-align:center;padding:16px 0 8px; }
+    .rec-pulse { display:inline-block;width:64px;height:64px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;position:relative; }
+    .rec-pulse::before { content:'';position:absolute;inset:-6px;border-radius:50%;border:3px solid var(--blue);opacity:.5;animation:recpulse 1.2s ease-out infinite; }
+    .rec-pulse.recording { background:#dc2626; }
+    .rec-pulse.recording::before { border-color:#dc2626; }
+    @keyframes recpulse { 0%{transform:scale(1);opacity:.5} 100%{transform:scale(1.5);opacity:0} }
+    .rec-timer { font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums;color:#111827;margin-bottom:6px; }
+    .rec-status-text { font-size:.82rem;color:#6b7280;margin-bottom:18px; }
+    .rec-btn-row { display:flex;gap:10px;justify-content:center; }
+    .rec-btn { padding:10px 24px;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer; }
+    .rec-btn-start { background:var(--blue);color:#fff; }
+    .rec-btn-stop  { background:#dc2626;color:#fff; }
+    .rec-btn-cancel { background:#f3f4f6;color:#374151;border:1px solid #d1d5db; }
+    .upload-zone { border:2px dashed #d1d5db;border-radius:10px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:16px; }
+    .upload-zone.drag-over { border-color:var(--blue);background:var(--blue-lt); }
+    .upload-zone:hover { border-color:var(--blue); }
+    .upload-zone-icon { font-size:2.4rem;margin-bottom:8px; }
+    .upload-zone p { font-size:.85rem;color:#6b7280;margin:4px 0; }
+    .upload-zone strong { color:#111827; }
+    .telehealth-guide { background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:13px 16px;font-size:.82rem;color:#1e40af;line-height:1.7;margin-bottom:16px; }
+    .telehealth-guide h4 { margin:0 0 6px;font-weight:700; }
+    .telehealth-guide ol { margin:0;padding-left:18px; }
+    .mode-choice-grid { display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px; }
+    .mode-choice-card { border:1.5px solid #e5e7eb;border-radius:10px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .15s; }
+    .mode-choice-card:hover { border-color:var(--blue);background:var(--blue-lt); }
+    .mode-choice-card .imc-icon { font-size:1.8rem;margin-bottom:6px;display:block; }
+    .mode-choice-card strong { display:block;font-size:.88rem;font-weight:700;color:#111827; }
+    .mode-choice-card span { font-size:.75rem;color:#6b7280; }
+    .assign-patient-modal { background:#fff;border-radius:14px;width:min(440px,94vw);box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden; }
+
     /* ── Responsive: Tablet (max 900px) ── */
     @media (max-width: 900px) {
       main { padding: 16px 14px 60px; }
       .edit-grid { grid-template-columns: 1fr; }
       .preview-sticky { position: static; }
+      .input-mode-grid { grid-template-columns: repeat(3,1fr); }
     }
 
     /* ── Responsive: Mobile (max 640px) ── */
@@ -530,6 +582,8 @@
       .paste-hero p { font-size: .84rem; margin-bottom: 20px; }
       .btn-paste { font-size: .95rem; padding: 13px 28px; width: 100%; border-radius: 8px; }
       .paste-hint { font-size: .76rem; }
+      .input-mode-grid { grid-template-columns: repeat(2,1fr); }
+      .mode-choice-grid { grid-template-columns: 1fr; }
 
       .two-col, .three-col { grid-template-columns: 1fr; }
       .field-row label { font-size: .78rem; }
@@ -848,19 +902,37 @@ With regards,
   <!-- ══════════════════════ TAB 1 – GENERATE ══════════════════════ -->
   <div id="tab-generate" class="tab-panel active">
 
-    <div class="paste-hero">
-      <div class="paste-icon">📋</div>
-      <h2>Paste &amp; Generate Report</h2>
-      <p>Copy your consultation transcript from your voice app, then click below.</p>
-      <button class="btn-paste" onclick="pasteAndGenerate()">
-        <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Paste &amp; Generate Report
-      </button>
-      <p class="paste-hint">Reads clipboard, sends to Groq AI, auto-fills all fields</p>
-      <div id="transcript-chip" style="display:none;" class="transcript-chip">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span id="transcript-chip-text"></span>
+    <div class="input-mode-grid">
+      <div class="input-mode-card" onclick="pasteAndGenerate()">
+        <div class="imc-icon">📋</div>
+        <strong>Paste Transcript</strong>
+        <span>Copy from voice app</span>
       </div>
+      <div class="input-mode-card imc-featured" onclick="openDictateModal()">
+        <div class="imc-icon">🎙️</div>
+        <strong>Dictate Note</strong>
+        <span>Doctor narrates session solo</span>
+      </div>
+      <div class="input-mode-card imc-featured" onclick="openUploadModal()">
+        <div class="imc-icon">⬆️</div>
+        <strong>Upload Recording</strong>
+        <span>Audio file or drag &amp; drop</span>
+      </div>
+      <div class="input-mode-card imc-featured" onclick="openRecordModal()">
+        <div class="imc-icon">👥</div>
+        <strong>Record Session</strong>
+        <span>In-person or telehealth</span>
+      </div>
+      <div class="input-mode-card imc-muted" onclick="toast('Create Document — coming soon')">
+        <div class="imc-icon">📄</div>
+        <strong>Create Document</strong>
+        <span>Coming soon</span>
+      </div>
+    </div>
+
+    <div id="transcript-chip" style="display:none;" class="transcript-chip">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="transcript-chip-text"></span>
     </div>
 
   </div>
@@ -2520,6 +2592,389 @@ async function migrateNotes(uid) {
 // ─────────────────────────────────────────────────────────────────────────────
 // initApp (called after auth + onboarding complete)
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Audio input modes
+// ─────────────────────────────────────────────────────────────────────────────
+const DICTATE_PROMPT = `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist.
+The following is a DICTATED CLINICAL NOTE — the doctor is narrating a patient consultation in first person (e.g. "The patient told me...", "I noted..."). There is no back-and-forth conversation.
+Your task is identical: return a structured Progress Note as a single JSON object with the same keys as always.
+Key differences to handle: extract patient details from the narration, infer mental state from described observations, and treat all content as the doctor's clinical assessment.
+Return ONLY the raw JSON object — no markdown fences, no explanation.`;
+
+let _recorder = null, _recChunks = [], _recTimer = null, _recSeconds = 0, _recStream = null, _recMode = 'conversation';
+
+function _recFormatTime(s) {
+  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+
+async function transcribeAudio(blob) {
+  const ext = (blob.type||'').includes('ogg') ? 'ogg' : (blob.type||'').includes('mp4') ? 'mp4' : 'webm';
+  const form = new FormData();
+  form.append('file', blob, `recording.${ext}`);
+  form.append('model', 'whisper-large-v3-turbo');
+  form.append('response_format', 'text');
+  const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${GROQ_KEY}` },
+    body: form
+  });
+  if (!res.ok) {
+    const e = await res.json().catch(()=>({}));
+    throw new Error(e.error?.message || `Transcription error ${res.status}`);
+  }
+  return (await res.text()).trim();
+}
+
+async function callGroqWithMode(transcript, mode) {
+  const systemPrompt = mode === 'dictation' ? DICTATE_PROMPT : SYSTEM_PROMPT;
+  const userMsg = mode === 'dictation'
+    ? `Structure this dictated clinical note into a Progress Note:\n\n${transcript}`
+    : `Structure this consultation transcript into a Progress Note:\n\n${transcript}`;
+  const res = await fetch(GROQ_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role:'system', content: systemPrompt }, { role:'user', content: userMsg }], temperature: 0.1, max_tokens: 2048 })
+  });
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `Groq error ${res.status}`); }
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content || '';
+}
+
+function showAssignPatientModal(transcript, mode) {
+  return new Promise(resolve => {
+    const wc = transcript.trim().split(/\s+/).length;
+    const modal = document.createElement('div');
+    modal.className = 'rec-modal-overlay';
+    modal.innerHTML = `
+      <div class="assign-patient-modal">
+        <div class="rec-modal-header">
+          <h3>Assign to Patient</h3>
+          <button class="rec-modal-close" id="apm-cancel-x">&times;</button>
+        </div>
+        <div class="rec-modal-body">
+          <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Transcript ready — <strong>${wc} words</strong>. Assign to a patient before generating the note.</p>
+          <div class="as-field" style="position:relative;">
+            <label>Patient name</label>
+            <input id="apm-patient" placeholder="First name or full name" autocomplete="off" oninput="apmPatientInput(this.value)" />
+            <div id="apm-drop" class="autocomplete-drop" style="display:none;"></div>
+          </div>
+          <div class="as-field">
+            <label>Patient ID / Reg # <span style="color:#9ca3af;font-weight:400;">(optional)</span></label>
+            <input id="apm-reg" placeholder="${(()=>{ try{const p=currentUser.profile,wps=p.workplaces||[],aw=wps.find(w=>w.id===p.activeWorkplaceId)||wps[0]; return aw&&aw.regTemplate?aw.regTemplate:'e.g. 100234';}catch(e){return 'e.g. 100234';} })()}" />
+          </div>
+          <div style="display:flex;gap:10px;margin-top:18px;">
+            <button id="apm-skip" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;">Skip patient</button>
+            <button id="apm-confirm" style="flex:2;padding:10px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;">Generate note</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    function apmPatientInput(v) {
+      const drop = document.getElementById('apm-drop');
+      if (!v.trim() || !_patientIndex) { drop.style.display='none'; return; }
+      const matches = Object.values(_patientIndex).filter(p => p.name.toLowerCase().includes(v.toLowerCase())).slice(0,5);
+      if (!matches.length) { drop.style.display='none'; return; }
+      drop.style.display='block';
+      drop.innerHTML = matches.map(p => `<div class="autocomplete-item" onmousedown="apmSelectPatient('${esc(p.name)}','${esc(p.regNumber||'')}')">${esc(p.name)}${p.regNumber?` <span style='color:#9ca3af;font-size:.8em'>${esc(p.regNumber)}</span>`:''}</div>`).join('');
+    }
+    window.apmPatientInput = apmPatientInput;
+    window.apmSelectPatient = (name, reg) => {
+      document.getElementById('apm-patient').value = name;
+      if (reg) document.getElementById('apm-reg').value = reg;
+      document.getElementById('apm-drop').style.display='none';
+    };
+
+    function done(patient, reg) { modal.remove(); resolve({ patient, reg }); }
+    document.getElementById('apm-confirm').onclick = () => done(document.getElementById('apm-patient').value.trim(), document.getElementById('apm-reg').value.trim());
+    document.getElementById('apm-skip').onclick = () => done('', '');
+    document.getElementById('apm-cancel-x').onclick = () => { modal.remove(); resolve(null); };
+    modal.addEventListener('click', e => { if (e.target===modal) { modal.remove(); resolve(null); } });
+  });
+}
+
+async function processAudioAndGenerate(blob, mode) {
+  setLoading(true, 'Transcribing audio…');
+  let transcript;
+  try {
+    transcript = await transcribeAudio(blob);
+  } catch(e) {
+    setLoading(false);
+    alert('Transcription failed: ' + e.message);
+    return;
+  }
+  setLoading(false);
+
+  if (!transcript || transcript.split(/\s+/).length < 20) {
+    alert('The recording was too short or unclear to transcribe. Please try again.');
+    return;
+  }
+
+  const assignment = await showAssignPatientModal(transcript, mode);
+  if (!assignment) return;
+
+  setLoading(true, 'Generating progress note…');
+  try {
+    const raw = await callGroqWithMode(transcript, mode);
+    const data = parseJson(raw);
+    if (!data) throw new Error('Could not parse AI response. Try again.');
+    if (assignment.patient) data.patient = assignment.patient;
+    if (assignment.reg) data.reg_number = assignment.reg;
+    populateFields(data);
+    const now = new Date();
+    document.getElementById('e-date-display').value = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+    livePreview(); updateExportPreview(); updateEmailSubject();
+    switchTab('export');
+    const chip = document.getElementById('transcript-chip');
+    document.getElementById('transcript-chip-text').textContent = `${mode === 'dictation' ? 'Dictation' : 'Recording'} — ${transcript.split(/\s+/).length} words`;
+    chip.style.display = 'inline-flex';
+    toast('Note generated successfully');
+  } catch(e) {
+    alert('Generation failed: ' + e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ── Dictate Modal ──
+function openDictateModal() {
+  const modal = document.createElement('div');
+  modal.className = 'rec-modal-overlay';
+  modal.id = 'dictate-modal';
+  modal.innerHTML = `
+    <div class="rec-modal-box">
+      <div class="rec-modal-header">
+        <h3>🎙️ Dictate Note</h3>
+        <button class="rec-modal-close" onclick="closeDictateModal()">&times;</button>
+      </div>
+      <div class="rec-modal-body">
+        <div class="rec-guide">
+          <h4>Guide — mention the following as you go:</h4>
+          <ul>
+            <li>Patient name and reason for visit</li>
+            <li>Relevant history and background</li>
+            <li>Current medications and any changes</li>
+            <li>Mental state observations (mood, affect, insight…)</li>
+            <li>Risk assessment</li>
+            <li>Clinical formulation / working diagnosis</li>
+            <li>Treatment plan and next steps</li>
+          </ul>
+        </div>
+        <div class="rec-state" id="dictate-state">
+          <div class="rec-pulse" id="dictate-pulse">
+            <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" fill="white"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+          <div class="rec-timer" id="dictate-timer">00:00</div>
+          <div class="rec-status-text" id="dictate-status">Ready to record</div>
+          <div class="rec-btn-row">
+            <button class="rec-btn rec-btn-cancel" onclick="closeDictateModal()">Cancel</button>
+            <button class="rec-btn rec-btn-start" id="dictate-start-btn" onclick="startDictateRecording()">Start Dictating</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+function closeDictateModal() {
+  stopRecordingCleanup();
+  document.getElementById('dictate-modal')?.remove();
+}
+async function startDictateRecording() {
+  try {
+    _recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _recMode = 'dictation';
+    _showRecordingUI('dictate-state', 'dictate');
+    _recChunks = []; _recSeconds = 0;
+    _recorder = new MediaRecorder(_recStream);
+    _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
+    _recorder.start(1000);
+    clearInterval(_recTimer);
+    _recTimer = setInterval(() => {
+      _recSeconds++;
+      const el = document.getElementById('dictate-timer');
+      if (el) el.textContent = _recFormatTime(_recSeconds);
+    }, 1000);
+  } catch(e) {
+    alert('Microphone access denied. Please allow microphone access and try again.');
+  }
+}
+
+// ── Upload Modal ──
+function openUploadModal() {
+  const modal = document.createElement('div');
+  modal.className = 'rec-modal-overlay';
+  modal.id = 'upload-modal';
+  modal.innerHTML = `
+    <div class="rec-modal-box">
+      <div class="rec-modal-header">
+        <h3>⬆️ Upload Recording</h3>
+        <button class="rec-modal-close" onclick="document.getElementById('upload-modal').remove()">&times;</button>
+      </div>
+      <div class="rec-modal-body">
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('audio-file-input').click()">
+          <div class="upload-zone-icon">🎵</div>
+          <strong>Drop your audio file here</strong>
+          <p>or click to browse</p>
+          <p style="font-size:.72rem;color:#9ca3af;margin-top:6px;">MP3, MP4, WAV, M4A, OGG, WEBM</p>
+        </div>
+        <input type="file" id="audio-file-input" accept="audio/*,video/webm" style="display:none" onchange="uploadFileSelected(this)" />
+        <div id="upload-file-info" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.84rem;color:#166534;"></div>
+        <div style="display:flex;gap:10px;">
+          <button class="rec-btn rec-btn-cancel" style="flex:1;" onclick="document.getElementById('upload-modal').remove()">Cancel</button>
+          <button class="rec-btn rec-btn-start" id="upload-process-btn" style="flex:2;opacity:.45;pointer-events:none;" onclick="processUploadedFile()">Process Recording</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const zone = document.getElementById('upload-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) _setUploadFile(f);
+  });
+}
+let _uploadFile = null;
+function _setUploadFile(f) {
+  _uploadFile = f;
+  const info = document.getElementById('upload-file-info');
+  info.style.display = 'block';
+  info.textContent = `✓ ${f.name}  (${(f.size/1024/1024).toFixed(1)} MB)`;
+  const btn = document.getElementById('upload-process-btn');
+  btn.style.opacity = '1'; btn.style.pointerEvents = '';
+}
+function uploadFileSelected(input) { if (input.files[0]) _setUploadFile(input.files[0]); }
+async function processUploadedFile() {
+  if (!_uploadFile) return;
+  document.getElementById('upload-modal').remove();
+  await processAudioAndGenerate(_uploadFile, 'conversation');
+}
+
+// ── Record Session Modal ──
+function openRecordModal() {
+  const modal = document.createElement('div');
+  modal.className = 'rec-modal-overlay';
+  modal.id = 'record-modal';
+  modal.innerHTML = `
+    <div class="rec-modal-box">
+      <div class="rec-modal-header">
+        <h3>👥 Record Session</h3>
+        <button class="rec-modal-close" onclick="closeRecordModal()">&times;</button>
+      </div>
+      <div class="rec-modal-body" id="record-modal-body">
+        <p style="font-size:.84rem;color:#374151;margin-bottom:16px;">Choose how you are conducting this session:</p>
+        <div class="mode-choice-grid">
+          <div class="mode-choice-card" onclick="startInPersonRecord()">
+            <span class="imc-icon">🎤</span>
+            <strong>In-Person</strong>
+            <span>Uses your device microphone</span>
+          </div>
+          <div class="mode-choice-card" onclick="showTelehealthSetup()">
+            <span class="imc-icon">💻</span>
+            <strong>Telehealth</strong>
+            <span>Captures your video call audio</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+function closeRecordModal() {
+  stopRecordingCleanup();
+  document.getElementById('record-modal')?.remove();
+}
+async function startInPersonRecord() {
+  try {
+    _recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _recMode = 'conversation';
+    _showRecordingUI('record-modal-body', 'record');
+    _startRecorderForSession('record');
+  } catch(e) {
+    alert('Microphone access denied. Please allow microphone access and try again.');
+  }
+}
+function showTelehealthSetup() {
+  document.getElementById('record-modal-body').innerHTML = `
+    <div class="telehealth-guide">
+      <h4>Telehealth Recording Setup</h4>
+      <ol>
+        <li>Click <strong>Connect Telehealth</strong> below</li>
+        <li>Select the browser tab or window with your video call<br><em>(Zoom, Google Meet, Teams, etc.)</em></li>
+        <li><strong>Important:</strong> Check the box for "Share audio" or "Also share tab audio"</li>
+      </ol>
+      <p style="margin-top:8px;font-size:.76rem;color:#1e40af;opacity:.8;">LushNote does not capture any screen or video — only audio.</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="rec-btn rec-btn-cancel" onclick="closeRecordModal()">Cancel</button>
+      <button class="rec-btn rec-btn-start" onclick="startTelehealthRecord()">Connect Telehealth</button>
+    </div>`;
+}
+async function startTelehealthRecord() {
+  try {
+    _recStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    const audioTracks = _recStream.getAudioTracks();
+    if (!audioTracks.length) {
+      _recStream.getTracks().forEach(t=>t.stop());
+      alert('No audio was shared. Please try again and make sure to check "Share audio" or "Share tab audio".');
+      return;
+    }
+    _recMode = 'conversation';
+    _showRecordingUI('record-modal-body', 'record');
+    _startRecorderForSession('record');
+  } catch(e) {
+    if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') alert('Could not capture audio: ' + e.message);
+  }
+}
+
+// ── Shared recording engine ──
+function _showRecordingUI(containerId, prefix) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = `
+    <div class="rec-state">
+      <div class="rec-pulse recording" id="${prefix}-pulse">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="2" fill="white"/><rect x="14" y="4" width="4" height="16" rx="2" fill="white"/></svg>
+      </div>
+      <div class="rec-timer" id="${prefix}-timer">00:00</div>
+      <div class="rec-status-text" id="${prefix}-status">Recording…</div>
+      <div class="rec-btn-row">
+        <button class="rec-btn rec-btn-cancel" onclick="${prefix==='dictate'?'closeDictateModal()':'closeRecordModal()'}">Cancel</button>
+        <button class="rec-btn rec-btn-stop" onclick="_stopAndProcess('${prefix}')">Stop &amp; Generate Note</button>
+      </div>
+    </div>`;
+}
+function _startRecorderForSession(prefix) {
+  _recChunks = []; _recSeconds = 0;
+  _recorder = new MediaRecorder(_recStream);
+  _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
+  _recorder.start(1000);
+  clearInterval(_recTimer);
+  _recTimer = setInterval(() => {
+    _recSeconds++;
+    const el = document.getElementById(prefix + '-timer');
+    if (el) el.textContent = _recFormatTime(_recSeconds);
+  }, 1000);
+}
+async function _stopAndProcess(prefix) {
+  if (!_recorder) return;
+  clearInterval(_recTimer);
+  _recorder.stop();
+  const mode = _recMode;
+  _recorder.onstop = async () => {
+    const blob = new Blob(_recChunks, { type: _recorder.mimeType || 'audio/webm' });
+    stopRecordingCleanup();
+    prefix === 'dictate' ? closeDictateModal() : closeRecordModal();
+    await processAudioAndGenerate(blob, mode);
+  };
+}
+function stopRecordingCleanup() {
+  clearInterval(_recTimer);
+  if (_recorder && _recorder.state !== 'inactive') { try { _recorder.stop(); } catch(e) {} }
+  if (_recStream) { _recStream.getTracks().forEach(t => t.stop()); _recStream = null; }
+  _recorder = null; _recChunks = [];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Patient ID pattern detection
 // ─────────────────────────────────────────────────────────────────────────────
