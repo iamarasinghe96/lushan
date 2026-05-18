@@ -1303,6 +1303,9 @@ With regards,
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Save
         </button>
+        <button class="btn btn-outline btn-sm" id="change-template-btn" onclick="changeTemplate()" style="display:none;">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Change Template
+        </button>
         <button class="btn btn-gray btn-sm" onclick="newNote()">New Note</button>
       </div>
     </div>
@@ -1612,6 +1615,8 @@ The JSON must have exactly these keys:
 const state = {
   currentNoteId: null,
   allNotes: [],
+  lastTranscript: null,
+  lastTranscriptMode: 'paste',
 };
 let db = null;
 let currentUser = null;
@@ -1915,6 +1920,9 @@ async function pasteAndGenerate() {
   // Template picker
   const chosenTemplate = await showTemplatePickerModal(transcript.slice(0, 600));
 
+  state.lastTranscript = transcript;
+  state.lastTranscriptMode = 'paste';
+
   setLoading(true, 'Reading transcript & generating report…');
   try {
     // Compute date/time from upload moment
@@ -2118,6 +2126,44 @@ function updateNoteBar() {
   bar.style.display = 'flex';
   document.getElementById('current-note-label').textContent =
     `Editing: ${f.patient || 'Unnamed patient'}${f.date ? '  ·  ' + f.date : ''}`;
+  const ctBtn = document.getElementById('change-template-btn');
+  if (ctBtn) ctBtn.style.display = state.lastTranscript ? '' : 'none';
+}
+
+async function changeTemplate() {
+  if (!state.lastTranscript) { toast('No transcript loaded — generate a note first'); return; }
+  const groqKey = localStorage.getItem('groq_api_key') || GROQ_KEY;
+  const chosenTemplate = await showTemplatePickerModal(state.lastTranscript.slice(0, 600));
+  if (!chosenTemplate && chosenTemplate !== null) return; // picker dismissed
+  const patient = document.getElementById('e-patient').value;
+  const reg     = document.getElementById('e-reg-number').value;
+  const date    = document.getElementById('e-date-display').value;
+  const tStart  = document.getElementById('e-time-start').value;
+  const tEnd    = document.getElementById('e-time-end').value;
+  setLoading(true, 'Regenerating with new template…');
+  try {
+    let raw;
+    if (state.lastTranscriptMode === 'paste') {
+      raw = await callGroq(state.lastTranscript, groqKey, chosenTemplate?.prompt || null);
+    } else {
+      raw = await callGroqWithMode(state.lastTranscript, state.lastTranscriptMode, chosenTemplate?.prompt || null);
+    }
+    const data = parseJson(raw);
+    if (!data) throw new Error('Could not parse AI response. Try again.');
+    populateFields(data);
+    // Restore patient/date info that was already set
+    if (patient) document.getElementById('e-patient').value = patient;
+    if (reg)     document.getElementById('e-reg-number').value = reg;
+    if (date)    document.getElementById('e-date-display').value = date;
+    if (tStart)  document.getElementById('e-time-start').value = tStart;
+    if (tEnd)    document.getElementById('e-time-end').value   = tEnd;
+    livePreview(); updateExportPreview(); updateEmailSubject();
+    toast('Note regenerated with new template');
+  } catch(e) {
+    toast('Error: ' + e.message);
+  } finally {
+    setLoading(false);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -13594,6 +13640,9 @@ async function processAudioAndGenerate(blob, mode) {
 
   const chosenTemplate = await showTemplatePickerModal(transcript.slice(0, 600));
 
+  state.lastTranscript = transcript;
+  state.lastTranscriptMode = mode;
+
   setLoading(true, 'Generating progress note…');
   try {
     const raw = await callGroqWithMode(transcript, mode, chosenTemplate?.prompt || null);
@@ -13947,6 +13996,9 @@ function openCreateDocumentModal() {
     // Patient assignment
     const assignment = await showAssignPatientModal(content, 'document');
     if (!assignment) return;
+
+    state.lastTranscript = content;
+    state.lastTranscriptMode = 'document';
 
     setLoading(true, 'Generating clinical document…');
     try {
