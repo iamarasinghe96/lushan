@@ -824,43 +824,57 @@
           <label>Title / Credentials</label>
           <input type="text" id="ob-credentials" placeholder="Dr, MBBS, FRANZCP" />
         </div>
+        <p style="font-size:.78rem;color:#9ca3af;margin:0 0 16px;">You can update your name and credentials anytime in Settings.</p>
         <button class="ob-btn" onclick="obNext(1)">Next</button>
       </div>
 
-      <!-- Step 2: Workplace -->
+      <!-- Step 2: Workplaces -->
       <div id="ob-step-2" class="ob-card" style="display:none;">
         <div class="ob-step-label">Step 2 of 4</div>
-        <h2>Your Workplace</h2>
-        <div class="ob-field">
-          <label>Workplace name</label>
-          <input type="text" id="ob-wp-name" placeholder="e.g. Westmead Hospital" />
-        </div>
-        <div class="ob-field">
-          <label>Type</label>
-          <select id="ob-wp-type">
-            <option value="Private Practice">Private Practice</option>
-            <option value="Public Hospital">Public Hospital</option>
-            <option value="Community Health">Community Health</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div class="ob-field">
-          <label>Does your workplace already have a patient registration system?</label>
-          <div class="ob-radio-group">
-            <label class="ob-radio-label"><input type="radio" name="ob-regsys" value="existing" onchange="obRegSysChange(this.value)" /> Yes</label>
-            <label class="ob-radio-label"><input type="radio" name="ob-regsys" value="lushnote" onchange="obRegSysChange(this.value)" checked /> No</label>
+        <h2>Your Workplace(s)</h2>
+        <p style="font-size:.84rem;color:var(--gray);margin-bottom:16px;">Add all the places you practise — you can always add, remove, or edit these later in Settings.</p>
+
+        <!-- Added workplaces list -->
+        <div id="ob-wps-list" style="display:none;margin-bottom:16px;"></div>
+
+        <!-- Add-workplace form -->
+        <div id="ob-wp-form">
+          <div class="ob-field">
+            <label>Workplace name</label>
+            <input type="text" id="ob-wp-name" placeholder="e.g. Westmead Hospital" />
           </div>
+          <div class="ob-field">
+            <label>Type</label>
+            <select id="ob-wp-type">
+              <option value="Private Practice">Private Practice</option>
+              <option value="Public Hospital">Public Hospital</option>
+              <option value="Community Health">Community Health</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="ob-field">
+            <label>Does your workplace already have a patient registration system?</label>
+            <div class="ob-radio-group">
+              <label class="ob-radio-label"><input type="radio" name="ob-regsys" value="existing" onchange="obRegSysChange(this.value)" /> Yes</label>
+              <label class="ob-radio-label"><input type="radio" name="ob-regsys" value="lushnote" onchange="obRegSysChange(this.value)" checked /> No</label>
+            </div>
+          </div>
+          <div id="ob-regsys-existing" style="display:none;" class="ob-field">
+            <label>Paste an example patient ID</label>
+            <input type="text" id="ob-reg-format" placeholder="e.g. 4059257 or REG202238672 or Reg-12823-1292" oninput="obPreviewRegFormat(this.value)" autocomplete="off" />
+            <div id="ob-reg-preview" style="font-size:.78rem;margin-top:6px;color:#6b7280;min-height:18px;"></div>
+          </div>
+          <div id="ob-regsys-lushnote" class="ob-info-box">
+            We recommend our YYYYMMDDNN format — e.g. 20250517001 (date + 2-digit sequence). This will be pre-suggested when you create patient IDs.
+          </div>
+          <button class="ob-btn ob-btn-secondary" onclick="obAddWorkplace()" style="margin-bottom:6px;">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:4px;"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>Add Workplace
+          </button>
         </div>
-        <div id="ob-regsys-existing" style="display:none;" class="ob-field">
-          <label>Paste an example patient ID</label>
-          <input type="text" id="ob-reg-format" placeholder="e.g. 4059257 or REG202238672 or Reg-12823-1292" oninput="obPreviewRegFormat(this.value)" autocomplete="off" />
-          <div id="ob-reg-preview" style="font-size:.78rem;margin-top:6px;color:#6b7280;min-height:18px;"></div>
-        </div>
-        <div id="ob-regsys-lushnote" class="ob-info-box">
-          We recommend our YYYYMMDDNN format — e.g. 20250517001 (date + 2-digit sequence). This will be pre-suggested when you create patient IDs.
-        </div>
-        <div class="ob-notice">Your plan includes 1 active workplace. Upgrade to add more.</div>
-        <button class="ob-btn" onclick="obNext(2)">Next</button>
+
+        <div id="ob-wp-form-hint" style="font-size:.78rem;color:#9ca3af;margin-bottom:14px;display:none;">Want to add another workplace? Fill in the form above and click Add Workplace again.</div>
+        <div id="ob-wp-error" style="font-size:.82rem;color:#dc2626;margin-bottom:8px;display:none;"></div>
+        <button class="ob-btn" onclick="obNext(2)" id="ob-wp-next" style="display:none;">Next →</button>
         <button class="ob-btn ob-btn-secondary" onclick="obBack(2)">Back</button>
       </div>
 
@@ -868,7 +882,7 @@
       <div id="ob-step-3" class="ob-card" style="display:none;">
         <div class="ob-step-label">Step 3 of 4</div>
         <h2>Email Templates</h2>
-        <p style="font-size:.85rem;color:var(--gray);margin-bottom:16px;">How should your "Send to Colleague" emails begin?</p>
+        <p style="font-size:.85rem;color:var(--gray);margin-bottom:16px;">How should your "Send to Colleague" emails begin? <span style="color:#9ca3af;">You can customise this anytime in Settings.</span></p>
 
         <div class="ob-template-opt selected" id="ob-tpl-0" onclick="obSelectTpl(0)">
           <label class="ob-radio-label" style="margin-bottom:6px;"><input type="radio" name="ob-tpl" value="0" checked /> Option 1</label>
@@ -913,6 +927,7 @@ With regards,
       <div id="ob-step-4" class="ob-card" style="display:none;">
         <div class="ob-step-label">Step 4 of 4</div>
         <h2>Confirm &amp; Start</h2>
+        <p style="font-size:.78rem;color:#9ca3af;margin:0 0 14px;">Everything here can be changed later in Settings.</p>
         <div id="ob-summary" style="margin-bottom:20px;"></div>
         <button class="ob-btn" onclick="obComplete()">Start Using LushNote</button>
         <button class="ob-btn ob-btn-secondary" onclick="obBack(4)">Back</button>
@@ -2847,27 +2862,101 @@ function obShowStep(n) {
   obUpdateDots(n);
 }
 
+function obBuildWpFromForm() {
+  const wpName = document.getElementById('ob-wp-name').value.trim();
+  if (!wpName) return null;
+  const regSysEl = document.querySelector('input[name="ob-regsys"]:checked');
+  const regSys   = regSysEl ? regSysEl.value : 'lushnote';
+  const wps      = onboardingData.workplaces || [];
+  return {
+    id: 'wp_' + (wps.length + 1),
+    name: wpName,
+    type: document.getElementById('ob-wp-type').value,
+    regSystem: regSys,
+    regFormat: regSys === 'existing' ? document.getElementById('ob-reg-format').value.trim() : 'YYYYMMDDNN',
+    regPattern:  regSys === 'existing' ? (detectIdPattern(document.getElementById('ob-reg-format').value.trim())?.regex  || null) : null,
+    regTemplate: regSys === 'existing' ? (detectIdPattern(document.getElementById('ob-reg-format').value.trim())?.template || null) : null,
+  };
+}
+
+function obResetWpForm() {
+  document.getElementById('ob-wp-name').value = '';
+  document.getElementById('ob-wp-type').value = 'Private Practice';
+  const lushnoteRadio = document.querySelector('input[name="ob-regsys"][value="lushnote"]');
+  if (lushnoteRadio) { lushnoteRadio.checked = true; obRegSysChange('lushnote'); }
+  document.getElementById('ob-reg-format').value = '';
+  document.getElementById('ob-reg-preview').textContent = '';
+}
+
+function obRenderWpList() {
+  const wps = onboardingData.workplaces || [];
+  const listEl = document.getElementById('ob-wps-list');
+  const nextBtn = document.getElementById('ob-wp-next');
+  const hint    = document.getElementById('ob-wp-form-hint');
+  if (!wps.length) {
+    listEl.style.display = 'none';
+    if (nextBtn) nextBtn.style.display = 'none';
+    if (hint) hint.style.display = 'none';
+    return;
+  }
+  listEl.style.display = '';
+  if (nextBtn) nextBtn.style.display = '';
+  if (hint) hint.style.display = '';
+  listEl.innerHTML = wps.map((wp, i) => `
+    <div style="display:flex;align-items:center;gap:10px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:9px;padding:10px 14px;margin-bottom:8px;">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="color:#16a34a;flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M9 11V7a3 3 0 1 1 6 0v4" stroke="#16a34a" stroke-width="2" stroke-linecap="round"/></svg>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.85rem;font-weight:700;color:#111827;">${esc(wp.name)}</div>
+        <div style="font-size:.75rem;color:#6b7280;">${esc(wp.type)} · ${wp.regSystem === 'lushnote' ? 'LushNote IDs' : 'Existing system'}</div>
+      </div>
+      <button onclick="obRemoveWp(${i})" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1rem;padding:2px 6px;" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function obAddWorkplace() {
+  const errEl = document.getElementById('ob-wp-error');
+  errEl.style.display = 'none';
+  const wp = obBuildWpFromForm();
+  if (!wp) { errEl.textContent = 'Please enter a workplace name.'; errEl.style.display = ''; return; }
+  if (!onboardingData.workplaces) onboardingData.workplaces = [];
+  onboardingData.workplaces.push(wp);
+  obRenderWpList();
+  obResetWpForm();
+  document.getElementById('ob-wp-name').focus();
+}
+
+function obRemoveWp(idx) {
+  if (!onboardingData.workplaces) return;
+  onboardingData.workplaces.splice(idx, 1);
+  // Re-assign IDs
+  onboardingData.workplaces.forEach((w, i) => { w.id = 'wp_' + (i + 1); });
+  obRenderWpList();
+}
+
 function obNext(currentStep) {
   if (currentStep === 1) {
     const name = document.getElementById('ob-displayname').value.trim();
     if (!name) { alert('Please enter your display name.'); return; }
     onboardingData.displayName  = name;
     onboardingData.credentials  = document.getElementById('ob-credentials').value.trim();
+    if (!onboardingData.workplaces) onboardingData.workplaces = [];
+    obRenderWpList();
     obShowStep(2);
   } else if (currentStep === 2) {
-    const wpName = document.getElementById('ob-wp-name').value.trim();
-    if (!wpName) { alert('Please enter your workplace name.'); return; }
-    const regSysEl = document.querySelector('input[name="ob-regsys"]:checked');
-    const regSys   = regSysEl ? regSysEl.value : 'lushnote';
-    onboardingData.workplace = {
-      id: 'wp_1',
-      name: wpName,
-      type: document.getElementById('ob-wp-type').value,
-      regSystem: regSys,
-      regFormat: regSys === 'existing' ? document.getElementById('ob-reg-format').value.trim() : 'YYYYMMDDNN',
-      regPattern: (function() { if (regSys !== 'existing') return null; const p = detectIdPattern(document.getElementById('ob-reg-format').value.trim()); return p ? p.regex : null; })(),
-      regTemplate: (function() { if (regSys !== 'existing') return null; const p = detectIdPattern(document.getElementById('ob-reg-format').value.trim()); return p ? p.template : null; })(),
-    };
+    // Try to save whatever is in the form (if name is filled)
+    const formWp = obBuildWpFromForm();
+    if (formWp) {
+      if (!onboardingData.workplaces) onboardingData.workplaces = [];
+      onboardingData.workplaces.push(formWp);
+      obRenderWpList();
+      obResetWpForm();
+    }
+    if (!onboardingData.workplaces || !onboardingData.workplaces.length) {
+      const errEl = document.getElementById('ob-wp-error');
+      errEl.textContent = 'Please add at least one workplace.';
+      errEl.style.display = '';
+      return;
+    }
     obShowStep(3);
   } else if (currentStep === 3) {
     const selRadio = document.querySelector('input[name="ob-tpl"]:checked');
@@ -2875,12 +2964,12 @@ function obNext(currentStep) {
     onboardingData.emailPretext = document.getElementById('ob-tpl-text-' + selIdx).value;
     // Build summary
     const p = onboardingData;
-    const wp = p.workplace || {};
+    const wps = p.workplaces || [];
+    const wpSummary = wps.map(w => `${esc(w.name)} <span style="color:#6b7280;font-size:.85em;">(${esc(w.type)})</span>`).join('<br>') || '—';
     document.getElementById('ob-summary').innerHTML = `
       <div class="ob-summary-row"><span class="ob-summary-label">Name</span><span>${esc(p.displayName)}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Credentials</span><span>${esc(p.credentials || '—')}</span></div>
-      <div class="ob-summary-row"><span class="ob-summary-label">Workplace</span><span>${esc(wp.name)} (${esc(wp.type)})</span></div>
-      <div class="ob-summary-row"><span class="ob-summary-label">Registration</span><span>${wp.regSystem === 'existing' ? (wp.regTemplate ? esc(wp.regTemplate) + ' <span style="color:#6b7280;font-size:.85em;">(from: ' + esc(wp.regFormat) + ')</span>' : esc(wp.regFormat)) : 'LushNote YYYYMMDDNN'}</span></div>
+      <div class="ob-summary-row" style="align-items:flex-start"><span class="ob-summary-label">Workplaces</span><span>${wpSummary}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Email template</span><span>${esc((p.emailPretext || '').slice(0,60))}…</span></div>
     `;
     obShowStep(4);
@@ -2908,13 +2997,16 @@ function obSelectTpl(idx) {
 async function obComplete() {
   if (!currentUser || !db) return;
   const d = onboardingData;
-  const wp = d.workplace || { id: 'wp_1', name: 'My Practice', type: 'Private Practice', regSystem: 'lushnote', regFormat: 'YYYYMMDDNN' };
+  const wps = (d.workplaces && d.workplaces.length)
+    ? d.workplaces
+    : [{ id: 'wp_1', name: 'My Practice', type: 'Private Practice', regSystem: 'lushnote', regFormat: 'YYYYMMDDNN' }];
+  const activeId = wps[0].id;
   try {
     await db.collection('users').doc(currentUser.uid).update({
       displayName: d.displayName,
       credentials: d.credentials || '',
-      workplaces: [wp],
-      activeWorkplaceId: 'wp_1',
+      workplaces: wps,
+      activeWorkplaceId: activeId,
       emailPretext: d.emailPretext || '',
       onboardingComplete: true,
     });
@@ -2922,8 +3014,8 @@ async function obComplete() {
       ...currentUser.profile,
       displayName: d.displayName,
       credentials: d.credentials || '',
-      workplaces: [wp],
-      activeWorkplaceId: 'wp_1',
+      workplaces: wps,
+      activeWorkplaceId: activeId,
       emailPretext: d.emailPretext || '',
       onboardingComplete: true,
     };
