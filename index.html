@@ -506,11 +506,12 @@
     .ob-field input:focus, .ob-field select:focus, .ob-field textarea:focus {
       outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,159,110,.12);
     }
-    .ob-radio-group { display: flex; gap: 12px; margin-top: 4px; }
+    .ob-radio-group { display: flex; gap: 16px; margin-top: 4px; }
     .ob-radio-label {
-      display: flex; align-items: center; gap: 7px;
-      font-size: .85rem; cursor: pointer; color: #374151;
+      display: inline-flex; flex-direction: row; align-items: center; gap: 7px;
+      font-size: .85rem; cursor: pointer; color: #374151; white-space: nowrap;
     }
+    .ob-radio-label input[type="radio"] { margin: 0; flex-shrink: 0; }
     .ob-info-box {
       background: #e3f9ee; border: 1px solid #6ee7b7; border-radius: 8px;
       padding: 12px 14px; font-size: .81rem; color: #065f46; line-height: 1.5;
@@ -930,6 +931,12 @@
 <!-- ══════════════════════ VIEW: AUTH ══════════════════════ -->
 <div id="view-auth" style="display:none;">
   <div class="view-auth-page">
+    <!-- Full-box loading overlay shown while auth listener fetches profile -->
+    <div id="auth-loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+      <div style="width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#1d4ed8;border-radius:50%;animation:spin .7s linear infinite;"></div>
+      <div style="font-size:.88rem;color:#6b7280;font-weight:600;">Setting up your session…</div>
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     <div class="auth-box">
       <div class="auth-logo-area">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="56" height="56">
@@ -2869,7 +2876,12 @@ function startAuthListener() {
       showVerifyScreen(user.email);
       return;
     }
+    // Show a brief "loading" overlay while we fetch the profile so the
+    // user sees immediate feedback after sign-in
+    const loadingEl = document.getElementById('auth-loading-overlay');
+    if (loadingEl) loadingEl.style.display = '';
     const profile = await loadUserProfile(user.uid);
+    if (loadingEl) loadingEl.style.display = 'none';
     if (!profile || profile.status === 'pending') {
       document.getElementById('pending-email').textContent = user.email;
       showView('pending');
@@ -2971,7 +2983,9 @@ async function doLogin() {
   btn.textContent = 'Signing in…'; btn.disabled = true;
   try {
     await firebase.auth().signInWithEmailAndPassword(email, pass);
-    // auth listener handles routing
+    btn.textContent = 'Loading…';
+    // auth listener handles routing; reset button after a timeout as fallback
+    setTimeout(() => { btn.textContent = 'Sign In'; btn.disabled = false; }, 6000);
   } catch(e) {
     errEl.textContent = friendlyAuthError(e.code) || e.message || 'Sign in failed.';
     btn.textContent = 'Sign In'; btn.disabled = false;
