@@ -1370,7 +1370,7 @@ With regards,
           </div>
           <div class="field-row">
             <label>Clinician</label>
-            <input type="text" id="e-clinician" value="Dr Lushan Vasantha, Psychiatrist" oninput="livePreview()" />
+            <input type="text" id="e-clinician" value="" oninput="livePreview()" />
           </div>
           <div class="two-col">
             <div class="field-row">
@@ -1570,7 +1570,7 @@ const FB_CONFIG     = {
   appId:             '1:557843066844:web:4f120d8d9adee5fc716919',
 };
 
-const SYSTEM_PROMPT = `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist, practising in New South Wales and Victoria, Australia.
+const SYSTEM_PROMPT = `You are a medical scribe for {CLINICIAN}, practising in New South Wales and Victoria, Australia.
 Analyse this psychiatric consultation transcript and return a structured Progress Note as a single JSON object.
 
 Return ONLY the raw JSON object — no markdown fences, no explanation, no surrounding text.
@@ -1589,7 +1589,7 @@ The JSON must have exactly these keys:
   "patient":        "patient first name only, from the transcript",
   "date":           "",
   "time":           "",
-  "clinician":      "Dr Lushan Vasantha, Psychiatrist",
+  "clinician":      "{CLINICIAN}",
   "session_number": "session number or episode context if mentioned (e.g. Session 4 of ongoing treatment); leave empty string if not mentioned",
   "attendance":     "brief attendance and consent note inferred from transcript (e.g. Patient attended on time. Verbal consent for session confirmed.); leave empty string if nothing inferable",
   "diagnosis":      "active working diagnoses with ICD-10 codes where inferable from transcript (e.g. 1. PTSD – F43.1); write 1. To be confirmed if diagnoses are not discussed",
@@ -1963,7 +1963,7 @@ async function pasteAndGenerate() {
 
 function buildTemplateSystemPrompt(templatePrompt) {
   const personalPrefix = getPersonalisationPrefix();
-  return `${personalPrefix}You are a medical scribe for Dr Lushan Vasantha, Psychiatrist, practising in New South Wales and Victoria, Australia.
+  return `${personalPrefix}You are a medical scribe for ${currentClinicianLabel() || 'the clinician'}, practising in New South Wales and Victoria, Australia.
 
 ${templatePrompt}
 
@@ -1976,7 +1976,8 @@ async function callGroq(transcript, apiKey, templatePrompt = null) {
   const trimmed = applyTranscriptRedactions(transcript.trim());
   if (!trimmed) throw new Error('Transcript is empty — copy your consultation notes to the clipboard first');
   const personalPrefix = getPersonalisationPrefix();
-  const sysPrompt = templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : (personalPrefix + SYSTEM_PROMPT);
+  const clinician = currentClinicianLabel() || 'the clinician';
+  const sysPrompt = (templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : (personalPrefix + SYSTEM_PROMPT)).replace(/\{CLINICIAN\}/g, clinician);
   const res = await fetch(GROQ_ENDPOINT, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -2048,7 +2049,7 @@ function populateFields(d) {
     if (parts[0]) document.getElementById('e-time-start').value = parts[0].trim();
     if (parts[1]) document.getElementById('e-time-end').value   = parts[1].trim();
   }
-  set('e-clinician',      d.clinician || 'Dr Lushan Vasantha, Psychiatrist');
+  set('e-clinician',      d.clinician || currentClinicianLabel());
   set('e-session-number', d.session_number);
   set('e-attendance',     d.attendance);
   set('e-diagnosis',      d.diagnosis);
@@ -2073,7 +2074,7 @@ function getFields() {
     reg_number:     v('e-reg-number'),
     date:           displayToDateStr(v('e-date-display')),
     time:           tS && tE ? `${tS} – ${tE}` : tS || tE || '',
-    clinician:      v('e-clinician') || 'Dr Lushan Vasantha, Psychiatrist',
+    clinician:      v('e-clinician') || currentClinicianLabel(),
     session_number: v('e-session-number'),
     attendance:     v('e-attendance'),
     diagnosis:      v('e-diagnosis'),
@@ -2098,7 +2099,7 @@ function newNote() {
    'e-summary','e-nextsteps'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  document.getElementById('e-clinician').value = 'Dr Lushan Vasantha, Psychiatrist';
+  document.getElementById('e-clinician').value = currentClinicianLabel();
   document.getElementById('current-note-bar').style.display = 'none';
   document.getElementById('visit-history-chip').style.display = 'none';
   const rh = document.getElementById('reg-number-hint');
@@ -2513,7 +2514,7 @@ function updateEmailSubject() {
   const el = document.getElementById('email-subject');
   if (!el) return;
   const f = getFields();
-  el.value = `Progress Note – ${f.patient || 'Patient'}${f.date ? ' – ' + f.date : ''} – Dr Lushan Vasantha`;
+  el.value = `Progress Note – ${f.patient || 'Patient'}${f.date ? ' – ' + f.date : ''} – ${currentClinicianLabel() || f.clinician}`;
 }
 
 function _buildNoteText(f) {
@@ -2549,7 +2550,7 @@ function sendEmail() {
     'This note is provided for your information and ongoing management. Please do not hesitate to contact me should you require further information.',
     '',
     'Kind regards,',
-    f.clinician || 'Dr. Lushan Vasantha',
+    f.clinician || currentClinicianLabel(),
   ].join('\n');
   const body = `${coverLetter}\n\n${'─'.repeat(50)}\n\n${noteText}`;
   const subject = `Psychiatric Progress Note – ${f.patient || 'Patient'}${f.date ? ', ' + f.date : ''}`;
@@ -3707,7 +3708,7 @@ function _checkGroqAudioKey(onProceed) {
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-const DICTATE_PROMPT = `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist.
+const DICTATE_PROMPT = `You are a medical scribe for {CLINICIAN}.
 The following is a DICTATED CLINICAL NOTE — the doctor is narrating a patient consultation in first person (e.g. "The patient told me...", "I noted..."). There is no back-and-forth conversation.
 Your task is identical: return a structured Progress Note as a single JSON object with the same keys as always.
 Key differences to handle: extract patient details from the narration, infer mental state from described observations, and treat all content as the doctor's clinical assessment.
@@ -3747,7 +3748,8 @@ async function callGroqWithMode(transcript, mode, templatePrompt = null) {
   const redacted = applyTranscriptRedactions(transcript);
   const personalPrefix = getPersonalisationPrefix();
   const basePrompt = mode === 'dictation' ? DICTATE_PROMPT : SYSTEM_PROMPT;
-  const systemPrompt = templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : (personalPrefix + basePrompt);
+  const clinician2 = currentClinicianLabel() || 'the clinician';
+  const systemPrompt = (templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : (personalPrefix + basePrompt)).replace(/\{CLINICIAN\}/g, clinician2);
   const userMsg = mode === 'dictation'
     ? `Structure this dictated clinical note:\n\n${redacted}`
     : `Structure this consultation transcript into a clinical note:\n\n${redacted}`;
@@ -4340,6 +4342,8 @@ function initApp() {
   updateApiStatusBar();
   loadPatientIndex();
   applyRegPattern();
+  const clinEl = document.getElementById('e-clinician');
+  if (clinEl && !clinEl.value) clinEl.value = currentClinicianLabel();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4604,6 +4608,13 @@ async function stSendFeedback() {
 }
 
 // ── Personalisation injection into AI prompts ──
+function currentClinicianLabel() {
+  if (!currentUser?.profile) return '';
+  const name  = currentUser.profile.displayName || '';
+  const creds = currentUser.profile.credentials  || '';
+  return creds ? `${name}, ${creds}` : name;
+}
+
 function getPersonalisationPrefix() {
   const ps = currentUser?.profile?.personalisation;
   if (!ps) return '';

@@ -342,7 +342,7 @@
         <h2 class="st-section-h">Professional Identity</h2>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <label>What would you like LushNote to know about you?</label>
-          <button onclick="document.getElementById('st-prof-identity').value='My name is Dr Lushan Vasantha. I am a Psychiatrist practising in New South Wales and Victoria, Australia.'" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Reset to default</button>
+          <button onclick="(function(){const n=document.getElementById('st-name')?.value||'';const c=document.getElementById('st-credentials')?.value||'';document.getElementById('st-prof-identity').value='My name is '+(n||'your name')+(c?', '+c:'')+'.';})()" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Fill from profile</button>
         </div>
         <textarea id="st-prof-identity" rows="4" placeholder="e.g. My name is Dr Lushan Vasantha. I am a Psychiatrist practising in New South Wales and Victoria, Australia." oninput="stUpdateChars()"></textarea>
         <div id="st-pi-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
