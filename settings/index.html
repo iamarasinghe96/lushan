@@ -246,17 +246,30 @@
 
       <div class="st-section">
         <h2 class="st-section-h">Groq API Key</h2>
-        <p style="font-size:.83rem;color:#6b7280;margin-bottom:12px;">Required for audio features (Record Session, Dictate Note, Upload Recording). Get a free key at <strong>console.groq.com</strong> — takes 2 minutes.</p>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Required for audio features — Record Session, Dictate Note, and Upload Recording. Takes about 2 minutes to set up.</p>
+
+        <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:10px;">How to get your free API key</div>
+          <ol style="margin:0;padding-left:18px;font-size:.83rem;color:#374151;line-height:2;">
+            <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a> and sign in with your Google account</li>
+            <li>Click <strong>Create API key</strong></li>
+            <li>Give it a name (e.g. <em>LushNote</em>), then click <strong>Submit</strong></li>
+            <li>Copy the key shown — it starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">gsk_</code></li>
+            <li>Paste it in the field below and click <strong>Save Key</strong></li>
+          </ol>
+        </div>
+
         <div class="field-row">
           <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" style="font-family:monospace;" />
         </div>
-        <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:9px;padding:12px 14px;margin-top:10px;font-size:.8rem;color:#166534;line-height:1.65;">
-          <strong>Free key</strong> — ~33 min audio transcription/day · ~60 AI-generated notes/day<br>
-          <strong>Pay-as-you-go</strong> — unlimited audio (~$0.04/hr) for high-volume days<br>
-          <span style="color:#047857;"><strong>No key?</strong> Use a local transcription app and paste text via <em>Paste Transcript</em> — no audio limits, generous daily note quota.</span>
-        </div>
-        <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:12px;">Save Key</button>
+        <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:10px;">Save Key</button>
         <span id="st-groq-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
+
+        <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:9px;padding:12px 14px;margin-top:14px;font-size:.8rem;color:#166534;line-height:1.7;">
+          <strong>Free key</strong> — ~33 min audio/day · ~60 notes/day · no credit card needed<br>
+          <strong>Pay-as-you-go</strong> — unlimited audio (~$0.04/hr) for busy clinic days<br>
+          <strong>No key?</strong> Use a local transcription app and paste the text via <em>Paste Transcript</em> — no audio limits.
+        </div>
       </div>
 
       <div class="st-section">

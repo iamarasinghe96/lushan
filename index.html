@@ -954,10 +954,9 @@ With regards,
       <div class="field-row">
         <label>Your Groq API Key <span style="font-size:.75rem;font-weight:500;color:#6b7280;">(required for audio features)</span></label>
         <input type="password" id="s-groq-key" placeholder="gsk_..." autocomplete="off" />
-        <div style="font-size:.77rem;color:#6b7280;margin-top:6px;line-height:1.55;">
-          Get a free key at <strong>console.groq.com</strong> — includes ~33 min audio/day and ~60 notes/day.<br>
-          For unlimited audio, upgrade to Groq pay-as-you-go (~$0.04/hr).<br>
-          <span style="color:#059669;">Paste Transcript</span> works without audio and supports far more notes per day.
+        <div style="font-size:.77rem;color:#6b7280;margin-top:6px;line-height:1.65;">
+          Sign in with Google at <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a>, click <strong>Create API key</strong>, copy and paste it here.<br>
+          Free key: ~33 min audio/day · ~60 notes/day. For unlimited audio, use Groq pay-as-you-go (~$0.04/hr).
         </div>
       </div>
 
@@ -3353,12 +3352,19 @@ function _checkGroqAudioKey(onProceed) {
         <h3 style="font-size:1rem;font-weight:800;margin:0;">Personal Groq API Key Required</h3>
       </div>
       <p style="font-size:.84rem;color:#4b5563;margin:10px 0 14px;line-height:1.6;">
-        Audio features (Record Session, Dictate Note, Upload Recording) use Groq's speech-to-text API, which requires your own key.
+        Audio features use Groq's speech-to-text API. You need your own free key — takes 2 minutes:
       </p>
-      <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.82rem;color:#166534;line-height:1.6;">
-        <strong>Free key (console.groq.com)</strong> — takes 2 minutes to set up<br>
-        ≈ 33 minutes of audio transcription per day<br>
-        Plenty for most clinic days
+      <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.81rem;color:#374151;line-height:1.9;">
+        <ol style="margin:0;padding-left:18px;">
+          <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a> and sign in with Google</li>
+          <li>Click <strong>Create API key</strong>, give it a name, click <strong>Submit</strong></li>
+          <li>Copy the key (starts with <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">gsk_</code>)</li>
+          <li>Paste it in Settings → Transcripts → Groq API Key</li>
+        </ol>
+      </div>
+      <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:#166534;line-height:1.6;">
+        <strong>Free key</strong> — ~33 min audio/day, no credit card needed<br>
+        <strong>Pay-as-you-go</strong> — unlimited (~$0.04/hr) for busy days
       </div>
       <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:.82rem;color:#92400e;line-height:1.6;">
         <strong>Need more than 33 min/day?</strong> Upgrade to Groq pay-as-you-go (~$0.04/hour).<br><br>
