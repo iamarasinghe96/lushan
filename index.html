@@ -1999,13 +1999,36 @@ patient, date, time, clinician, session_number, attendance, diagnosis, presentat
 Use empty string "" for any field not applicable. Use ICD-10 codes where relevant. Do not fabricate clinical details.`;
 }
 
+async function groqFetchWithRetry(url, init) {
+  const doFetch = () => fetch(url, init);
+  let res = await doFetch();
+  if (res.status !== 429) return res;
+  // Parse wait time from Groq error body
+  const errBody = await res.json().catch(() => ({}));
+  const msg = errBody.error?.message || '';
+  const waitMatch = msg.match(/try again in ([\d.]+)s/i);
+  const waitSecs = waitMatch ? Math.ceil(parseFloat(waitMatch[1])) + 1 : 15;
+  // Countdown toast
+  const countdown = (s) => toast(`Rate limit — retrying in ${s}s…`, 'warning');
+  countdown(waitSecs);
+  await new Promise(resolve => {
+    let remaining = waitSecs;
+    const iv = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) { clearInterval(iv); resolve(); }
+      else countdown(remaining);
+    }, 1000);
+  });
+  return doFetch();
+}
+
 async function callGroq(transcript, apiKey, templatePrompt = null) {
   const trimmed = applyTranscriptRedactions(transcript.trim());
   if (!trimmed) throw new Error('Transcript is empty — copy your consultation notes to the clipboard first');
   const personalPrefix = getPersonalisationPrefix();
   const clinician = currentClinicianLabel() || 'the clinician';
   const sysPrompt = (templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : (personalPrefix + SYSTEM_PROMPT)).replace(/\{CLINICIAN\}/g, clinician);
-  const res = await fetch(GROQ_ENDPOINT, {
+  const init = {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -2017,7 +2040,8 @@ async function callGroq(transcript, apiKey, templatePrompt = null) {
       temperature: 0.1,
       max_tokens: 2048,
     })
-  });
+  };
+  const res = await groqFetchWithRetry(GROQ_ENDPOINT, init);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error?.message || `Groq API error ${res.status}`);
@@ -13584,7 +13608,7 @@ async function callGroqWithMode(transcript, mode, templatePrompt = null) {
   const userMsg = mode === 'dictation'
     ? `Structure this dictated clinical note:\n\n${redacted}`
     : `Structure this consultation transcript into a clinical note:\n\n${redacted}`;
-  const res = await fetch(GROQ_ENDPOINT, {
+  const res = await groqFetchWithRetry(GROQ_ENDPOINT, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role:'system', content: systemPrompt }, { role:'user', content: userMsg }], temperature: 0.1, max_tokens: 2048 })
