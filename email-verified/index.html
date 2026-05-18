@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email Verified — LushNote</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.12);
+      padding: 48px 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+    .logo-wrap { margin-bottom: 24px; }
+    .check-circle {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(34,197,94,.35);
+    }
+    h1 {
+      font-size: 1.5rem; font-weight: 900; color: #111827;
+      margin-bottom: 10px; line-height: 1.2;
+    }
+    p {
+      font-size: .9rem; color: #6b7280;
+      line-height: 1.65; margin-bottom: 28px;
+    }
+    .cta {
+      display: inline-block;
+      background: #1d4ed8; color: #fff;
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-size: 1rem; font-weight: 700;
+      box-shadow: 0 4px 18px rgba(29,78,216,.3);
+      transition: background .15s, transform .15s;
+      margin-bottom: 16px;
+    }
+    .cta:hover { background: #1e40af; transform: translateY(-1px); }
+    .countdown {
+      font-size: .78rem; color: #9ca3af;
+      margin-top: 14px;
+    }
+    .countdown strong { color: #374151; }
+    .badge {
+      display: inline-block;
+      background: #f0fdf4; border: 1.5px solid #bbf7d0;
+      color: #166534; font-size: .72rem; font-weight: 700;
+      padding: 3px 12px; border-radius: 20px;
+      letter-spacing: .04em; margin-bottom: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="56" height="56">
+        <defs>
+          <radialGradient id="lg" cx="42%" cy="36%" r="65%">
+            <stop offset="0%" stop-color="#3da843"/>
+            <stop offset="100%" stop-color="#1e6b22"/>
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="50" r="50" fill="url(#lg)"/>
+        <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif"
+              font-weight="900" font-size="36" fill="white"
+              text-anchor="middle" letter-spacing="3">LN</text>
+      </svg>
+      <div style="font-size:1.1rem;font-weight:800;color:#111827;margin-top:8px;">LushNote</div>
+    </div>
+
+    <div class="check-circle">
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24">
+        <path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="badge">✦ Email verified</div>
+
+    <h1>You're all set!</h1>
+    <p>Your email address has been verified. You can now sign in and start using LushNote to build clinical notes in seconds.</p>
+
+    <a class="cta" href="https://iamarasinghe96.github.io/lushan/">Go to LushNote →</a>
+
+    <div class="countdown">Redirecting in <strong id="sec">5</strong>s…</div>
+  </div>
+
+  <script>
+    let t = 5;
+    const el = document.getElementById('sec');
+    const iv = setInterval(() => {
+      t--;
+      if (el) el.textContent = t;
+      if (t <= 0) {
+        clearInterval(iv);
+        window.location.href = 'https://iamarasinghe96.github.io/lushan/';
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
