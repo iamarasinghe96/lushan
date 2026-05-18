@@ -668,9 +668,24 @@
       <!-- Sign In Form -->
       <div id="auth-signin-form">
         <input class="auth-input" type="email" id="signin-email" placeholder="Email address" autocomplete="email" />
-        <input class="auth-input" type="password" id="signin-password" placeholder="Password" autocomplete="current-password" />
+        <input class="auth-input" type="password" id="signin-password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" />
         <button class="auth-btn" onclick="doLogin()">Sign In</button>
         <div class="auth-error" id="signin-error"></div>
+        <div style="text-align:center;margin-top:10px;">
+          <span class="auth-back-link" onclick="showForgotPassword()">Forgot password?</span>
+        </div>
+      </div>
+
+      <!-- Forgot Password Form -->
+      <div id="auth-forgot-form" style="display:none;">
+        <p style="font-size:.84rem;color:#374151;margin-bottom:14px;line-height:1.5;">Enter your email address and we'll send you a link to reset your password.</p>
+        <input class="auth-input" type="email" id="forgot-email" placeholder="Email address" autocomplete="email" onkeydown="if(event.key==='Enter')doForgotPassword()" />
+        <button class="auth-btn" onclick="doForgotPassword()">Send Reset Email</button>
+        <div class="auth-error" id="forgot-error"></div>
+        <div id="forgot-success" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;font-size:.84rem;color:#166534;line-height:1.5;margin-top:10px;"></div>
+        <div style="text-align:center;margin-top:10px;">
+          <span class="auth-back-link" onclick="showSignIn()">Back to Sign In</span>
+        </div>
       </div>
 
       <!-- Register Step 1 -->
@@ -711,8 +726,12 @@
         <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
       </svg>
       <h2>Account Pending Approval</h2>
-      <p>Your registration is being reviewed. Once your payment is confirmed, your account will be activated.</p>
-      <p style="margin-top:10px;">Registered as: <span class="pending-email" id="pending-email"></span></p>
+      <p>Your registration is being reviewed. Once your payment is confirmed, your account will be activated — usually within 1 business day.</p>
+      <div id="pending-verify-notice" style="display:none;background:#fffbeb;border:1px solid #fcd34d;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:.83rem;color:#92400e;line-height:1.55;">
+        Please also <strong>verify your email address</strong> — check your inbox for a verification email from LushNote and click the link inside.
+        <br><span id="pending-resend-wrap" style="display:inline-block;margin-top:6px;"><span class="auth-back-link" onclick="resendVerificationEmail()" style="color:#b45309;">Resend verification email</span></span>
+      </div>
+      <p style="margin-top:10px;font-size:.84rem;color:#6b7280;">Registered as: <span class="pending-email" id="pending-email"></span></p>
       <button class="pending-signout" onclick="doSignOut()">Sign out</button>
     </div>
   </div>
@@ -2390,6 +2409,9 @@ function startAuthListener() {
     const profile = await loadUserProfile(user.uid);
     if (!profile || profile.status === 'pending') {
       document.getElementById('pending-email').textContent = user.email;
+      // Show email verification notice if not yet verified
+      const verNotice = document.getElementById('pending-verify-notice');
+      if (verNotice) verNotice.style.display = user.emailVerified ? 'none' : '';
       showView('pending');
       return;
     }
@@ -2417,16 +2439,80 @@ async function loadUserProfile(uid) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Sign In / Sign Out
 // ─────────────────────────────────────────────────────────────────────────────
+function showForgotPassword() {
+  document.getElementById('auth-signin-form').style.display  = 'none';
+  document.getElementById('auth-forgot-form').style.display  = '';
+  document.getElementById('auth-tab-signin').classList.add('active');
+  document.getElementById('auth-tab-register').classList.remove('active');
+  document.getElementById('auth-register-step1').style.display = 'none';
+  document.getElementById('auth-register-step2').style.display = 'none';
+  document.getElementById('forgot-error').textContent = '';
+  document.getElementById('forgot-success').style.display = 'none';
+  const fi = document.getElementById('forgot-email');
+  // Pre-fill from sign-in field if already typed
+  fi.value = document.getElementById('signin-email').value || '';
+  setTimeout(() => fi.focus(), 80);
+}
+
+function showSignIn() {
+  document.getElementById('auth-forgot-form').style.display   = 'none';
+  document.getElementById('auth-signin-form').style.display   = '';
+  document.getElementById('auth-register-step1').style.display = 'none';
+  document.getElementById('auth-register-step2').style.display = 'none';
+}
+
+async function doForgotPassword() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const errEl = document.getElementById('forgot-error');
+  const sucEl = document.getElementById('forgot-success');
+  errEl.textContent = ''; sucEl.style.display = 'none';
+  if (!email) { errEl.textContent = 'Please enter your email address.'; return; }
+  const btn = document.querySelector('#auth-forgot-form .auth-btn');
+  btn.textContent = 'Sending…'; btn.disabled = true;
+  try {
+    await firebase.auth().sendPasswordResetEmail(email);
+    sucEl.textContent = `Password reset email sent to ${email}. Check your inbox (and spam folder). The link expires in 1 hour.`;
+    sucEl.style.display = '';
+    btn.textContent = 'Sent!';
+    setTimeout(() => { btn.textContent = 'Send Reset Email'; btn.disabled = false; }, 4000);
+  } catch(e) {
+    const msg = e.code === 'auth/user-not-found'
+      ? 'No account found with that email address.'
+      : (e.code === 'auth/invalid-email' ? 'Please enter a valid email address.' : (e.message || 'Could not send reset email. Try again.'));
+    errEl.textContent = msg;
+    btn.textContent = 'Send Reset Email'; btn.disabled = false;
+  }
+}
+
+async function resendVerificationEmail() {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+  const link = document.getElementById('pending-resend-wrap');
+  if (link) link.innerHTML = 'Sending…';
+  try {
+    await user.sendEmailVerification();
+    if (link) link.innerHTML = '<span style="color:#166534;">Verification email sent — check your inbox</span>';
+  } catch(e) {
+    if (link) link.innerHTML = `<span style="color:#dc2626;">${e.message || 'Could not send email'}</span>`;
+  }
+}
+
 async function doLogin() {
   const email = document.getElementById('signin-email').value.trim();
   const pass  = document.getElementById('signin-password').value;
   const errEl = document.getElementById('signin-error');
   errEl.textContent = '';
   if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; return; }
+  const btn = document.querySelector('#auth-signin-form .auth-btn');
+  btn.textContent = 'Signing in…'; btn.disabled = true;
   try {
     await firebase.auth().signInWithEmailAndPassword(email, pass);
   } catch(e) {
-    errEl.textContent = e.message || 'Sign in failed.';
+    const msg = e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential'
+      ? 'Incorrect password. Try again or use "Forgot password?" below.'
+      : (e.code === 'auth/user-not-found' ? 'No account found with that email.' : (e.code === 'auth/invalid-email' ? 'Please enter a valid email address.' : (e.message || 'Sign in failed.')));
+    errEl.textContent = msg;
+    btn.textContent = 'Sign In'; btn.disabled = false;
   }
 }
 
@@ -2446,6 +2532,7 @@ function switchAuthTab(tab) {
   document.getElementById('auth-tab-signin').classList.toggle('active', tab === 'signin');
   document.getElementById('auth-tab-register').classList.toggle('active', tab === 'register');
   document.getElementById('auth-signin-form').style.display       = tab === 'signin'   ? '' : 'none';
+  document.getElementById('auth-forgot-form').style.display       = 'none';
   document.getElementById('auth-register-step1').style.display    = tab === 'register' ? '' : 'none';
   document.getElementById('auth-register-step2').style.display    = 'none';
 }
@@ -2486,6 +2573,9 @@ async function doRegister() {
     await db.collection('pending_registrations').doc(uid).set({
       email: _regEmail, name: _regName, submittedAt: ts, status: 'pending'
     });
+    // Send email verification
+    try { await cred.user.sendEmailVerification(); } catch(e) { console.warn('Verification email failed:', e.message); }
+
     if (!isFree) {
       const subj = encodeURIComponent('New LushNote Registration – ' + _regName);
       const body = encodeURIComponent('New registration pending approval:\n\nName: ' + _regName + '\nEmail: ' + _regEmail + '\nUID: ' + uid + '\n\nPlease verify payment and activate the account.');
