@@ -583,14 +583,21 @@
     .tpl-search { width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:.84rem;margin-bottom:10px;font-family:inherit; }
     .tpl-search:focus { outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.12); }
     .tpl-list { display:flex;flex-direction:column;gap:6px; }
-    .tpl-card { padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .15s; }
+    .tpl-card { padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .15s;display:flex;align-items:flex-start;gap:8px; }
     .tpl-card:hover { border-color:var(--blue);background:var(--blue-lt); }
+    .tpl-card-body { flex:1;min-width:0; }
     .tpl-card-title { font-size:.86rem;font-weight:600;display:inline; }
     .tpl-card-cat { display:inline-block;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:10px;background:#f3f4f6;color:#6b7280;margin-left:6px;vertical-align:middle; }
     .tpl-card-desc { font-size:.77rem;color:#6b7280;margin-top:3px;line-height:1.45; }
+    .tpl-star-btn { background:none;border:none;cursor:pointer;font-size:1rem;padding:0 2px;line-height:1;flex-shrink:0;opacity:.45;transition:opacity .15s,transform .15s; }
+    .tpl-star-btn:hover { opacity:1; transform:scale(1.2); }
+    .tpl-star-btn.starred { opacity:1; }
     .tpl-picker-foot { padding:14px 22px;border-top:1px solid #e5e7eb;display:flex;gap:10px;flex-shrink:0; }
     .tpl-cat-group { margin-bottom:14px; }
     .tpl-cat-label { font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#b0b7c3;margin-bottom:6px;padding-top:4px; }
+    .tpl-starred-chips { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px; }
+    .tpl-chip.starred-chip { border-color:#fbbf24;background:#fffbeb;color:#92400e; }
+    .tpl-chip.starred-chip:hover { border-color:#f59e0b;background:#fef3c7; }
 
     /* ── Recording modal shared ── */
     .rec-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9200;display:flex;align-items:center;justify-content:center; }
@@ -3166,41 +3173,64 @@ function getAllTemplates() {
 
 function showTemplatePickerModal(contentHint) {
   return new Promise(resolve => {
-    const allTpls = getAllTemplates();
-    const recent = getRecentTemplates(3);
+    const recent    = getRecentTemplates(3);
     const suggested = getSuggestedTemplates(contentHint, 3);
-
-    // Group all templates by category
-    const categories = {};
-    allTpls.forEach(t => {
-      if (!categories[t.category]) categories[t.category] = [];
-      categories[t.category].push(t);
-    });
 
     const modal = document.createElement('div');
     modal.className = 'tpl-picker-overlay';
 
-    const recentHtml = recent.length ? `
-      <div class="tpl-section-label">Recently used</div>
-      <div class="tpl-chips">
-        ${recent.map(t => `<div class="tpl-chip" data-tpl-id="${t.id}">${esc(t.title)}</div>`).join('')}
-      </div>` : '';
+    // ── helpers ──────────────────────────────────────────────────────────────
+    function getFavIds() {
+      return new Set(currentUser?.profile?.favoriteTemplateIds || []);
+    }
 
-    const suggestedHtml = suggested.length ? `
-      <div class="tpl-section-label" style="margin-top:${recent.length?'4px':'0'};">Suggested for this session</div>
-      <div class="tpl-chips">
-        ${suggested.map(t => `<div class="tpl-chip" data-tpl-id="${t.id}">${esc(t.title)}</div>`).join('')}
-      </div>` : '';
-
-    const allListHtml = Object.entries(categories).map(([cat, templates]) => `
-      <div class="tpl-cat-group">
-        <div class="tpl-cat-label">${esc(cat)}</div>
-        ${templates.map(t => `
-          <div class="tpl-card" data-tpl-id="${t.id}">
+    function buildCardHtml(t) {
+      const starred = getFavIds().has(t.id);
+      return `
+        <div class="tpl-card" data-tpl-id="${t.id}">
+          <div class="tpl-card-body">
             <div><span class="tpl-card-title">${esc(t.title)}</span><span class="tpl-card-cat">${esc(t.category)}</span></div>
             <div class="tpl-card-desc">${esc(t.description)}</div>
-          </div>`).join('')}
-      </div>`).join('');
+          </div>
+          <button class="tpl-star-btn${starred?' starred':''}" data-star-id="${t.id}" title="${starred?'Remove from starred':'Star this template'}">${starred?'★':'☆'}</button>
+        </div>`;
+    }
+
+    function buildAllListHtml(tpls) {
+      const categories = {};
+      tpls.forEach(t => { if (!categories[t.category]) categories[t.category] = []; categories[t.category].push(t); });
+      return Object.entries(categories).map(([cat, templates]) => `
+        <div class="tpl-cat-group">
+          <div class="tpl-cat-label">${esc(cat)}</div>
+          ${templates.map(buildCardHtml).join('')}
+        </div>`).join('');
+    }
+
+    function buildStarredHtml() {
+      const favIds = getFavIds();
+      const starred = getAllTemplates().filter(t => favIds.has(t.id));
+      if (!starred.length) return '';
+      return `
+        <div class="tpl-section-label" style="margin-top:0;">Starred</div>
+        <div class="tpl-starred-chips" id="tpl-starred-chips">
+          ${starred.map(t => `<div class="tpl-chip starred-chip" data-tpl-id="${t.id}">★ ${esc(t.title)}</div>`).join('')}
+        </div>`;
+    }
+
+    function renderTopSections() {
+      const el = modal.querySelector('#tpl-top-sections');
+      if (!el) return;
+      const recentHtml = recent.length ? `
+        <div class="tpl-section-label">Recently used</div>
+        <div class="tpl-chips">${recent.map(t => `<div class="tpl-chip" data-tpl-id="${t.id}">${esc(t.title)}</div>`).join('')}</div>` : '';
+      const suggestedHtml = suggested.length ? `
+        <div class="tpl-section-label" style="margin-top:${recent.length?'4px':'0'};">Suggested for this session</div>
+        <div class="tpl-chips">${suggested.map(t => `<div class="tpl-chip" data-tpl-id="${t.id}">${esc(t.title)}</div>`).join('')}</div>` : '';
+      el.innerHTML = buildStarredHtml() + recentHtml + suggestedHtml;
+      bindChipClicks(el);
+    }
+
+    const allListHtml = buildAllListHtml(getAllTemplates());
 
     modal.innerHTML = `
       <div class="tpl-picker-box">
@@ -3209,9 +3239,8 @@ function showTemplatePickerModal(contentHint) {
           <p>Choose a template, or skip to use the default progress note</p>
         </div>
         <div class="tpl-picker-body">
-          ${recentHtml}
-          ${suggestedHtml}
-          <div class="tpl-section-label" style="margin-top:${(recent.length||suggested.length)?'8px':'0'};">All templates</div>
+          <div id="tpl-top-sections"></div>
+          <div class="tpl-section-label" style="margin-top:4px;">All templates</div>
           <input class="tpl-search" id="tpl-search-inp" placeholder="Search templates…" oninput="tplFilterList(this.value)" />
           <div class="tpl-list" id="tpl-all-list">${allListHtml}</div>
         </div>
@@ -3220,6 +3249,7 @@ function showTemplatePickerModal(contentHint) {
         </div>
       </div>`;
     document.body.appendChild(modal);
+    renderTopSections();
 
     function done(template) {
       if (template) recordTemplateUsage(template.id);
@@ -3227,45 +3257,71 @@ function showTemplatePickerModal(contentHint) {
       resolve(template || null);
     }
 
-    // Chip clicks (recent + suggested) — immediate confirm
-    modal.querySelectorAll('.tpl-chip[data-tpl-id]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const id = chip.dataset.tplId;
-        const t = getAllTemplates().find(x => String(x.id) === String(id));
-        if (t) done(t);
-      });
-    });
-
-    // Card clicks in full list — immediate confirm
-    function bindCardClicks(container) {
-      container.querySelectorAll('.tpl-card[data-tpl-id]').forEach(card => {
-        card.addEventListener('click', () => {
-          const id = card.dataset.tplId;
-          const t = getAllTemplates().find(x => String(x.id) === String(id));
+    function bindChipClicks(container) {
+      container.querySelectorAll('.tpl-chip[data-tpl-id]').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const t = getAllTemplates().find(x => String(x.id) === String(chip.dataset.tplId));
           if (t) done(t);
         });
       });
     }
+
+    function bindCardClicks(container) {
+      container.querySelectorAll('.tpl-card[data-tpl-id]').forEach(card => {
+        card.addEventListener('click', e => {
+          if (e.target.closest('.tpl-star-btn')) return; // let star handler run
+          const t = getAllTemplates().find(x => String(x.id) === String(card.dataset.tplId));
+          if (t) done(t);
+        });
+      });
+    }
+
+    function bindStarClicks(container) {
+      container.querySelectorAll('.tpl-star-btn[data-star-id]').forEach(btn => {
+        btn.addEventListener('click', async e => {
+          e.stopPropagation();
+          const id = btn.dataset.starId;
+          // Toggle in profile
+          const p = currentUser?.profile;
+          if (!p) return;
+          let favIds = [...(p.favoriteTemplateIds || [])];
+          const strId = String(id);
+          const numId = isNaN(id) ? id : Number(id);
+          const idx = favIds.findIndex(x => String(x) === strId);
+          if (idx >= 0) favIds.splice(idx, 1); else favIds.push(numId);
+          p.favoriteTemplateIds = favIds;
+          try { await db.collection('users').doc(currentUser.uid).update({ favoriteTemplateIds: favIds }); } catch(e) {}
+          // Re-render top (starred chips) and update all star buttons
+          renderTopSections();
+          const newFavIds = getFavIds();
+          modal.querySelectorAll('.tpl-star-btn[data-star-id]').forEach(b => {
+            const starred = newFavIds.has(b.dataset.starId) || newFavIds.has(Number(b.dataset.starId));
+            b.textContent = starred ? '★' : '☆';
+            b.className   = 'tpl-star-btn' + (starred ? ' starred' : '');
+            b.title       = starred ? 'Remove from starred' : 'Star this template';
+          });
+        });
+      });
+    }
+
     bindCardClicks(modal);
+    bindStarClicks(modal);
 
     // Search filter
     window.tplFilterList = function(query) {
       const q = query.toLowerCase();
       const listEl = document.getElementById('tpl-all-list');
       if (!listEl) return;
-      if (!q) { listEl.innerHTML = allListHtml; bindCardClicks(listEl); return; }
+      if (!q) { listEl.innerHTML = allListHtml; bindCardClicks(listEl); bindStarClicks(listEl); return; }
       const matches = getAllTemplates().filter(t =>
         t.title.toLowerCase().includes(q) ||
         t.description.toLowerCase().includes(q) ||
         t.category.toLowerCase().includes(q)
       );
       if (!matches.length) { listEl.innerHTML = '<p style="font-size:.84rem;color:#9ca3af;padding:8px 0;">No templates match your search</p>'; return; }
-      listEl.innerHTML = matches.map(t => `
-        <div class="tpl-card" data-tpl-id="${t.id}">
-          <div><span class="tpl-card-title">${esc(t.title)}</span><span class="tpl-card-cat">${esc(t.category)}</span></div>
-          <div class="tpl-card-desc">${esc(t.description)}</div>
-        </div>`).join('');
+      listEl.innerHTML = matches.map(buildCardHtml).join('');
       bindCardClicks(listEl);
+      bindStarClicks(listEl);
     };
 
     document.getElementById('tpl-skip-btn').onclick = () => done(null);
