@@ -27,6 +27,7 @@
     body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
     /* ── Header ── */
+    .sticky-top { position: sticky; top: 0; z-index: 90; }
     header {
       background: var(--blue);
       color: #fff;
@@ -35,7 +36,6 @@
       align-items: center;
       justify-content: space-between;
       box-shadow: 0 2px 8px rgba(0,0,0,.28);
-      position: sticky; top: 0; z-index: 90;
     }
     .header-left { display: flex; align-items: center; gap: 12px; }
     header h1 { font-size: 1.15rem; font-weight: 800; letter-spacing: -.3px; margin: 0; line-height: 1.2; }
@@ -56,7 +56,7 @@
     .settings-btn:hover { background: rgba(255,255,255,.28); }
 
     /* ── Tabs ── */
-    .tabs { display: flex; border-bottom: 2px solid var(--border); background: var(--card); padding: 0 20px; position: sticky; top: 57px; z-index: 89; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .tabs { display: flex; border-bottom: 2px solid var(--border); background: var(--card); padding: 0 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
     .tab-btn {
       padding: 11px 20px; font-size: .85rem; font-weight: 600;
       cursor: pointer; border: none; background: none; color: var(--gray);
@@ -228,7 +228,7 @@
     /* ── Edit/Preview split ── */
     .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
     .form-panel .card { margin-bottom: 0; }
-    .preview-sticky { position: sticky; top: 112px; }
+    .preview-sticky { position: sticky; top: 16px; }
 
     /* ── Current note bar ── */
     #current-note-bar {
@@ -1269,6 +1269,8 @@ With regards,
 </div>
 
 <div id="view-app" style="display:none;">
+<!-- ══════════════ STICKY TOP (header + tabs) ══════════════ -->
+<div class="sticky-top">
 <!-- ══════════════════════ HEADER ══════════════════════ -->
 <header>
   <div class="header-left">
@@ -1329,6 +1331,7 @@ With regards,
   <button class="tab-btn" data-tab="export">Export</button>
   <button class="tab-btn" data-tab="history">Patients</button>
 </div>
+</div><!-- /sticky-top -->
 
 <main>
 
@@ -1341,17 +1344,17 @@ With regards,
         <strong>Paste Transcript</strong>
         <span>Copy from voice app</span>
       </div>
-      <div class="input-mode-card imc-featured" onclick="openDictateModal()">
+      <div class="input-mode-card" onclick="openDictateModal()">
         <div class="imc-icon">🎙️</div>
         <strong>Dictate Note</strong>
         <span>Doctor narrates session solo</span>
       </div>
-      <div class="input-mode-card imc-featured" onclick="openUploadModal()">
+      <div class="input-mode-card" onclick="openUploadModal()">
         <div class="imc-icon">⬆️</div>
         <strong>Upload Recording</strong>
         <span>Audio file or drag &amp; drop</span>
       </div>
-      <div class="input-mode-card imc-featured" onclick="openRecordModal()">
+      <div class="input-mode-card" onclick="openRecordModal()">
         <div class="imc-icon">👥</div>
         <strong>Record Session</strong>
         <span>In-person or telehealth</span>
