@@ -2736,7 +2736,7 @@ function updateHeaderUser() {
   const wpChip = document.getElementById('header-wp-chip');
   if (wpChip) wpChip.textContent = activeWp ? activeWp.name : '';
 
-  const initials = name ? name.replace(/^Dr\s+/i,'').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : 'LN';
+  const initials = name ? name.replace(/^(doctor|dr\.?)\s+/i,'').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : 'LN';
   document.getElementById('user-avatar-btn').textContent = initials;
 }
 
