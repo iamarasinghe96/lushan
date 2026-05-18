@@ -337,8 +337,27 @@
       border-radius: 8px; font-size: .83rem; font-weight: 600;
       opacity: 0; transform: translateY(8px);
       transition: opacity .3s, transform .3s; z-index: 999; pointer-events: none;
+      display: flex; align-items: center; gap: 7px;
     }
     #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.toast-success { background: #065f46; }
+    #toast.toast-error   { background: #991b1b; }
+    #toast.toast-warning { background: #78350f; }
+
+    /* ── Confirm modal ── */
+    .confirm-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10000;
+    }
+    .confirm-card {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.22);
+      padding: 28px 28px 22px; max-width: 380px; width: 90%;
+    }
+    .confirm-card h3 { margin: 0 0 10px; font-size: 1rem; color: #111827; }
+    .confirm-card p  { margin: 0 0 22px; font-size: .88rem; color: #374151; line-height: 1.5; }
+    .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
     /* ── Misc ── */
     a { color: var(--blue); }
@@ -2410,7 +2429,7 @@ function loadNoteFromHistory(note) {
 }
 
 async function deleteHistoryNote(id) {
-  if (!confirm('Delete this session permanently?')) return;
+  if (!await showConfirm('Delete this session permanently?', {title: 'Delete Session', confirmText: 'Delete', dangerConfirm: true})) return;
   try {
     await fbDeleteNote(id);
     state.allNotes = state.allNotes.filter(n => n.id !== id);
@@ -2828,12 +2847,42 @@ function setLoading(on, msg = '') {
 }
 
 let _toastTimer;
-function toast(msg) {
+function toast(msg, type) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
+  el.className = type ? 'toast-' + type : '';
+  const icons = { success: '✓', error: '✕', warning: '⚠' };
+  const icon = icons[type] || 'ℹ';
+  el.innerHTML = `<span style="font-size:1rem;line-height:1">${icon}</span><span>${msg}</span>`;
   el.classList.add('show');
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function showConfirm(message, opts = {}) {
+  return new Promise(resolve => {
+    const title = opts.title || 'Are you sure?';
+    const confirmText = opts.confirmText || 'Confirm';
+    const danger = opts.dangerConfirm ? 'btn btn-danger' : 'btn btn-primary';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-card">
+        <h3>${title}</h3>
+        <p>${message}</p>
+        <div class="confirm-actions">
+          <button class="btn" id="_conf-cancel">Cancel</button>
+          <button class="${danger}" id="_conf-ok">${confirmText}</button>
+        </div>
+      </div>`;
+
+    const close = (result) => { overlay.remove(); resolve(result); };
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+    overlay.querySelector('#_conf-cancel').addEventListener('click', () => close(false));
+    overlay.querySelector('#_conf-ok').addEventListener('click', () => close(true));
+    document.body.appendChild(overlay);
+    overlay.querySelector('#_conf-ok').focus();
+  });
 }
 
 function switchTab(name) {
@@ -3313,7 +3362,7 @@ function obRemoveWp(idx) {
 function obNext(currentStep) {
   if (currentStep === 1) {
     const name = document.getElementById('ob-displayname').value.trim();
-    if (!name) { alert('Please enter your display name.'); return; }
+    if (!name) { toast('Please enter your display name.', 'warning'); return; }
     onboardingData.displayName  = name;
     onboardingData.credentials  = document.getElementById('ob-credentials').value.trim();
     if (!onboardingData.workplaces) onboardingData.workplaces = [];
@@ -3405,7 +3454,7 @@ async function obComplete() {
     showView('app');
     initApp();
   } catch(e) {
-    alert('Error saving onboarding data: ' + e.message);
+    toast('Error saving onboarding data: ' + e.message, 'error');
   }
 }
 
@@ -13625,13 +13674,13 @@ async function processAudioAndGenerate(blob, mode) {
     transcript = await transcribeAudio(blob);
   } catch(e) {
     setLoading(false);
-    alert('Transcription failed: ' + e.message);
+    toast('Transcription failed: ' + e.message, 'error');
     return;
   }
   setLoading(false);
 
   if (!transcript || transcript.split(/\s+/).length < 20) {
-    alert('The recording was too short or unclear to transcribe. Please try again.');
+    toast('The recording was too short or unclear to transcribe. Please try again.', 'warning');
     return;
   }
 
@@ -13661,7 +13710,7 @@ async function processAudioAndGenerate(blob, mode) {
     chip.style.display = 'inline-flex';
     toast('Note generated successfully');
   } catch(e) {
-    alert('Generation failed: ' + e.message);
+    toast('Generation failed: ' + e.message, 'error');
   } finally {
     setLoading(false);
   }
@@ -13729,7 +13778,7 @@ async function startDictateRecording() {
       if (el) el.textContent = _recFormatTime(_recSeconds);
     }, 1000);
   } catch(e) {
-    alert('Microphone access denied. Please allow microphone access and try again.');
+    toast('Microphone access denied. Please allow microphone access and try again.', 'error');
   }
 }
 
@@ -13832,7 +13881,7 @@ async function startInPersonRecord() {
     _showRecordingUI('record-modal-body', 'record');
     _startRecorderForSession('record');
   } catch(e) {
-    alert('Microphone access denied. Please allow microphone access and try again.');
+    toast('Microphone access denied. Please allow microphone access and try again.', 'error');
   }
 }
 function showTelehealthSetup() {
@@ -13857,14 +13906,14 @@ async function startTelehealthRecord() {
     const audioTracks = _recStream.getAudioTracks();
     if (!audioTracks.length) {
       _recStream.getTracks().forEach(t=>t.stop());
-      alert('No audio was shared. Please try again and make sure to check "Share audio" or "Share tab audio".');
+      toast('No audio was shared. Please try again and make sure to check "Share audio" or "Share tab audio".', 'warning');
       return;
     }
     _recMode = 'conversation';
     _showRecordingUI('record-modal-body', 'record');
     _startRecorderForSession('record');
   } catch(e) {
-    if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') alert('Could not capture audio: ' + e.message);
+    if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') toast('Could not capture audio: ' + e.message, 'error');
   }
 }
 
@@ -14017,7 +14066,7 @@ function openCreateDocumentModal() {
       chip.style.display = 'inline-flex';
       toast('Document generated successfully');
     } catch(e) {
-      alert('Generation failed: ' + e.message);
+      toast('Generation failed: ' + e.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -14220,7 +14269,7 @@ async function stSaveProfile() {
     p.displayName = name; p.credentials = creds; p.emailPretext = emailPretext;
     updateHeaderUser(); applyWorkspaceTheme(); applyRegPattern();
     toast('Profile saved');
-  } catch(e) { alert('Error saving: ' + e.message); }
+  } catch(e) { toast('Error saving: ' + e.message, 'error'); }
 }
 
 async function stSendPasswordReset() {
@@ -14300,7 +14349,7 @@ async function stSaveCustomTemplate() {
 }
 
 async function stDeleteCustomTemplate(tplId) {
-  if (!confirm('Delete this custom template?')) return;
+  if (!await showConfirm('Delete this custom template?', {title: 'Delete Template', confirmText: 'Delete', dangerConfirm: true})) return;
   const p = currentUser.profile;
   p.customTemplates = (p.customTemplates || []).filter(t => t.id !== tplId);
   try {
@@ -14327,7 +14376,7 @@ async function stSaveTranscripts() {
   try {
     await db.collection('users').doc(currentUser.uid).update({ transcriptPrivacy, recordingDefaults });
     toast('Transcript settings saved');
-  } catch(e) { alert('Error saving: ' + e.message); }
+  } catch(e) { toast('Error saving: ' + e.message, 'error'); }
 }
 
 // ── Personalisation save ──
@@ -14357,7 +14406,7 @@ async function stSavePersonalisation() {
   try {
     await db.collection('users').doc(currentUser.uid).update({ personalisation });
     toast('Personalisation saved');
-  } catch(e) { alert('Error saving: ' + e.message); }
+  } catch(e) { toast('Error saving: ' + e.message, 'error'); }
 }
 
 // ── Subscription / share ──
@@ -14373,7 +14422,7 @@ function stShareLink() {
     const msg = document.getElementById('st-share-msg');
     msg.textContent = 'Link copied to clipboard!'; msg.style.display = '';
     setTimeout(() => { msg.style.display = 'none'; }, 3000);
-  }).catch(() => { prompt('Copy this link:', url); });
+  }).catch(() => { toast('Copy this link: ' + url); });
 }
 
 async function stShareNative() {
@@ -14530,9 +14579,9 @@ function switchActiveWorkplace(wpId) {
   renderAccountWorkplaces();
 }
 
-function deleteWorkplace(wpId) {
+async function deleteWorkplace(wpId) {
   if (!currentUser || !currentUser.profile) return;
-  if (!confirm('Remove this workplace?')) return;
+  if (!await showConfirm('Remove this workplace?', {title: 'Remove Workplace', confirmText: 'Remove', dangerConfirm: true})) return;
   currentUser.profile.workplaces = (currentUser.profile.workplaces || []).filter(w => w.id !== wpId);
   if (currentUser.profile.activeWorkplaceId === wpId) {
     currentUser.profile.activeWorkplaceId = (currentUser.profile.workplaces[0] || {}).id || '';
@@ -14553,7 +14602,7 @@ function canAddWorkplace() {
 function addWorkplace() {
   if (!currentUser || !currentUser.profile) return;
   if (!canAddWorkplace()) {
-    alert('Your plan includes 1 active workplace. Contact us to upgrade.');
+    toast('Your plan includes 1 active workplace. Contact us to upgrade.', 'warning');
     return;
   }
   const wps = currentUser.profile.workplaces || [];
