@@ -5035,7 +5035,7 @@ function openSettings(tab) {
   const rd = p.recordingDefaults || {};
   const autoStopOn = rd.autoStop !== false; // default true if never set
   document.getElementById('st-autostop').checked     = autoStopOn;
-  document.getElementById('st-autostop-mins').value  = rd.autoStopMinutes || 55;
+  document.getElementById('st-autostop-mins').value  = rd.autoStopMinutes || 60;
   document.getElementById('st-autostop-row').style.display = autoStopOn ? '' : 'none';
 
   // Personalisation tab
@@ -5185,7 +5185,7 @@ async function stSaveTranscripts() {
   };
   const recordingDefaults = {
     autoStop:        document.getElementById('st-autostop').checked,
-    autoStopMinutes: parseInt(document.getElementById('st-autostop-mins').value) || 55,
+    autoStopMinutes: parseInt(document.getElementById('st-autostop-mins').value) || 60,
   };
   currentUser.profile.transcriptPrivacy  = transcriptPrivacy;
   currentUser.profile.recordingDefaults  = recordingDefaults;
@@ -5619,8 +5619,8 @@ function saveWorkplace(wpId) {
           </div>
           <div id="st-autostop-row" style="margin-top:12px;">
             <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Auto-stop timeout (minutes)</label>
-            <input type="number" id="st-autostop-mins" value="55" min="1" max="150" style="width:100px;" />
-            <p style="font-size:.75rem;color:#9ca3af;margin-top:4px;">Maximum value is 150 minutes</p>
+            <input type="number" id="st-autostop-mins" value="60" min="1" max="180" style="width:100px;" />
+            <p style="font-size:.75rem;color:#9ca3af;margin-top:4px;">Maximum value is 180 minutes</p>
           </div>
           <p style="font-size:.75rem;color:#9ca3af;margin-top:14px;">These settings control the default behaviour for new recording sessions. You can always override these settings when starting a new recording.</p>
         </div>
