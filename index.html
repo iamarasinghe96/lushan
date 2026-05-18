@@ -8,7 +8,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
@@ -1758,12 +1757,6 @@ function initFirebase() {
   try {
     if (!firebase.apps.length) {
       firebase.initializeApp(FB_CONFIG);
-      // App Check — replace RECAPTCHA_SITE_KEY with your reCAPTCHA v3 site key
-      const appCheck = firebase.appCheck();
-      appCheck.activate(
-        new firebase.appCheck.ReCaptchaV3Provider('6Lc_AfEsAAAAACkt9rtOy3akzBoR3mXocfsOr4xS'),
-        true // auto-refresh tokens
-      );
     }
     db = firebase.firestore();
     return true;
@@ -3401,19 +3394,16 @@ function startAuthListener() {
     if (loadingEl) loadingEl.style.display = 'flex';
     // Force token refresh so email_verified claim is current in Firestore
     try { await user.getIdToken(true); } catch(e) {}
-    // Wait for App Check token — reCAPTCHA needs a moment after page load
-    try { await firebase.appCheck().getToken(false); } catch(e) {}
-    // Retry profile load up to 5 times with increasing delay
+    // Retry profile load up to 3 times with short delay
     let profile = null;
-    const delays = [0, 1500, 2000, 2500, 3000];
-    for (let attempt = 0; attempt < delays.length; attempt++) {
-      if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]));
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 1500));
       profile = await loadUserProfile(user.uid);
       if (profile !== null) break;
     }
     if (loadingEl) loadingEl.style.display = 'none';
     if (!profile) {
-      // All 3 retries failed — likely App Check or network issue
+      // All retries failed — network issue
       document.getElementById('pending-email').textContent = user.email;
       showView('pending');
       return;
