@@ -1675,7 +1675,8 @@ async function pasteAndGenerate() {
 }
 
 function buildTemplateSystemPrompt(templatePrompt) {
-  return `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist, practising in New South Wales and Victoria, Australia.
+  const personalPrefix = getPersonalisationPrefix();
+  return `${personalPrefix}You are a medical scribe for Dr Lushan Vasantha, Psychiatrist, practising in New South Wales and Victoria, Australia.
 
 ${templatePrompt}
 
@@ -1685,9 +1686,10 @@ Use empty string "" for any field not applicable. Use ICD-10 codes where relevan
 }
 
 async function callGroq(transcript, apiKey, templatePrompt = null) {
-  const trimmed = transcript.trim();
+  const trimmed = applyTranscriptRedactions(transcript.trim());
   if (!trimmed) throw new Error('Transcript is empty — copy your consultation notes to the clipboard first');
-  const sysPrompt = templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : SYSTEM_PROMPT;
+  const personalPrefix = getPersonalisationPrefix();
+  const sysPrompt = templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : (personalPrefix + SYSTEM_PROMPT);
   const res = await fetch(GROQ_ENDPOINT, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -3018,14 +3020,24 @@ function getSuggestedTemplates(contentHint, n = 3) {
   return scored;
 }
 
+function getAllTemplates() {
+  const custom = (currentUser?.profile?.customTemplates || []).map(t => ({...t, custom:true}));
+  const favIds = new Set(currentUser?.profile?.favoriteTemplateIds || []);
+  const all = [...CLINICAL_TEMPLATES.map(t => ({...t, custom:false})), ...custom];
+  // Favourites first
+  all.sort((a,b) => (favIds.has(b.id)?1:0) - (favIds.has(a.id)?1:0));
+  return all;
+}
+
 function showTemplatePickerModal(contentHint) {
   return new Promise(resolve => {
+    const allTpls = getAllTemplates();
     const recent = getRecentTemplates(3);
     const suggested = getSuggestedTemplates(contentHint, 3);
 
     // Group all templates by category
     const categories = {};
-    CLINICAL_TEMPLATES.forEach(t => {
+    allTpls.forEach(t => {
       if (!categories[t.category]) categories[t.category] = [];
       categories[t.category].push(t);
     });
@@ -3083,7 +3095,8 @@ function showTemplatePickerModal(contentHint) {
     // Chip clicks (recent + suggested) — immediate confirm
     modal.querySelectorAll('.tpl-chip[data-tpl-id]').forEach(chip => {
       chip.addEventListener('click', () => {
-        const t = CLINICAL_TEMPLATES.find(x => x.id === parseInt(chip.dataset.tplId));
+        const id = chip.dataset.tplId;
+        const t = getAllTemplates().find(x => String(x.id) === String(id));
         if (t) done(t);
       });
     });
@@ -3092,7 +3105,8 @@ function showTemplatePickerModal(contentHint) {
     function bindCardClicks(container) {
       container.querySelectorAll('.tpl-card[data-tpl-id]').forEach(card => {
         card.addEventListener('click', () => {
-          const t = CLINICAL_TEMPLATES.find(x => x.id === parseInt(card.dataset.tplId));
+          const id = card.dataset.tplId;
+          const t = getAllTemplates().find(x => String(x.id) === String(id));
           if (t) done(t);
         });
       });
@@ -3105,7 +3119,7 @@ function showTemplatePickerModal(contentHint) {
       const listEl = document.getElementById('tpl-all-list');
       if (!listEl) return;
       if (!q) { listEl.innerHTML = allListHtml; bindCardClicks(listEl); return; }
-      const matches = CLINICAL_TEMPLATES.filter(t =>
+      const matches = getAllTemplates().filter(t =>
         t.title.toLowerCase().includes(q) ||
         t.description.toLowerCase().includes(q) ||
         t.category.toLowerCase().includes(q)
@@ -3161,11 +3175,13 @@ async function transcribeAudio(blob) {
 }
 
 async function callGroqWithMode(transcript, mode, templatePrompt = null) {
+  const redacted = applyTranscriptRedactions(transcript);
+  const personalPrefix = getPersonalisationPrefix();
   const basePrompt = mode === 'dictation' ? DICTATE_PROMPT : SYSTEM_PROMPT;
-  const systemPrompt = templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : basePrompt;
+  const systemPrompt = templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : (personalPrefix + basePrompt);
   const userMsg = mode === 'dictation'
-    ? `Structure this dictated clinical note:\n\n${transcript}`
-    : `Structure this consultation transcript into a clinical note:\n\n${transcript}`;
+    ? `Structure this dictated clinical note:\n\n${redacted}`
+    : `Structure this consultation transcript into a clinical note:\n\n${redacted}`;
   const res = await fetch(GROQ_ENDPOINT, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
@@ -3757,73 +3773,329 @@ function initApp() {
 })();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Account Settings
+// Settings Page
 // ─────────────────────────────────────────────────────────────────────────────
-function openAccountSettings() {
+function openAccountSettings() { openSettings('profile'); }
+
+function openSettings(tab) {
   if (!currentUser || !currentUser.profile) return;
   const p = currentUser.profile;
-  const wps = p.workplaces || [];
-  const activeWp = wps.find(w => w.id === p.activeWorkplaceId) || wps[0] || {};
 
-  document.getElementById('as-name').value = p.displayName || '';
-  document.getElementById('as-credentials').value = p.credentials || '';
-  document.getElementById('as-email-pretext').value = p.emailPretext || '';
+  // Profile tab
+  document.getElementById('st-name').value        = p.displayName || '';
+  document.getElementById('st-credentials').value = p.credentials || '';
+  document.getElementById('st-email-pretext').value = p.emailPretext || '';
 
+  // Workplaces tab (reuse existing render, point to new containers)
   renderAccountWorkplaces();
-  acctTab('profile');
-  document.getElementById('acct-modal').style.display = 'flex';
+
+  // Templates tab
+  stRenderTemplates();
+
+  // Transcripts tab
+  const tr = p.transcriptPrivacy || {};
+  document.getElementById('st-redact-names').checked = !!tr.redactNames;
+  document.getElementById('st-redact-dob').checked   = !!tr.redactDOB;
+  document.getElementById('st-redact-other').checked = !!tr.redactOther;
+  const rd = p.recordingDefaults || {};
+  document.getElementById('st-autostop').checked     = !!rd.autoStop;
+  document.getElementById('st-autostop-mins').value  = rd.autoStopMinutes || 55;
+  document.getElementById('st-autostop-row').style.display = rd.autoStop ? '' : 'none';
+
+  // Personalisation tab
+  const ps = p.personalisation || {};
+  document.getElementById('st-use-client-info').checked = ps.useClientInfo !== false;
+  const len = ps.noteLength || 'balanced';
+  document.getElementById('st-len-brief').checked    = len === 'brief';
+  document.getElementById('st-len-balanced').checked = len === 'balanced';
+  document.getElementById('st-len-detailed').checked = len === 'detailed';
+  document.getElementById('st-prof-identity').value  = ps.professionalIdentity || '';
+  document.getElementById('st-treatment').value      = ps.treatmentApproaches  || '';
+  document.getElementById('st-doc-style').value      = ps.documentStyle        || '';
+  stUpdateChars();
+
+  // Show share native if available
+  if (navigator.share) document.getElementById('st-share-native').style.display = '';
+
+  // Show / navigate
+  const el = document.getElementById('view-settings');
+  el.style.display = 'flex';
+  settingsNav(tab || 'profile');
 }
 
-function closeAccountSettings() {
-  document.getElementById('acct-modal').style.display = 'none';
+function closeSettings() {
+  document.getElementById('view-settings').style.display = 'none';
 }
 
-function acctTab(tab) {
-  ['profile','workplace','email'].forEach(t => {
-    document.getElementById('as-tab-' + t).classList.toggle('active', t === tab);
-    document.getElementById('as-pane-' + t).style.display = t === tab ? '' : 'none';
+function settingsNav(tab) {
+  ['profile','workplaces','templates','transcripts','personalisation','subscription'].forEach(t => {
+    document.getElementById('stnav-' + t).classList.toggle('active', t === tab);
+    document.getElementById('st-pane-' + t).classList.toggle('active', t === tab);
   });
 }
 
+// ── Profile save ──
+async function stSaveProfile() {
+  if (!currentUser || !db) return;
+  const p = currentUser.profile;
+  const name  = document.getElementById('st-name').value.trim();
+  const creds = document.getElementById('st-credentials').value.trim();
+  const emailPretext = document.getElementById('st-email-pretext').value.trim();
+  try {
+    await db.collection('users').doc(currentUser.uid).update({
+      displayName: name, credentials: creds, emailPretext,
+      workplaces: p.workplaces || [], activeWorkplaceId: p.activeWorkplaceId || '',
+    });
+    p.displayName = name; p.credentials = creds; p.emailPretext = emailPretext;
+    updateHeaderUser(); applyWorkspaceTheme(); applyRegPattern();
+    toast('Profile saved');
+  } catch(e) { alert('Error saving: ' + e.message); }
+}
+
+async function stSendPasswordReset() {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+  const msgEl = document.getElementById('st-pw-msg');
+  try {
+    await firebase.auth().sendPasswordResetEmail(user.email);
+    msgEl.style.color = '#059669';
+    msgEl.textContent = `Reset link sent to ${user.email}`;
+  } catch(e) {
+    msgEl.style.color = 'var(--danger)';
+    msgEl.textContent = e.message;
+  }
+}
+
+// ── Templates tab ──
+function stRenderTemplates() {
+  const q = (document.getElementById('st-tpl-search')?.value || '').toLowerCase();
+  const p = currentUser?.profile || {};
+  const favIds = new Set(p.favoriteTemplateIds || []);
+  const customTpls = p.customTemplates || [];
+  const all = [...CLINICAL_TEMPLATES.map(t => ({...t, custom:false})), ...customTpls.map(t => ({...t, custom:true}))];
+  const filtered = q ? all.filter(t => t.title.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)) : all;
+  // Favourites first
+  filtered.sort((a,b) => (favIds.has(b.id)?1:0) - (favIds.has(a.id)?1:0));
+  const list = document.getElementById('st-tpl-list');
+  if (!list) return;
+  list.innerHTML = filtered.map(t => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${t.custom?'#e0d4ff':'var(--border)'};border-radius:9px;background:${t.custom?'#faf8ff':'#fff'};">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.86rem;font-weight:600;">${esc(t.title)}${t.custom?'<span style="font-size:.7rem;background:#ede9fe;color:#7c3aed;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600;">Custom</span>':''}</div>
+        <div style="font-size:.76rem;color:#9ca3af;margin-top:1px;">${esc(t.category)} · ${esc(t.description)}</div>
+      </div>
+      <button onclick="stToggleFav(${JSON.stringify(t.id)})" title="${favIds.has(t.id)?'Remove from favourites':'Add to favourites'}"
+        style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:4px;opacity:${favIds.has(t.id)?'1':'.35'};transition:opacity .15s;"
+        onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='${favIds.has(t.id)?'1':'.35'}'">
+        ${favIds.has(t.id) ? '★' : '☆'}
+      </button>
+      ${t.custom ? `<button onclick="stDeleteCustomTemplate(${JSON.stringify(t.id)})" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:#dc2626;padding:4px;">✕</button>` : ''}
+    </div>`).join('');
+}
+
+async function stToggleFav(tplId) {
+  if (!currentUser) return;
+  const p = currentUser.profile;
+  let favIds = [...(p.favoriteTemplateIds || [])];
+  if (favIds.includes(tplId)) favIds = favIds.filter(x => x !== tplId);
+  else favIds.unshift(tplId);
+  p.favoriteTemplateIds = favIds;
+  try { await db.collection('users').doc(currentUser.uid).update({ favoriteTemplateIds: favIds }); } catch(e) {}
+  stRenderTemplates();
+}
+
+async function stSaveCustomTemplate() {
+  const title  = document.getElementById('st-ct-title').value.trim();
+  const cat    = document.getElementById('st-ct-category').value.trim();
+  const desc   = document.getElementById('st-ct-desc').value.trim();
+  const prompt = document.getElementById('st-ct-prompt').value.trim();
+  const errEl  = document.getElementById('st-ct-error');
+  errEl.textContent = '';
+  if (!title)  { errEl.textContent = 'Title is required.'; return; }
+  if (!cat)    { errEl.textContent = 'Category is required.'; return; }
+  if (!desc)   { errEl.textContent = 'Description is required.'; return; }
+  if (!prompt) { errEl.textContent = 'AI Prompt instructions are required.'; return; }
+  const p = currentUser.profile;
+  const customs = [...(p.customTemplates || [])];
+  const newTpl = { id: 'custom_' + Date.now(), title, category: cat, description: desc, prompt, custom: true };
+  customs.push(newTpl);
+  p.customTemplates = customs;
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ customTemplates: customs });
+    ['st-ct-title','st-ct-category','st-ct-desc','st-ct-prompt'].forEach(id => document.getElementById(id).value = '');
+    stRenderTemplates();
+    toast('Template added');
+  } catch(e) { errEl.textContent = 'Save failed: ' + e.message; }
+}
+
+async function stDeleteCustomTemplate(tplId) {
+  if (!confirm('Delete this custom template?')) return;
+  const p = currentUser.profile;
+  p.customTemplates = (p.customTemplates || []).filter(t => t.id !== tplId);
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ customTemplates: p.customTemplates });
+    stRenderTemplates();
+    toast('Template deleted');
+  } catch(e) { toast('Delete failed: ' + e.message); }
+}
+
+// ── Transcripts save ──
+async function stSaveTranscripts() {
+  if (!currentUser || !db) return;
+  const transcriptPrivacy = {
+    redactNames: document.getElementById('st-redact-names').checked,
+    redactDOB:   document.getElementById('st-redact-dob').checked,
+    redactOther: document.getElementById('st-redact-other').checked,
+  };
+  const recordingDefaults = {
+    autoStop:        document.getElementById('st-autostop').checked,
+    autoStopMinutes: parseInt(document.getElementById('st-autostop-mins').value) || 55,
+  };
+  currentUser.profile.transcriptPrivacy  = transcriptPrivacy;
+  currentUser.profile.recordingDefaults  = recordingDefaults;
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ transcriptPrivacy, recordingDefaults });
+    toast('Transcript settings saved');
+  } catch(e) { alert('Error saving: ' + e.message); }
+}
+
+// ── Personalisation save ──
+function stUpdateChars() {
+  const pairs = [['st-prof-identity','st-pi-count',936],['st-treatment','st-tr-count',1000],['st-doc-style','st-ds-count',1000]];
+  pairs.forEach(([inp,out,max]) => {
+    const el = document.getElementById(inp); const co = document.getElementById(out);
+    if (el && co) {
+      const len = el.value.length;
+      co.textContent = `${len} / ${max} characters`;
+      el.oninput = stUpdateChars;
+    }
+  });
+}
+
+async function stSavePersonalisation() {
+  if (!currentUser || !db) return;
+  const noteLength = document.querySelector('input[name="st-note-length"]:checked')?.value || 'balanced';
+  const personalisation = {
+    useClientInfo:       document.getElementById('st-use-client-info').checked,
+    noteLength,
+    professionalIdentity: document.getElementById('st-prof-identity').value.trim(),
+    treatmentApproaches:  document.getElementById('st-treatment').value.trim(),
+    documentStyle:        document.getElementById('st-doc-style').value.trim(),
+  };
+  currentUser.profile.personalisation = personalisation;
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ personalisation });
+    toast('Personalisation saved');
+  } catch(e) { alert('Error saving: ' + e.message); }
+}
+
+// ── Subscription / share ──
+function stShareEmail() {
+  const subject = encodeURIComponent('LushNote – Clinical Note Builder for Psychiatrists');
+  const body = encodeURIComponent(`Hi,\n\nI've been using LushNote, a clinical note builder that uses AI to generate psychiatric progress notes from transcripts and recordings. It's currently free during its early development phase.\n\nTry it here: https://iamarasinghe96.github.io/lushan\n\nThought you might find it useful.\n\nBest wishes`);
+  window.open(`mailto:?subject=${subject}&body=${body}`);
+}
+
+function stShareLink() {
+  const url = 'https://iamarasinghe96.github.io/lushan';
+  navigator.clipboard.writeText(url).then(() => {
+    const msg = document.getElementById('st-share-msg');
+    msg.textContent = 'Link copied to clipboard!'; msg.style.display = '';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+  }).catch(() => { prompt('Copy this link:', url); });
+}
+
+async function stShareNative() {
+  try {
+    await navigator.share({ title: 'LushNote', text: 'Clinical Note Builder for Psychiatrists', url: 'https://iamarasinghe96.github.io/lushan' });
+  } catch(e) {}
+}
+
+async function stSendFeedback() {
+  const text = document.getElementById('st-feedback-text').value.trim();
+  const msgEl = document.getElementById('st-feedback-msg');
+  if (!text) { msgEl.style.color = 'var(--danger)'; msgEl.textContent = 'Please write something first.'; return; }
+  const subject = encodeURIComponent('LushNote Feedback');
+  const name = currentUser?.profile?.displayName || currentUser?.email || 'User';
+  const body = encodeURIComponent(`Feedback from: ${name}\n${currentUser?.email ? 'Email: ' + currentUser.email + '\n' : ''}\n${text}`);
+  window.open(`mailto:iamarasinghe96@gmail.com?subject=${subject}&body=${body}`);
+  msgEl.style.color = '#059669';
+  msgEl.textContent = 'Thank you — your email client should have opened with your feedback.';
+  document.getElementById('st-feedback-text').value = '';
+}
+
+// ── Personalisation injection into AI prompts ──
+function getPersonalisationPrefix() {
+  const ps = currentUser?.profile?.personalisation;
+  if (!ps) return '';
+  const parts = [];
+  if (ps.professionalIdentity) parts.push(ps.professionalIdentity);
+  if (ps.treatmentApproaches)  parts.push('Treatment approach: ' + ps.treatmentApproaches);
+  if (ps.documentStyle)        parts.push('Document style: ' + ps.documentStyle);
+  const lenMap = { brief: 'Write concisely using dot points and short phrases. Include only the most important information.', detailed: 'Write comprehensively and thoroughly. Use full sentences with explanations and include direct quotes where relevant.' };
+  if (lenMap[ps.noteLength]) parts.push(lenMap[ps.noteLength]);
+  return parts.length ? parts.join('\n') + '\n\n' : '';
+}
+
+// ── Redact transcript before sending to AI ──
+function applyTranscriptRedactions(text) {
+  const pr = currentUser?.profile?.transcriptPrivacy;
+  if (!pr) return text;
+  let t = text;
+  if (pr.redactDOB) t = t.replace(/\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b/g, '[DOB]');
+  if (pr.redactOther) {
+    t = t.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]');
+    t = t.replace(/\b(\+?61|0)[2-478][\s\-]?\d{4}[\s\-]?\d{4}\b/g, '[PHONE]');
+  }
+  return t;
+}
+
+// Alias kept for backward compat
+function openAccountSettings() { openSettings('profile'); }
+function closeAccountSettings() { closeSettings(); }
+
+async function saveAccountSettings() { await stSaveProfile(); }
+function acctTab() {}
 function renderAccountWorkplaces() {
-  if (!currentUser || !currentUser.profile) return;
+  // Redirect wp list/add to new settings page containers
+  const listEl = document.getElementById('st-wp-list') || document.getElementById('as-wp-list');
+  const addEl  = document.getElementById('st-add-wp-area') || document.getElementById('as-add-wp-area');
+  if (!listEl || !currentUser) return;
   const p = currentUser.profile;
   const wps = p.workplaces || [];
-  const activeId = p.activeWorkplaceId;
-  const container = document.getElementById('as-wp-list');
-  const addArea = document.getElementById('as-add-wp-area');
-  if (addArea) {
-    if (canAddWorkplace()) {
-      addArea.innerHTML = '<button class="as-btn-primary" onclick="addWorkplace()">+ Add workplace</button>';
-    } else {
-      addArea.innerHTML = '<p style="font-size:.78rem;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:7px;padding:8px 12px;margin:0;">Your plan includes 1 active workplace. <a href="mailto:admin@lushnote.com" style="color:var(--blue);">Contact us to upgrade.</a></p>';
-    }
+  const activeId = p.activeWorkplaceId || (wps[0]?.id);
+
+  if (!isAdminUser() && !canAddWorkplace()) {
+    if (addEl) addEl.innerHTML = `<p style="font-size:.82rem;color:#6b7280;">You are on the free plan — one workplace included.</p>`;
+  } else {
+    if (addEl) addEl.innerHTML = `<button class="as-btn-primary" onclick="asAddWorkplace()">+ Add Workplace</button>`;
   }
-  container.innerHTML = wps.map((wp, i) => `
+
+  listEl.innerHTML = wps.map(wp => `
     <div class="as-wp-card ${wp.id === activeId ? 'as-wp-active' : ''}" id="as-wp-card-${wp.id}">
       <div class="as-wp-card-header">
         <div>
-          <strong>${esc(wp.name)}</strong>
-          <span style="font-size:.75rem;color:#6b7280;margin-left:6px;">${esc(wp.type || '')}</span>
-          ${wp.id === activeId ? '<span style="font-size:.7rem;background:#d1fae5;color:#065f46;padding:1px 6px;border-radius:8px;margin-left:6px;">Active</span>' : ''}
+          <strong style="font-size:.9rem;">${esc(wp.name || 'Unnamed')}</strong>
+          <span style="font-size:.76rem;color:#6b7280;margin-left:8px;">${esc(wp.type || '')}</span>
+          ${wp.id === activeId ? '<span style="font-size:.7rem;background:var(--blue-lt);color:var(--blue);padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:600;">Active</span>' : ''}
         </div>
-        <div style="display:flex;gap:6px;">
-          ${wps.length > 1 && wp.id !== activeId ? `<button class="as-btn-sm" onclick="switchActiveWorkplace('${wp.id}')">Set active</button>` : ''}
-          <button class="as-btn-sm" onclick="editWorkplace('${wp.id}')">Edit</button>
-          ${wps.length > 1 ? `<button class="as-btn-sm as-btn-danger" onclick="deleteWorkplace('${wp.id}')">Remove</button>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${wp.id !== activeId ? `<button class="as-btn-sm" onclick="asSetActive('${wp.id}')">Set active</button>` : ''}
+          <button class="as-btn-sm" onclick="asToggleEdit('${wp.id}')">Edit</button>
+          ${wps.length > 1 ? `<button class="as-btn-sm as-btn-danger" onclick="asDeleteWorkplace('${wp.id}')">Delete</button>` : ''}
         </div>
       </div>
       <div id="as-wp-edit-${wp.id}" style="display:none;margin-top:10px;">
         <div class="as-field"><label>Workplace name</label><input id="as-wp-name-${wp.id}" value="${esc(wp.name)}" /></div>
         <div class="as-field"><label>Type</label>
           <select id="as-wp-type-${wp.id}">
-            ${['Private Practice','Public Hospital','Private Hospital','Community Health','Other'].map(t => `<option ${wp.type===t?'selected':''}>${t}</option>`).join('')}
+            ${['Private Practice','Hospital','Community Mental Health','Telehealth','Other'].map(t=>`<option ${wp.type===t?'selected':''}>${t}</option>`).join('')}
           </select>
         </div>
         <div class="as-field"><label>Registration system</label>
           <select id="as-wp-regsys-${wp.id}" onchange="asWpRegSysChange('${wp.id}',this.value)">
-            <option value="lushnote" ${wp.regSystem==='lushnote'?'selected':''}>LushNote (YYYYMMDDNN)</option>
-            <option value="existing" ${wp.regSystem==='existing'?'selected':''}>Existing system</option>
+            <option value="none" ${wp.regSystem==='none'||!wp.regSystem?'selected':''}>No patient ID system</option>
+            <option value="existing" ${wp.regSystem==='existing'?'selected':''}>Existing ID system</option>
           </select>
         </div>
         <div id="as-wp-regformat-wrap-${wp.id}" style="${wp.regSystem==='existing'?'':'display:none'}">
@@ -3834,22 +4106,18 @@ function renderAccountWorkplaces() {
         </div>
         <div class="as-field"><label>Window colour theme</label>
           <div style="display:flex;gap:8px;margin-top:4px;">
-            ${WP_THEMES.map((th, ti) => `
-              <button class="as-theme-swatch ${(wp.themeIndex||0)===ti?'as-theme-swatch-active':''}"
-                style="background:${th.primary};"
-                onclick="asSetTheme('${wp.id}',${ti})"
-                title="Theme ${ti+1}"></button>
-            `).join('')}
+            ${WP_THEMES.map((th,i)=>`<div class="as-theme-swatch ${wp.themeIndex===i?'as-theme-swatch-active':''}" style="background:${th.primary}" onclick="asSetTheme('${wp.id}',${i})" title="Theme ${i+1}"></div>`).join('')}
           </div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <button class="as-btn-primary" onclick="saveWorkplace('${wp.id}')">Save</button>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="as-btn-primary" onclick="asSaveWpEdit('${wp.id}')">Save</button>
           <button class="as-btn-sm" onclick="document.getElementById('as-wp-edit-${wp.id}').style.display='none'">Cancel</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
+
+
 
 function asWpRegSysChange(wpId, val) {
   document.getElementById('as-wp-regformat-wrap-' + wpId).style.display = val === 'existing' ? '' : 'none';
@@ -3941,79 +4209,329 @@ function saveWorkplace(wpId) {
   applyRegPattern();
 }
 
-async function saveAccountSettings() {
-  if (!currentUser || !db) return;
-  const btn = document.getElementById('as-save-btn');
-  btn.textContent = 'Saving…'; btn.disabled = true;
-  const p = currentUser.profile;
-  const name = document.getElementById('as-name').value.trim();
-  const creds = document.getElementById('as-credentials').value.trim();
-  const emailPretext = document.getElementById('as-email-pretext').value.trim();
-  try {
-    await db.collection('users').doc(currentUser.uid).update({
-      displayName: name, credentials: creds, emailPretext,
-      workplaces: p.workplaces || [],
-      activeWorkplaceId: p.activeWorkplaceId || '',
-    });
-    p.displayName = name; p.credentials = creds; p.emailPretext = emailPretext;
-    updateHeaderUser();
-    applyWorkspaceTheme();
-    applyRegPattern();
-    btn.textContent = 'Saved ✓'; btn.disabled = false;
-    setTimeout(() => { btn.textContent = 'Save changes'; }, 1800);
-  } catch(e) {
-    btn.textContent = 'Save changes'; btn.disabled = false;
-    alert('Error saving: ' + e.message);
-  }
-}
 </script>
 
-<!-- ══════════════════════ ACCOUNT SETTINGS MODAL ══════════════════════ -->
-<div id="acct-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:14px;width:min(540px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 0;">
-      <h2 style="margin:0;font-size:1.15rem;">Account Settings</h2>
-      <button onclick="closeAccountSettings()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#6b7280;line-height:1;">&times;</button>
+<!-- ══════════════════════ SETTINGS PAGE ══════════════════════ -->
+<div id="view-settings" style="display:none;position:fixed;inset:0;z-index:8000;background:#fff;overflow:hidden;flex-direction:column;">
+
+  <!-- Top bar -->
+  <div style="display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid #e5e7eb;flex-shrink:0;background:#fff;">
+    <button onclick="closeSettings()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid #e5e7eb;border-radius:8px;background:none;cursor:pointer;font-size:.84rem;color:#374151;font-weight:500;transition:all .15s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='#e5e7eb';this.style.color='#374151'">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to App
+    </button>
+    <span style="font-size:1rem;font-weight:700;color:#111827;">Settings</span>
+  </div>
+
+  <!-- Body: sidebar + content -->
+  <div style="display:flex;flex:1;overflow:hidden;">
+
+    <!-- Sidebar -->
+    <div style="width:220px;border-right:1px solid #e5e7eb;background:#f9fafb;padding:12px 8px;overflow-y:auto;flex-shrink:0;">
+      <button class="stnav-btn active" id="stnav-profile"        onclick="settingsNav('profile')">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Profile
+      </button>
+      <button class="stnav-btn" id="stnav-workplaces"     onclick="settingsNav('workplaces')">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" stroke="currentColor" stroke-width="2"/></svg>
+        Workplaces
+      </button>
+      <button class="stnav-btn" id="stnav-templates"      onclick="settingsNav('templates')">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Templates
+      </button>
+      <button class="stnav-btn" id="stnav-transcripts"    onclick="settingsNav('transcripts')">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" stroke="currentColor" stroke-width="2"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Transcripts
+      </button>
+      <button class="stnav-btn" id="stnav-personalisation" onclick="settingsNav('personalisation')">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Personalisation
+      </button>
+      <button class="stnav-btn" id="stnav-subscription"   onclick="settingsNav('subscription')">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M1 10h22" stroke="currentColor" stroke-width="2"/></svg>
+        Subscription
+      </button>
     </div>
-    <div style="display:flex;gap:0;padding:14px 22px 0;border-bottom:1px solid #e5e7eb;">
-      <button id="as-tab-profile"    class="as-tab active" onclick="acctTab('profile')">Profile</button>
-      <button id="as-tab-workplace"  class="as-tab"        onclick="acctTab('workplace')">Workplaces</button>
-      <button id="as-tab-email"      class="as-tab"        onclick="acctTab('email')">Email Template</button>
-    </div>
-    <div style="overflow-y:auto;flex:1;padding:20px 22px;">
 
-      <!-- Profile tab -->
-      <div id="as-pane-profile">
-        <div class="as-field"><label>Display name</label><input id="as-name" placeholder="e.g. Dr Jane Smith" /></div>
-        <div class="as-field"><label>Credentials / title</label><input id="as-credentials" placeholder="e.g. FRANZCP, MBChB" /></div>
-      </div>
+    <!-- Content area -->
+    <div style="flex:1;overflow-y:auto;padding:32px 40px;" id="st-content">
 
-      <!-- Workplace tab -->
-      <div id="as-pane-workplace" style="display:none;">
-        <div id="as-wp-list"></div>
-        <div id="as-add-wp-area" style="margin-top:12px;"></div>
-      </div>
-
-      <!-- Email template tab -->
-      <div id="as-pane-email" style="display:none;">
-        <div class="as-field">
-          <label>Opening line for colleague emails</label>
-          <textarea id="as-email-pretext" rows="4" style="width:100%;border:1px solid #d1d5db;border-radius:7px;padding:8px 10px;font-size:.88rem;resize:vertical;"></textarea>
-          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">This text appears at the start of every "Send to Colleague" email.</p>
+      <!-- ─── Profile ─── -->
+      <div class="st-pane active" id="st-pane-profile">
+        <h1 class="st-h1">Profile Settings</h1>
+        <p class="st-sub">Manage your account information and preferences</p>
+        <div class="st-section">
+          <h2 class="st-section-h">Personal Information</h2>
+          <div class="two-col" style="margin-bottom:13px;">
+            <div class="field-row"><label>Display name</label><input id="st-name" placeholder="e.g. Dr Lushan Vasantha" /></div>
+            <div class="field-row"><label>Credentials</label><input id="st-credentials" placeholder="e.g. FRANZCP, MBChB" /></div>
+          </div>
+        </div>
+        <div class="st-section">
+          <h2 class="st-section-h">Email Template</h2>
+          <div class="field-row">
+            <label>Opening line for colleague emails</label>
+            <textarea id="st-email-pretext" rows="4" placeholder="e.g. I reviewed this patient today and wanted to share the following progress note…"></textarea>
+            <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">Appears at the top of every "Send to Colleague" email.</p>
+          </div>
+        </div>
+        <div class="st-section" style="background:#fef2f2;border-color:#fecaca;">
+          <h2 class="st-section-h" style="color:#dc2626;">Change Password</h2>
+          <p style="font-size:.84rem;color:#6b7280;margin-bottom:12px;">A reset link will be sent to your registered email address.</p>
+          <button onclick="stSendPasswordReset()" class="btn btn-outline btn-sm">Send password reset email</button>
+          <div id="st-pw-msg" style="font-size:.8rem;margin-top:8px;"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="btn btn-primary" onclick="stSaveProfile()">Save changes</button>
         </div>
       </div>
 
-    </div>
-    <div style="padding:14px 22px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px;">
-      <button onclick="closeAccountSettings()" style="padding:8px 16px;border:1px solid #d1d5db;border-radius:7px;background:#fff;cursor:pointer;font-size:.88rem;">Cancel</button>
-      <button id="as-save-btn" onclick="saveAccountSettings()" style="padding:8px 18px;border:none;border-radius:7px;background:var(--blue);color:#fff;font-weight:600;cursor:pointer;font-size:.88rem;">Save changes</button>
-    </div>
-  </div>
-</div>
+      <!-- ─── Workplaces ─── -->
+      <div class="st-pane" id="st-pane-workplaces">
+        <h1 class="st-h1">Workplaces</h1>
+        <p class="st-sub">Manage your clinic or practice locations</p>
+        <div id="st-wp-list"></div>
+        <div id="st-add-wp-area" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- ─── Templates ─── -->
+      <div class="st-pane" id="st-pane-templates">
+        <h1 class="st-h1">Templates</h1>
+        <p class="st-sub">Search, favourite, and create your own clinical note templates</p>
+        <div class="st-section">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <input id="st-tpl-search" type="search" placeholder="Search templates…" oninput="stRenderTemplates()" style="flex:1;" />
+          </div>
+          <div id="st-tpl-list" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;"></div>
+        </div>
+        <div class="st-section">
+          <h2 class="st-section-h">Create Custom Template</h2>
+          <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Custom templates are added to the template picker when generating notes. Write clear AI instructions in the Prompt field — the more specific you are, the better the output.</p>
+          <div class="field-row"><label>Template title <span style="color:var(--danger)">*</span></label><input id="st-ct-title" placeholder="e.g. My PTSD Review Note" /></div>
+          <div class="two-col">
+            <div class="field-row">
+              <label>Category <span style="color:var(--danger)">*</span></label>
+              <input id="st-ct-category" placeholder="e.g. Progress Notes" list="st-cat-list" />
+              <datalist id="st-cat-list">
+                <option value="Progress Notes"/><option value="Assessments"/><option value="Therapy Notes"/>
+                <option value="Risk & Safety"/><option value="Medication"/><option value="Administrative"/>
+              </datalist>
+            </div>
+            <div class="field-row"><label>Short description <span style="color:var(--danger)">*</span></label><input id="st-ct-desc" placeholder="What is this template for?" /></div>
+          </div>
+          <div class="field-row">
+            <label>AI Prompt Instructions <span style="color:var(--danger)">*</span></label>
+            <textarea id="st-ct-prompt" rows="6" placeholder="Describe exactly what you want the AI to generate. Example:&#10;&#10;Generate a trauma-focused EMDR session note. Include: current phase, target memory, SUDS rating before and after, bilateral stimulation used, patient response, and closure technique. Use clinical language appropriate for a psychiatrist's records."></textarea>
+            <p style="font-size:.75rem;color:#6b7280;margin-top:5px;">This is the instruction sent to the AI when this template is selected. Be specific about sections, clinical focus, and format.</p>
+          </div>
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="btn btn-primary" onclick="stSaveCustomTemplate()">Add Template</button>
+          </div>
+          <div id="st-ct-error" style="font-size:.82rem;color:var(--danger);margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <!-- ─── Transcripts ─── -->
+      <div class="st-pane" id="st-pane-transcripts">
+        <h1 class="st-h1">Transcript Settings</h1>
+        <p class="st-sub">Manage recording preferences and transcript privacy controls</p>
+        <div class="st-section">
+          <h2 class="st-section-h">Information Privacy</h2>
+          <p style="font-size:.83rem;color:#6b7280;margin-bottom:16px;">Redact identifiable information from transcripts before they are sent to the AI. Redacted text is replaced with a placeholder in the generated note.</p>
+          <div class="st-toggle-row">
+            <div>
+              <div style="font-weight:600;font-size:.88rem;">People's Names</div>
+              <div style="font-size:.78rem;color:#6b7280;">e.g. "Jane Smith" becomes "[NAME]"</div>
+            </div>
+            <label class="st-toggle"><input type="checkbox" id="st-redact-names" /><span class="st-toggle-slider"></span></label>
+          </div>
+          <div class="st-toggle-row">
+            <div>
+              <div style="font-weight:600;font-size:.88rem;">Dates of Birth</div>
+              <div style="font-size:.78rem;color:#6b7280;">e.g. "01/01/1980" becomes "[DOB]"</div>
+            </div>
+            <label class="st-toggle"><input type="checkbox" id="st-redact-dob" /><span class="st-toggle-slider"></span></label>
+          </div>
+          <div class="st-toggle-row" style="border-bottom:none;">
+            <div>
+              <div style="font-weight:600;font-size:.88rem;">Other identifiable information</div>
+              <div style="font-size:.78rem;color:#6b7280;">Email addresses, organisations, addresses, phone numbers</div>
+            </div>
+            <label class="st-toggle"><input type="checkbox" id="st-redact-other" /><span class="st-toggle-slider"></span></label>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin-top:14px;font-size:.82rem;color:#4b5563;line-height:1.6;">
+            <span style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;display:block;margin-bottom:5px;">Sample with redaction</span>
+            "I spoke with [NAME] who was born on [DOB] and lives at [ADDRESS]."
+          </div>
+        </div>
+        <div class="st-section">
+          <h2 class="st-section-h">Recording Defaults</h2>
+          <div class="st-toggle-row">
+            <div>
+              <div style="font-weight:600;font-size:.88rem;">Automatically stop recording after timeout</div>
+              <div style="font-size:.78rem;color:#6b7280;">Recording will stop after the specified number of minutes</div>
+            </div>
+            <label class="st-toggle"><input type="checkbox" id="st-autostop" onchange="document.getElementById('st-autostop-row').style.display=this.checked?'':'none'" /><span class="st-toggle-slider"></span></label>
+          </div>
+          <div id="st-autostop-row" style="display:none;margin-top:12px;">
+            <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Auto-stop timeout (minutes)</label>
+            <input type="number" id="st-autostop-mins" value="55" min="1" max="150" style="width:100px;" />
+            <p style="font-size:.75rem;color:#9ca3af;margin-top:4px;">Maximum value is 150 minutes</p>
+          </div>
+          <p style="font-size:.75rem;color:#9ca3af;margin-top:14px;">These settings control the default behaviour for new recording sessions. You can always override these settings when starting a new recording.</p>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn btn-primary" onclick="stSaveTranscripts()">Save changes</button>
+        </div>
+      </div>
+
+      <!-- ─── Personalisation ─── -->
+      <div class="st-pane" id="st-pane-personalisation">
+        <h1 class="st-h1">Personalisation</h1>
+        <p class="st-sub">Customise how LushNote understands your preferences and generates notes</p>
+        <div class="st-section">
+          <h2 class="st-section-h">General</h2>
+          <div class="st-toggle-row" style="border-bottom:none;">
+            <div>
+              <div style="font-weight:600;font-size:.88rem;">Use patient information</div>
+              <div style="font-size:.78rem;color:#6b7280;">Use the patient's name, age, and gender to produce more personalised notes</div>
+            </div>
+            <label class="st-toggle"><input type="checkbox" id="st-use-client-info" checked /><span class="st-toggle-slider"></span></label>
+          </div>
+        </div>
+        <div class="st-section">
+          <h2 class="st-section-h">Length of Notes and Documents</h2>
+          <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Set the standard length and detail of your generated notes. You can override this when choosing a template.</p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <label class="st-radio-row" id="st-len-brief-row">
+              <input type="radio" name="st-note-length" value="brief" id="st-len-brief" />
+              <div>
+                <div style="font-weight:600;font-size:.88rem;">Brief</div>
+                <div style="font-size:.78rem;color:#6b7280;">Uses dot points and phrases instead of full sentences. Includes the most important information only.</div>
+              </div>
+            </label>
+            <label class="st-radio-row" id="st-len-balanced-row">
+              <input type="radio" name="st-note-length" value="balanced" id="st-len-balanced" checked />
+              <div>
+                <div style="font-weight:600;font-size:.88rem;">Balanced <span style="font-size:.72rem;font-weight:400;color:#9ca3af;">(default)</span></div>
+                <div style="font-size:.78rem;color:#6b7280;">Full sentences with appropriate clinical detail. Suitable for most consultations.</div>
+              </div>
+            </label>
+            <label class="st-radio-row" id="st-len-detailed-row">
+              <input type="radio" name="st-note-length" value="detailed" id="st-len-detailed" />
+              <div>
+                <div style="font-weight:600;font-size:.88rem;">Detailed</div>
+                <div style="font-size:.78rem;color:#6b7280;">Comprehensive and thorough. Uses quotes and includes explanations. Best for complex cases.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="st-section">
+          <h2 class="st-section-h">Professional Identity</h2>
+          <p style="font-size:.82rem;color:#6b7280;margin-bottom:10px;">Describe your professional role and identity. This helps LushNote understand how to address you and your patients.</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="font-size:.8rem;font-weight:600;color:#374151;">What would you like LushNote to know about you?</label>
+            <button onclick="document.getElementById('st-prof-identity').value='My name is Dr Lushan Vasantha. I am a Psychiatrist practising in New South Wales and Victoria, Australia.'" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;">Reset to default</button>
+          </div>
+          <textarea id="st-prof-identity" rows="4" placeholder="e.g. My name is Dr Lushan Vasantha. I am a Psychiatrist practising in New South Wales and Victoria, Australia."></textarea>
+          <div id="st-pi-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
+        </div>
+        <div class="st-section">
+          <h2 class="st-section-h">Treatment Approaches</h2>
+          <p style="font-size:.82rem;color:#6b7280;margin-bottom:10px;">Describe your preferred treatment modalities. LushNote will reflect these in generated notes.</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="font-size:.8rem;font-weight:600;color:#374151;">What treatment modalities or theoretical orientations should LushNote consider?</label>
+            <button onclick="document.getElementById('st-treatment').value=''" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;">Clear</button>
+          </div>
+          <textarea id="st-treatment" rows="4" placeholder="e.g. I use a trauma-informed, CBT-based approach. I integrate ACT and DBT skills where appropriate."></textarea>
+          <div id="st-tr-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
+        </div>
+        <div class="st-section">
+          <h2 class="st-section-h">Document Style</h2>
+          <p style="font-size:.82rem;color:#6b7280;margin-bottom:10px;">Describe your preferred writing style, terminology, and formatting for clinical documentation.</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="font-size:.8rem;font-weight:600;color:#374151;">What general principles, formatting, and style should LushNote apply?</label>
+            <button onclick="document.getElementById('st-doc-style').value='Use English standards consistent with Australia.\nUse professional language consistent with Psychiatry.\nRefer to the person receiving the service as a \"patient\".';" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;">Reset to default</button>
+          </div>
+          <textarea id="st-doc-style" rows="4" placeholder="e.g. Use English standards consistent with Australia. Use professional language consistent with Psychiatry. Refer to the person as 'patient'."></textarea>
+          <div id="st-ds-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn btn-primary" onclick="stSavePersonalisation()">Save changes</button>
+        </div>
+      </div>
+
+      <!-- ─── Subscription ─── -->
+      <div class="st-pane" id="st-pane-subscription">
+        <h1 class="st-h1">Subscription</h1>
+        <p class="st-sub">Your plan and account details</p>
+        <div class="st-section" style="background:var(--blue-lt);border-color:var(--blue);text-align:center;padding:32px 24px;">
+          <div style="font-size:2rem;margin-bottom:10px;">🎉</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--blue);margin-bottom:6px;">LushNote is currently free</div>
+          <p style="font-size:.88rem;color:#374151;line-height:1.65;max-width:420px;margin:0 auto 18px;">LushNote is in active development. During this early stage, access is completely free — we're learning alongside our early users and improving constantly. Thank you for being part of the journey.</p>
+          <div style="font-size:.82rem;color:var(--gray);">Have thoughts or suggestions? We'd love to hear from you.</div>
+        </div>
+        <div class="st-section">
+          <h2 class="st-section-h">Share LushNote</h2>
+          <p style="font-size:.83rem;color:#6b7280;margin-bottom:16px;">Know a fellow psychiatrist or clinician who could benefit? Share LushNote with a colleague.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="stShareEmail()">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="2"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2"/></svg>
+              Share via Email
+            </button>
+            <button class="btn btn-outline" onclick="stShareLink()">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Copy App Link
+            </button>
+            <button class="btn btn-gray" onclick="stShareNative()" id="st-share-native" style="display:none;">
+              Share
+            </button>
+          </div>
+          <div id="st-share-msg" style="font-size:.8rem;color:#059669;margin-top:10px;display:none;"></div>
+        </div>
+        <div class="st-section">
+          <h2 class="st-section-h">Send Feedback</h2>
+          <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Your feedback directly shapes the development of LushNote. Tell us what's working, what isn't, and what you'd like to see.</p>
+          <textarea id="st-feedback-text" rows="4" placeholder="Share your thoughts, feature requests, or any issues you've encountered…"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+            <button class="btn btn-primary" onclick="stSendFeedback()">Send Feedback</button>
+          </div>
+          <div id="st-feedback-msg" style="font-size:.8rem;margin-top:8px;"></div>
+        </div>
+      </div>
+
+    </div><!-- /st-content -->
+  </div><!-- /body -->
+</div><!-- /view-settings -->
 
 <style>
-.as-tab { background:none;border:none;border-bottom:2px solid transparent;padding:6px 12px;cursor:pointer;font-size:.85rem;color:#6b7280;margin-bottom:-1px; }
-.as-tab.active { border-bottom-color:var(--blue);color:var(--blue);font-weight:600; }
+/* Settings page */
+#view-settings { display:flex; }
+.stnav-btn {
+  display:flex; align-items:center; gap:9px; width:100%; padding:9px 12px;
+  border-radius:8px; border:none; background:none; cursor:pointer;
+  font-size:.86rem; color:#374151; text-align:left; margin-bottom:2px; transition:all .15s;
+}
+.stnav-btn:hover { background:#f3f4f6; }
+.stnav-btn.active { background:var(--blue-lt); color:var(--blue); font-weight:600; }
+.st-pane { display:none; max-width:700px; }
+.st-pane.active { display:block; }
+.st-h1 { font-size:1.4rem; font-weight:800; margin:0 0 4px; }
+.st-sub { font-size:.88rem; color:#6b7280; margin:0 0 24px; }
+.st-section { background:#fff; border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:20px; }
+.st-section-h { font-size:.95rem; font-weight:700; margin:0 0 14px; }
+.st-toggle-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid #f3f4f6; }
+.st-toggle { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+.st-toggle input { opacity:0; width:0; height:0; }
+.st-toggle-slider { position:absolute; inset:0; background:#d1d5db; border-radius:24px; cursor:pointer; transition:.2s; }
+.st-toggle-slider::before { content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+.st-toggle input:checked + .st-toggle-slider { background:var(--blue); }
+.st-toggle input:checked + .st-toggle-slider::before { transform:translateX(20px); }
+.st-radio-row { display:flex; align-items:flex-start; gap:12px; padding:12px 14px; border:1.5px solid var(--border); border-radius:9px; cursor:pointer; transition:all .15s; }
+.st-radio-row:has(input:checked) { border-color:var(--blue); background:var(--blue-lt); }
+.st-radio-row input[type=radio] { margin-top:2px; accent-color:var(--blue); flex-shrink:0; }
+/* Reuse as-* classes for workplace cards */
 .as-field { margin-bottom:12px; }
 .as-field label { display:block;font-size:.78rem;font-weight:600;color:#374151;margin-bottom:3px; }
 .as-field input,.as-field select,.as-field textarea { width:100%;border:1px solid #d1d5db;border-radius:7px;padding:7px 10px;font-size:.88rem;box-sizing:border-box; }
@@ -4028,6 +4546,13 @@ async function saveAccountSettings() {
 .as-theme-swatch { width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s; }
 .as-theme-swatch:hover { transform:scale(1.1); }
 .as-theme-swatch-active { border-color:#1a1a1a !important;transform:scale(1.15); }
+/* Mobile settings */
+@media (max-width:640px) {
+  #view-settings > div:last-child { flex-direction:column; }
+  #view-settings > div:last-child > div:first-child { width:100%;border-right:none;border-bottom:1px solid #e5e7eb;display:flex;flex-direction:row;overflow-x:auto;padding:8px 6px;gap:2px; }
+  .stnav-btn { white-space:nowrap;padding:7px 10px;font-size:.8rem; }
+  #st-content { padding:20px 16px; }
+}
 </style>
 </body>
 </html>
