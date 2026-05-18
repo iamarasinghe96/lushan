@@ -50,7 +50,7 @@
 
     /* Form fields */
     label { display:block;font-size:.8rem;font-weight:600;margin-bottom:4px;color:#374151; }
-    input[type=text], input[type=email], input[type=number], input[type=search], input[type=date], input:not([type]), textarea, select {
+    input[type=text], input[type=email], input[type=password], input[type=number], input[type=search], input[type=date], input:not([type]), textarea, select {
       width:100%;border:1px solid var(--border);border-radius:7px;padding:8px 11px;font-size:.86rem;font-family:inherit;color:var(--text);resize:vertical;background:#fff;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none;
     }
     input:focus, textarea:focus, select:focus { outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.14); }
@@ -260,15 +260,14 @@
         </div>
 
         <div class="field-row">
+          <label>Groq API Key</label>
           <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" style="font-family:monospace;" />
         </div>
-        <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:10px;">Save Key</button>
+        <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:4px;">Save Key</button>
         <span id="st-groq-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
 
-        <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:9px;padding:12px 14px;margin-top:14px;font-size:.8rem;color:#166534;line-height:1.7;">
-          <strong>Free key</strong> — ~33 min audio/day · ~60 notes/day · no credit card needed<br>
-          <strong>Pay-as-you-go</strong> — unlimited audio (~$0.04/hr) for busy clinic days<br>
-          <strong>No key?</strong> Use a local transcription app and paste the text via <em>Paste Transcript</em> — no audio limits.
+        <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:9px;padding:10px 14px;margin-top:14px;font-size:.8rem;color:#166534;line-height:1.6;">
+          <strong>Free key</strong> — no credit card needed.
         </div>
       </div>
 
