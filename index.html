@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LushNote – Progress Note Builder</title>
+  <title>LushNote</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='lgb' cx='42%25' cy='36%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%233da843'/%3E%3Cstop offset='100%25' stop-color='%231e6b22'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='url(%23lgb)'/%3E%3Ctext x='50' y='64' font-family='Arial Black%2CArial%2Csans-serif' font-weight='900' font-size='36' fill='white' text-anchor='middle' letter-spacing='3'%3ELN%3C/text%3E%3C/svg%3E">
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -657,7 +657,7 @@
           <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
         </svg>
         <h1>LushNote</h1>
-        <p>Psychiatric Progress Note Builder</p>
+        <p>Clinical Note Builder for Psychiatrists</p>
       </div>
 
       <div class="auth-tab-bar">
@@ -1077,11 +1077,11 @@ With regards,
           </div>
           <div class="field-row">
             <label>Current Presentation</label>
-            <textarea id="e-presentation" rows="5" placeholder="• Bullet points" oninput="livePreview()"></textarea>
+            <textarea id="e-presentation" rows="5" placeholder="1. Presenting concern&#10;2. Symptom details&#10;3. Functional impact" oninput="livePreview()"></textarea>
           </div>
           <div class="field-row">
             <label>Past Medical &amp; Psychiatric History</label>
-            <textarea id="e-history" rows="4" placeholder="• Bullet points" oninput="livePreview()"></textarea>
+            <textarea id="e-history" rows="4" placeholder="1. Past psychiatric history&#10;2. Past medical history" oninput="livePreview()"></textarea>
           </div>
           <div class="field-row">
             <label>Medications &amp; Changes</label>
@@ -1093,7 +1093,7 @@ With regards,
           </div>
           <div class="field-row">
             <label>Session Content</label>
-            <textarea id="e-content" rows="6" placeholder="• Key points discussed" oninput="livePreview()"></textarea>
+            <textarea id="e-content" rows="6" placeholder="1. Topics discussed&#10;2. Therapeutic interventions&#10;3. Patient response" oninput="livePreview()"></textarea>
           </div>
           <div class="two-col">
             <div class="field-row">
@@ -1102,7 +1102,7 @@ With regards,
             </div>
             <div class="field-row">
               <label>Referrals</label>
-              <textarea id="e-referrals" rows="3" placeholder="• EMDR therapist – trauma-focused therapy" oninput="livePreview()"></textarea>
+              <textarea id="e-referrals" rows="3" placeholder="1. EMDR therapist – trauma-focused therapy" oninput="livePreview()"></textarea>
             </div>
           </div>
           <div class="field-row">
@@ -1115,7 +1115,7 @@ With regards,
           </div>
           <div class="field-row">
             <label>Next Steps / Plan</label>
-            <textarea id="e-nextsteps" rows="4" placeholder="• Action items" oninput="livePreview()"></textarea>
+            <textarea id="e-nextsteps" rows="4" placeholder="1. Review in 2 weeks&#10;2. Continue current plan" oninput="livePreview()"></textarea>
           </div>
 
           <div class="btn-group" style="margin-top:4px;">
@@ -1675,14 +1675,18 @@ function parseJson(raw) {
 // ─────────────────────────────────────────────────────────────────────────────
 function toNumbered(text) {
   if (!text) return text;
-  // If already numbered, return as-is
-  if (/^\d+\./.test((text.trim().split('\n')[0] || ''))) return text;
+  const lines = text.trim().split('\n');
+  // Already properly numbered — return as-is
+  if (/^\d+[.)]\s/.test(lines[0] || '')) return text.trim();
   let n = 0;
-  return text.split('\n').map(line => {
+  return lines.map(line => {
     const t = line.trim();
-    if (/^[•\-\*]\s*/.test(t)) { n++; return n + '. ' + t.replace(/^[•\-\*]\s*/, ''); }
-    return line;
-  }).join('\n');
+    if (!t) return '';
+    // Strip any existing bullet prefix
+    const clean = t.replace(/^[•\-\*]\s*/, '');
+    n++;
+    return n + '. ' + clean;
+  }).filter((l, i, arr) => l !== '' || i < arr.length - 1).join('\n');
 }
 
 const LIST_FIELDS = ['e-diagnosis','e-presentation','e-history','e-medications',
