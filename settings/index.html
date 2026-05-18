@@ -243,6 +243,22 @@
     <div class="st-pane" id="st-pane-transcripts">
       <h1 class="st-h1">Transcript Settings</h1>
       <p class="st-sub">Manage recording preferences and transcript privacy controls</p>
+
+      <div class="st-section">
+        <h2 class="st-section-h">Groq API Key</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:12px;">Required for audio features (Record Session, Dictate Note, Upload Recording). Get a free key at <strong>console.groq.com</strong> — takes 2 minutes.</p>
+        <div class="field-row">
+          <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" style="font-family:monospace;" />
+        </div>
+        <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:9px;padding:12px 14px;margin-top:10px;font-size:.8rem;color:#166534;line-height:1.65;">
+          <strong>Free key</strong> — ~33 min audio transcription/day · ~60 AI-generated notes/day<br>
+          <strong>Pay-as-you-go</strong> — unlimited audio (~$0.04/hr) for high-volume days<br>
+          <span style="color:#047857;"><strong>No key?</strong> Use a local transcription app and paste text via <em>Paste Transcript</em> — no audio limits, generous daily note quota.</span>
+        </div>
+        <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:12px;">Save Key</button>
+        <span id="st-groq-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
+      </div>
+
       <div class="st-section">
         <h2 class="st-section-h">Information Privacy</h2>
         <p style="font-size:.83rem;color:#6b7280;margin-bottom:16px;">Redact identifiable information from transcripts before they are sent to the AI.</p>
@@ -476,6 +492,8 @@ function populateSettings() {
   document.getElementById('st-name').value         = p.displayName || '';
   document.getElementById('st-credentials').value  = p.credentials || '';
   document.getElementById('st-email-pretext').value = p.emailPretext || '';
+  // Groq key (stored in localStorage, not Firestore)
+  document.getElementById('st-groq-key').value = localStorage.getItem('groq_api_key') || '';
   // Transcripts
   const tr = p.transcriptPrivacy || {};
   document.getElementById('st-redact-names').checked = !!tr.redactNames;
@@ -750,6 +768,16 @@ async function stDeleteCustomTemplate(tplId) {
   const p = currentUser.profile;
   p.customTemplates = (p.customTemplates || []).filter(t => t.id !== tplId);
   try { await db.collection('users').doc(currentUser.uid).update({ customTemplates: p.customTemplates }); stRenderTemplates(); toast('Deleted'); } catch(e) { toast('Failed: '+e.message); }
+}
+
+// ── Groq key ──
+function stSaveGroqKey() {
+  const key = document.getElementById('st-groq-key').value.trim();
+  if (key) localStorage.setItem('groq_api_key', key);
+  else     localStorage.removeItem('groq_api_key');
+  const saved = document.getElementById('st-groq-key-saved');
+  saved.style.display = 'inline';
+  setTimeout(() => { saved.style.display = 'none'; }, 2500);
 }
 
 // ── Transcripts ──

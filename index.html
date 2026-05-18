@@ -952,8 +952,13 @@ With regards,
     </div>
     <div class="modal-body">
       <div class="field-row">
-        <label>Groq API Key</label>
+        <label>Your Groq API Key <span style="font-size:.75rem;font-weight:500;color:#6b7280;">(required for audio features)</span></label>
         <input type="password" id="s-groq-key" placeholder="gsk_..." autocomplete="off" />
+        <div style="font-size:.77rem;color:#6b7280;margin-top:6px;line-height:1.55;">
+          Get a free key at <strong>console.groq.com</strong> — includes ~33 min audio/day and ~60 notes/day.<br>
+          For unlimited audio, upgrade to Groq pay-as-you-go (~$0.04/hr).<br>
+          <span style="color:#059669;">Paste Transcript</span> works without audio and supports far more notes per day.
+        </div>
       </div>
 
       <div class="section-title">Firebase Firestore (optional – cross-device sync &amp; history)</div>
@@ -3329,6 +3334,54 @@ function showTemplatePickerModal(contentHint) {
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Groq API key check for audio features
+// ─────────────────────────────────────────────────────────────────────────────
+function _hasPersonalGroqKey() {
+  return !!(localStorage.getItem('groq_api_key') || '').trim();
+}
+
+function _checkGroqAudioKey(onProceed) {
+  if (_hasPersonalGroqKey()) { onProceed(); return; }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9900;display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:28px 26px;box-shadow:0 24px 60px rgba(0,0,0,.25);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span style="font-size:1.5rem;">🔑</span>
+        <h3 style="font-size:1rem;font-weight:800;margin:0;">Personal Groq API Key Required</h3>
+      </div>
+      <p style="font-size:.84rem;color:#4b5563;margin:10px 0 14px;line-height:1.6;">
+        Audio features (Record Session, Dictate Note, Upload Recording) use Groq's speech-to-text API, which requires your own key.
+      </p>
+      <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.82rem;color:#166534;line-height:1.6;">
+        <strong>Free key (console.groq.com)</strong> — takes 2 minutes to set up<br>
+        ≈ 33 minutes of audio transcription per day<br>
+        Plenty for most clinic days
+      </div>
+      <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:.82rem;color:#92400e;line-height:1.6;">
+        <strong>Need more than 33 min/day?</strong> Upgrade to Groq pay-as-you-go (~$0.04/hour).<br><br>
+        <strong>No audio at all?</strong> Use a local transcription app (e.g. Whisper Desktop) and paste the text via <em>Paste Transcript</em> — that route uses far fewer Groq resources and supports many more notes per day.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button id="_gk-settings-btn" style="padding:11px;background:#1d4ed8;color:#fff;border:none;border-radius:9px;font-size:.88rem;font-weight:700;cursor:pointer;">Add my Groq key in Settings</button>
+        <button id="_gk-continue-btn" style="padding:10px;background:#fff;border:1.5px solid #d1d5db;border-radius:9px;font-size:.83rem;color:#6b7280;cursor:pointer;">Continue with shared key (limited — may fail)</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#_gk-settings-btn').onclick = () => {
+    overlay.remove();
+    window.location.href = 'settings/?tab=transcripts';
+  };
+  overlay.querySelector('#_gk-continue-btn').onclick = () => {
+    overlay.remove();
+    onProceed();
+  };
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
 const DICTATE_PROMPT = `You are a medical scribe for Dr Lushan Vasantha, Psychiatrist.
 The following is a DICTATED CLINICAL NOTE — the doctor is narrating a patient consultation in first person (e.g. "The patient told me...", "I noted..."). There is no back-and-forth conversation.
 Your task is identical: return a structured Progress Note as a single JSON object with the same keys as always.
@@ -3504,6 +3557,9 @@ async function processAudioAndGenerate(blob, mode) {
 
 // ── Dictate Modal ──
 function openDictateModal() {
+  _checkGroqAudioKey(() => _openDictateModalInner());
+}
+function _openDictateModalInner() {
   const modal = document.createElement('div');
   modal.className = 'rec-modal-overlay';
   modal.id = 'dictate-modal';
@@ -3567,6 +3623,9 @@ async function startDictateRecording() {
 
 // ── Upload Modal ──
 function openUploadModal() {
+  _checkGroqAudioKey(() => _openUploadModalInner());
+}
+function _openUploadModalInner() {
   const modal = document.createElement('div');
   modal.className = 'rec-modal-overlay';
   modal.id = 'upload-modal';
@@ -3620,6 +3679,9 @@ async function processUploadedFile() {
 
 // ── Record Session Modal ──
 function openRecordModal() {
+  _checkGroqAudioKey(() => _openRecordModalInner());
+}
+function _openRecordModalInner() {
   const modal = document.createElement('div');
   modal.className = 'rec-modal-overlay';
   modal.id = 'record-modal';
