@@ -717,6 +717,216 @@
 </head>
 <body>
 
+<!-- ══════════════════════ VIEW: LANDING ══════════════════════ -->
+<div id="view-landing" style="display:none;">
+<style>
+  #view-landing { background:#f8fafc; min-height:100vh; overflow-y:auto; }
+  .ln-nav { display:flex; align-items:center; justify-content:space-between; padding:18px 40px; background:#fff; border-bottom:1px solid #e5e7eb; position:sticky; top:0; z-index:100; }
+  .ln-nav-logo { display:flex; align-items:center; gap:10px; }
+  .ln-nav-logo span { font-size:1.1rem; font-weight:800; color:#111827; }
+  .ln-nav-actions { display:flex; gap:10px; align-items:center; }
+  .ln-btn-ghost { background:none; border:1.5px solid #d1d5db; border-radius:8px; padding:8px 18px; font-size:.85rem; font-weight:600; cursor:pointer; color:#374151; transition:all .15s; }
+  .ln-btn-ghost:hover { border-color:#1d4ed8; color:#1d4ed8; }
+  .ln-btn-cta { background:#1d4ed8; color:#fff; border:none; border-radius:8px; padding:9px 22px; font-size:.85rem; font-weight:700; cursor:pointer; transition:background .15s; }
+  .ln-btn-cta:hover { background:#1e40af; }
+  .ln-btn-cta-lg { background:#1d4ed8; color:#fff; border:none; border-radius:10px; padding:14px 32px; font-size:1rem; font-weight:700; cursor:pointer; transition:all .15s; box-shadow:0 4px 18px rgba(29,78,216,.3); }
+  .ln-btn-cta-lg:hover { background:#1e40af; transform:translateY(-1px); box-shadow:0 6px 24px rgba(29,78,216,.35); }
+  .ln-btn-outline-lg { background:#fff; color:#1d4ed8; border:2px solid #1d4ed8; border-radius:10px; padding:13px 28px; font-size:.95rem; font-weight:700; cursor:pointer; transition:all .15s; }
+  .ln-btn-outline-lg:hover { background:#eff6ff; }
+
+  /* Hero */
+  .ln-hero { text-align:center; padding:72px 24px 56px; max-width:680px; margin:0 auto; }
+  .ln-hero-badge { display:inline-block; background:#f0fdf4; border:1.5px solid #bbf7d0; color:#166534; font-size:.75rem; font-weight:700; padding:4px 14px; border-radius:20px; margin-bottom:20px; letter-spacing:.04em; }
+  .ln-hero h1 { font-size:clamp(2rem,5vw,3rem); font-weight:900; color:#111827; line-height:1.15; margin:0 0 18px; }
+  .ln-hero h1 em { font-style:normal; color:#1d4ed8; }
+  .ln-hero p { font-size:1.05rem; color:#6b7280; line-height:1.7; margin:0 0 32px; }
+  .ln-hero-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:14px; }
+  .ln-hero-free { font-size:.8rem; color:#9ca3af; }
+  .ln-hero-free strong { color:#059669; }
+
+  /* Demo strip */
+  .ln-demo-strip { background:#fff; border-top:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:28px 24px; }
+  .ln-demo-inner { max-width:860px; margin:0 auto; display:flex; gap:0; }
+  .ln-demo-step { flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 20px; position:relative; }
+  .ln-demo-step:not(:last-child)::after { content:'→'; position:absolute; right:-6px; top:22px; font-size:1.2rem; color:#d1d5db; }
+  .ln-demo-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.4rem; margin-bottom:10px; }
+  .ln-demo-step h4 { font-size:.88rem; font-weight:700; color:#111827; margin:0 0 4px; }
+  .ln-demo-step p { font-size:.78rem; color:#6b7280; margin:0; line-height:1.45; }
+
+  /* Features */
+  .ln-features { max-width:900px; margin:0 auto; padding:60px 24px; }
+  .ln-features-title { text-align:center; font-size:1.5rem; font-weight:800; color:#111827; margin-bottom:8px; }
+  .ln-features-sub { text-align:center; font-size:.9rem; color:#6b7280; margin-bottom:44px; }
+  .ln-feat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:20px; }
+  .ln-feat-card { background:#fff; border:1.5px solid #e5e7eb; border-radius:14px; padding:22px 20px; }
+  .ln-feat-card-icon { font-size:1.6rem; margin-bottom:10px; }
+  .ln-feat-card h3 { font-size:.92rem; font-weight:700; color:#111827; margin:0 0 6px; }
+  .ln-feat-card p { font-size:.8rem; color:#6b7280; margin:0; line-height:1.55; }
+
+  /* Modes */
+  .ln-modes { background:#fff; border-top:1px solid #e5e7eb; padding:60px 24px; }
+  .ln-modes-inner { max-width:860px; margin:0 auto; }
+  .ln-modes-title { text-align:center; font-size:1.4rem; font-weight:800; color:#111827; margin-bottom:6px; }
+  .ln-modes-sub { text-align:center; font-size:.88rem; color:#6b7280; margin-bottom:36px; }
+  .ln-mode-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
+  .ln-mode-item { display:flex; align-items:flex-start; gap:12px; background:#f8fafc; border:1.5px solid #e5e7eb; border-radius:11px; padding:14px 16px; }
+  .ln-mode-item-icon { font-size:1.4rem; flex-shrink:0; margin-top:1px; }
+  .ln-mode-item h4 { font-size:.84rem; font-weight:700; color:#111827; margin:0 0 3px; }
+  .ln-mode-item p { font-size:.75rem; color:#6b7280; margin:0; line-height:1.4; }
+
+  /* CTA bottom */
+  .ln-cta-bottom { text-align:center; padding:64px 24px; background:linear-gradient(135deg,#1d4ed8 0%,#4f46e5 100%); }
+  .ln-cta-bottom h2 { font-size:1.8rem; font-weight:900; color:#fff; margin:0 0 10px; }
+  .ln-cta-bottom p { font-size:.95rem; color:#bfdbfe; margin:0 0 28px; }
+  .ln-cta-bottom .ln-btn-cta-lg { background:#fff; color:#1d4ed8; box-shadow:0 4px 18px rgba(0,0,0,.2); }
+  .ln-cta-bottom .ln-btn-cta-lg:hover { background:#eff6ff; }
+  .ln-cta-free { font-size:.8rem; color:#93c5fd; margin-top:12px; }
+
+  /* Footer */
+  .ln-footer { text-align:center; padding:20px 24px; font-size:.75rem; color:#9ca3af; background:#f8fafc; border-top:1px solid #e5e7eb; }
+
+  @media(max-width:600px) {
+    .ln-nav { padding:14px 18px; }
+    .ln-demo-inner { flex-direction:column; gap:20px; }
+    .ln-demo-step:not(:last-child)::after { content:'↓'; right:auto; top:auto; bottom:-14px; left:50%; transform:translateX(-50%); }
+    .ln-demo-step { padding:0 8px; }
+  }
+</style>
+
+  <!-- Nav -->
+  <nav class="ln-nav">
+    <div class="ln-nav-logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="34" height="34">
+        <defs><radialGradient id="lgbL" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
+        <circle cx="50" cy="50" r="50" fill="url(#lgbL)"/>
+        <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+      </svg>
+      <span>LushNote</span>
+    </div>
+    <div class="ln-nav-actions">
+      <button class="ln-btn-ghost" onclick="showView('auth')">Sign In</button>
+      <button class="ln-btn-cta" onclick="landingSignUp()">Sign Up Free</button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="ln-hero">
+    <div class="ln-hero-badge">✦ Free during early access</div>
+    <h1>Clinical notes in seconds,<br>not <em>minutes</em></h1>
+    <p>LushNote listens to your consultation, transcribes it, and generates a structured psychiatric progress note — ready to review, edit, and send.</p>
+    <div class="ln-hero-actions">
+      <button class="ln-btn-cta-lg" onclick="landingSignUp()">Get Started Free</button>
+      <button class="ln-btn-outline-lg" onclick="document.getElementById('ln-how').scrollIntoView({behavior:'smooth'})">See how it works</button>
+    </div>
+    <div class="ln-hero-free"><strong>100% free</strong> while we're in development &nbsp;·&nbsp; No credit card needed</div>
+  </section>
+
+  <!-- How it works -->
+  <section id="ln-how" class="ln-demo-strip">
+    <div class="ln-demo-inner">
+      <div class="ln-demo-step">
+        <div class="ln-demo-icon" style="background:#eff6ff;">🎙️</div>
+        <h4>Record or paste</h4>
+        <p>Record live, dictate solo, upload a recording, or paste a transcript</p>
+      </div>
+      <div class="ln-demo-step">
+        <div class="ln-demo-icon" style="background:#f0fdf4;">🤖</div>
+        <h4>AI structures the note</h4>
+        <p>Groq AI transcribes the audio and formats it into a clinical progress note</p>
+      </div>
+      <div class="ln-demo-step">
+        <div class="ln-demo-icon" style="background:#fefce8;">📋</div>
+        <h4>Review &amp; edit</h4>
+        <p>All fields are editable — adjust wording, tone, and detail before saving</p>
+      </div>
+      <div class="ln-demo-step">
+        <div class="ln-demo-icon" style="background:#fdf4ff;">📤</div>
+        <h4>Export or send</h4>
+        <p>Download as PDF, copy to clipboard, or email directly to a colleague</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="ln-features">
+    <div class="ln-features-title">Built for busy psychiatrists</div>
+    <div class="ln-features-sub">Everything you need to document faster, without compromising quality</div>
+    <div class="ln-feat-grid">
+      <div class="ln-feat-card">
+        <div class="ln-feat-card-icon">📝</div>
+        <h3>25 clinical templates</h3>
+        <p>Progress notes, initial assessments, risk notes, discharge summaries and more — with AI suggestion based on your session content.</p>
+      </div>
+      <div class="ln-feat-card">
+        <div class="ln-feat-card-icon">🔒</div>
+        <h3>Privacy-first</h3>
+        <p>Optional PII redaction strips names, dates of birth, and addresses before anything leaves your device. No audio is ever stored.</p>
+      </div>
+      <div class="ln-feat-card">
+        <div class="ln-feat-card-icon">🏥</div>
+        <h3>Multi-workplace</h3>
+        <p>Switch between hospital, private practice, and community health — each with its own patient registration format.</p>
+      </div>
+      <div class="ln-feat-card">
+        <div class="ln-feat-card-icon">📂</div>
+        <h3>Patient history</h3>
+        <p>All notes are saved and grouped by patient. Drill into any patient to see their full session history at a glance.</p>
+      </div>
+      <div class="ln-feat-card">
+        <div class="ln-feat-card-icon">🎨</div>
+        <h3>Personalised output</h3>
+        <p>Set your preferred note length, writing style, and identity. Every note reflects the way you document, not a generic template.</p>
+      </div>
+      <div class="ln-feat-card">
+        <div class="ln-feat-card-icon">📧</div>
+        <h3>One-tap sharing</h3>
+        <p>Send notes to colleagues by email with a pre-written introduction — or copy to clipboard in one click.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Input modes -->
+  <section class="ln-modes">
+    <div class="ln-modes-inner">
+      <div class="ln-modes-title">Five ways to create a note</div>
+      <div class="ln-modes-sub">However your session runs, LushNote has you covered</div>
+      <div class="ln-mode-list">
+        <div class="ln-mode-item">
+          <div class="ln-mode-item-icon">👥</div>
+          <div><h4>Record Session</h4><p>Live recording of a two-way consultation with the patient</p></div>
+        </div>
+        <div class="ln-mode-item">
+          <div class="ln-mode-item-icon">🎙️</div>
+          <div><h4>Dictate Note</h4><p>Narrate your findings after the session, doctor solo</p></div>
+        </div>
+        <div class="ln-mode-item">
+          <div class="ln-mode-item-icon">⬆️</div>
+          <div><h4>Upload Recording</h4><p>Drop in an existing audio file from any device</p></div>
+        </div>
+        <div class="ln-mode-item">
+          <div class="ln-mode-item-icon">📋</div>
+          <div><h4>Paste Transcript</h4><p>Already have text? Paste it and generate a note instantly</p></div>
+        </div>
+        <div class="ln-mode-item">
+          <div class="ln-mode-item-icon">📄</div>
+          <div><h4>Create Document</h4><p>Upload or type free-form content to generate a structured note</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA bottom -->
+  <section class="ln-cta-bottom">
+    <h2>Start documenting smarter</h2>
+    <p>Join LushNote free today. No credit card, no commitment.</p>
+    <button class="ln-btn-cta-lg" onclick="landingSignUp()">Create Free Account</button>
+    <div class="ln-cta-free">Already have an account? <span onclick="showView('auth')" style="color:#fff;cursor:pointer;text-decoration:underline;font-weight:600;">Sign in</span></div>
+  </section>
+
+  <div class="ln-footer">© 2025 LushNote &nbsp;·&nbsp; Built for Dr Lushan Vasantha &nbsp;·&nbsp; Free early access</div>
+
+</div>
+
 <!-- ══════════════════════ VIEW: AUTH ══════════════════════ -->
 <div id="view-auth" style="display:none;">
   <div class="view-auth-page">
@@ -2628,10 +2838,16 @@ function scheduleAutoSave() {
 // View management
 // ─────────────────────────────────────────────────────────────────────────────
 function showView(name) {
-  ['auth','pending','onboarding','app'].forEach(v => {
+  ['landing','auth','pending','onboarding','app'].forEach(v => {
     const el = document.getElementById('view-' + v);
     if (el) el.style.display = (v === name) ? '' : 'none';
   });
+}
+
+function landingSignUp() {
+  showView('auth');
+  // Switch to the register tab
+  if (typeof switchAuthTab === 'function') switchAuthTab('register');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2639,7 +2855,7 @@ function showView(name) {
 // ─────────────────────────────────────────────────────────────────────────────
 function startAuthListener() {
   firebase.auth().onAuthStateChanged(async user => {
-    if (!user) { showView('auth'); return; }
+    if (!user) { showView('landing'); return; }
     const profile = await loadUserProfile(user.uid);
     if (!profile || profile.status === 'pending') {
       document.getElementById('pending-email').textContent = user.email;
