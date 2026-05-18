@@ -1946,6 +1946,13 @@ function filterHistory() { filterPatients(); }
 function renderPatients(notes) {
   const area  = document.getElementById('patients-area');
   const empty = document.getElementById('history-empty');
+  if (!area) return;
+
+  // Always show list view when re-rendering
+  const lv = document.getElementById('patients-list-view');
+  const dv = document.getElementById('patient-detail-view');
+  if (lv) lv.style.display = 'block';
+  if (dv) dv.style.display = 'none';
 
   // Clear existing patient cards
   area.querySelectorAll('.patient-card').forEach(c => c.remove());
@@ -1989,7 +1996,7 @@ function renderPatients(notes) {
 function renderHistory(notes) { renderPatients(notes); }
 
 function showPatientList() {
-  document.getElementById('patients-list-view').style.display = '';
+  document.getElementById('patients-list-view').style.display = 'block';
   document.getElementById('patient-detail-view').style.display = 'none';
 }
 
@@ -2030,7 +2037,7 @@ function showPatientDetail(patientKey) {
   }).join('');
 
   document.getElementById('patients-list-view').style.display = 'none';
-  document.getElementById('patient-detail-view').style.display = '';
+  document.getElementById('patient-detail-view').style.display = 'block';
 }
 
 function loadNoteById(id) {
