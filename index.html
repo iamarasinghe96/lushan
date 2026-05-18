@@ -1544,6 +1544,11 @@ With regards,
 
     <!-- Patient list view -->
     <div id="patients-list-view">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+        <button class="btn btn-primary btn-sm" onclick="openAddPatientModal()">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:4px;"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>New Patient
+        </button>
+      </div>
       <div class="card" style="margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:10px;">
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--gray)"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1574,6 +1579,7 @@ With regards,
           <div class="pd-info-reg"  id="detail-patient-reg"></div>
           <div class="pd-info-grid" id="detail-info-grid"></div>
         </div>
+        <button class="btn btn-outline btn-sm" onclick="openEditPatientModal(currentDetailKey)" style="align-self:flex-start;flex-shrink:0;">Edit</button>
       </div>
       <div class="pd-sessions-title">
         Sessions
@@ -1663,9 +1669,11 @@ const state = {
   lastTranscript: null,
   lastTranscriptMode: 'paste',
   lastChosenTemplate: null,
+  patientProfiles: {},   // keyed by patientKey (normalised name)
 };
 let db = null;
 let currentUser = null;
+let currentDetailKey = null;
 let onboardingData = {};
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1713,6 +1721,27 @@ async function fbLoadHistory() {
 async function fbDeleteNote(id) {
   if (!db) return;
   await db.collection(COLLECTION).doc(id).delete();
+}
+
+async function loadPatientProfiles() {
+  if (!db || !currentUser) return;
+  try {
+    const snap = await db.collection('users').doc(currentUser.uid)
+      .collection('patientProfiles').get();
+    state.patientProfiles = {};
+    snap.forEach(d => { state.patientProfiles[d.id] = d.data(); });
+  } catch(e) {}
+}
+
+async function savePatientProfile(key, data) {
+  if (!db || !currentUser) return;
+  await db.collection('users').doc(currentUser.uid)
+    .collection('patientProfiles').doc(key).set(data, { merge: true });
+  state.patientProfiles[key] = { ...(state.patientProfiles[key] || {}), ...data };
+}
+
+function normalisePatientKey(name) {
+  return (name || '').trim().toLowerCase();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2407,12 +2436,13 @@ function renderPatients(notes) {
     }, sessions[0]);
     const lastDate = lastSession.date || '';
     const reg = sessions.find(n => n.reg_number)?.reg_number || '';
+    const profile = state.patientProfiles[key] || {};
     return `
       <div class="patient-card" onclick="showPatientDetail('${esc(key)}')">
         <div class="patient-card-avatar">${esc(initial)}</div>
         <div class="patient-card-info">
           <h3>${esc(displayName)}</h3>
-          <div class="meta">${reg ? `ID: ${esc(reg)}  ·  ` : ''}${lastDate ? `Last session: ${esc(lastDate)}` : 'No date recorded'}</div>
+          <div class="meta">${reg ? `ID: ${esc(reg)}  ·  ` : ''}${lastDate ? `Last session: ${esc(lastDate)}` : 'No date recorded'}${profile?.dob ? `  ·  DOB: ${profile.dob}` : ''}${profile?.gender ? `  ·  ${profile.gender}` : ''}</div>
         </div>
         <div class="patient-card-badge">${count} session${count !== 1 ? 's' : ''}</div>
       </div>`;
@@ -2429,13 +2459,22 @@ function showPatientList() {
   document.getElementById('patient-detail-view').style.display = 'none';
 }
 
+function formatDob(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  if (!d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
 function showPatientDetail(patientKey) {
+  currentDetailKey = patientKey;
   const sessions = state.allNotes
     .filter(n => (n.patient || 'Unknown').trim().toLowerCase() === patientKey)
     .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
 
   if (!sessions.length) return;
 
+  const profile     = state.patientProfiles[patientKey] || {};
   const displayName = sessions[0].patient || 'Unknown';
   const reg         = sessions.find(n => n.reg_number)?.reg_number || '';
   const diagnosis   = sessions.find(n => n.diagnosis)?.diagnosis?.split('\n')[0] || '';
@@ -2451,7 +2490,9 @@ function showPatientDetail(patientKey) {
   document.getElementById('detail-patient-reg').textContent  = reg ? `Registration #${reg}` : '';
 
   const infoRows = [
-    reg        ? ['Registration #', reg]      : null,
+    reg             ? ['Registration #', reg]                   : null,
+    profile.dob     ? ['Date of Birth',  formatDob(profile.dob)] : null,
+    profile.gender  ? ['Gender',         profile.gender]         : null,
     firstSeen  ? ['First seen',     firstSeen] : null,
     lastSeen   ? ['Last visit',     lastSeen]  : null,
     diagnosis  ? ['Diagnosis',      diagnosis] : null,
@@ -2522,6 +2563,99 @@ async function deleteHistoryNote(id) {
     toast('Session deleted');
   } catch(e) {
     toast('Delete failed: ' + e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Patient Profile Modals
+// ─────────────────────────────────────────────────────────────────────────────
+function openAddPatientModal(prefill = {}) {
+  openPatientModal(null, prefill);
+}
+
+function openEditPatientModal(key) {
+  if (!key) return;
+  const profile = state.patientProfiles[key] || {};
+  const sessions = state.allNotes.filter(n => normalisePatientKey(n.patient) === key);
+  const name = sessions[0]?.patient || profile.displayName || key;
+  openPatientModal(key, { name, dob: profile.dob || '', gender: profile.gender || '' });
+}
+
+function openPatientModal(existingKey, prefill = {}) {
+  const isEdit = !!existingKey;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:min(420px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 0;">
+        <h3 style="font-size:1.05rem;font-weight:800;margin:0;">${isEdit ? 'Edit Patient' : 'Add Client'}</h3>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#9ca3af;line-height:1;">&times;</button>
+      </div>
+      <div style="padding:20px 24px 24px;display:flex;flex-direction:column;gap:14px;">
+        ${!isEdit ? `
+        <div>
+          <label style="font-size:.8rem;font-weight:700;display:block;margin-bottom:5px;">First Name</label>
+          <input id="pm-firstname" type="text" placeholder="First Name" style="width:100%;border:1.5px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-size:.88rem;outline:none;box-sizing:border-box;" value="${prefill.firstName || ''}" />
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;display:block;margin-bottom:5px;">Last Name</label>
+          <input id="pm-lastname" type="text" placeholder="Last Name" style="width:100%;border:1.5px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-size:.88rem;outline:none;box-sizing:border-box;" value="${prefill.lastName || ''}" />
+        </div>` : `
+        <div>
+          <label style="font-size:.8rem;font-weight:700;display:block;margin-bottom:5px;">Patient Name</label>
+          <input id="pm-fullname" type="text" style="width:100%;border:1.5px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-size:.88rem;outline:none;box-sizing:border-box;" value="${prefill.name || ''}" readonly />
+        </div>`}
+        <div>
+          <label style="font-size:.8rem;font-weight:700;display:block;margin-bottom:5px;">Date of Birth</label>
+          <input id="pm-dob" type="date" style="width:100%;border:1.5px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-size:.88rem;outline:none;box-sizing:border-box;" value="${prefill.dob || ''}" />
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;display:block;margin-bottom:5px;">Gender</label>
+          <div style="display:flex;gap:18px;margin-top:4px;">
+            ${['Male','Female','Gender Diverse'].map(g => `
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;">
+                <input type="radio" name="pm-gender" value="${g}" ${(prefill.gender===g)?'checked':''} />
+                ${g}
+              </label>`).join('')}
+          </div>
+        </div>
+        <div id="pm-error" style="font-size:.82rem;color:#dc2626;display:none;"></div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;">Cancel</button>
+          <button onclick="pmSave('${existingKey || ''}')" style="flex:1;padding:10px;border:none;border-radius:8px;background:#111827;color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;">${isEdit ? 'Save' : 'Save & Start'}</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function pmSave(existingKey) {
+  const errEl = document.getElementById('pm-error');
+  errEl.style.display = 'none';
+  const isEdit = !!existingKey;
+  let name;
+  if (isEdit) {
+    name = (document.getElementById('pm-fullname')?.value || '').trim();
+  } else {
+    const first = (document.getElementById('pm-firstname')?.value || '').trim();
+    const last  = (document.getElementById('pm-lastname')?.value  || '').trim();
+    if (!first) { errEl.textContent = 'Please enter a first name.'; errEl.style.display = ''; return; }
+    name = last ? `${first} ${last}` : first;
+  }
+  const dob    = document.getElementById('pm-dob')?.value || '';
+  const gender = document.querySelector('input[name="pm-gender"]:checked')?.value || '';
+  const key    = existingKey || normalisePatientKey(name);
+  await savePatientProfile(key, { displayName: name, dob, gender });
+  document.querySelector('[style*="position:fixed"][style*="1100"]')?.remove();
+  if (!isEdit) {
+    // Pre-fill the patient name in the note form and switch to edit tab
+    document.getElementById('e-patient').value = name;
+    switchTab('generate');
+    toast(`Patient created: ${name}`, 'success');
+  } else {
+    toast('Patient profile updated', 'success');
+    // Refresh detail view
+    showPatientDetail(existingKey);
   }
 }
 
@@ -14260,6 +14394,7 @@ function initApp() {
   applyRegPattern();
   const clinEl = document.getElementById('e-clinician');
   if (clinEl && !clinEl.value) clinEl.value = currentClinicianLabel();
+  loadPatientProfiles();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
