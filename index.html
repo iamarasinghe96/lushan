@@ -1673,8 +1673,10 @@ function parseJson(raw) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Field population
 // ─────────────────────────────────────────────────────────────────────────────
-function toNumbered(text) {
-  if (!text) return text;
+function toNumbered(raw) {
+  if (!raw) return raw;
+  // AI sometimes returns arrays — join them first
+  const text = Array.isArray(raw) ? raw.join('\n') : String(raw);
   const lines = text.trim().split('\n');
   // Already properly numbered — return as-is
   if (/^\d+[.)]\s/.test(lines[0] || '')) return text.trim();
@@ -1682,7 +1684,6 @@ function toNumbered(text) {
   return lines.map(line => {
     const t = line.trim();
     if (!t) return '';
-    // Strip any existing bullet prefix
     const clean = t.replace(/^[•\-\*]\s*/, '');
     n++;
     return n + '. ' + clean;
@@ -1693,7 +1694,11 @@ const LIST_FIELDS = ['e-diagnosis','e-presentation','e-history','e-medications',
                      'e-content','e-scales','e-referrals','e-nextsteps'];
 
 function populateFields(d) {
-  const set = (id, val) => { if (val) document.getElementById(id).value = LIST_FIELDS.includes(id) ? toNumbered(val) : val; };
+  const set = (id, val) => {
+    if (!val && val !== 0) return;
+    const str = Array.isArray(val) ? val.join('\n') : String(val);
+    document.getElementById(id).value = LIST_FIELDS.includes(id) ? toNumbered(str) : str;
+  };
   set('e-patient',        d.patient);
   set('e-reg-number',     d.reg_number);
   // Date: "DD Month YYYY" → "DD/MM/YYYY" display
