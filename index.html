@@ -1002,11 +1002,8 @@
         <h3 style="font-size:1rem;font-weight:800;margin:0 0 8px;">Check your inbox</h3>
         <p style="font-size:.84rem;color:#4b5563;margin:0 0 6px;line-height:1.6;">We sent a verification link to</p>
         <p id="verify-email-addr" style="font-size:.88rem;font-weight:700;color:#1d4ed8;margin:0 0 18px;word-break:break-all;"></p>
-        <p style="font-size:.8rem;color:#6b7280;margin:0 0 20px;line-height:1.6;">Click the link in the email, then come back here and press the button below.</p>
-        <button class="auth-btn" id="verify-check-btn" onclick="checkEmailVerification()">I've verified my email →</button>
-        <div class="auth-error" id="verify-error" style="margin-top:8px;"></div>
-        <div id="verify-success" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;font-size:.83rem;color:#166534;margin-top:8px;">Email verified! Setting up your account…</div>
-        <div style="margin-top:16px;display:flex;flex-direction:column;gap:6px;align-items:center;">
+        <p style="font-size:.82rem;color:#6b7280;margin:0 0 24px;line-height:1.65;">Click the link in the email — it will verify your account and bring you back to the app automatically.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
           <span class="auth-back-link" id="verify-resend-btn" onclick="resendAndCooldown()">Resend verification email</span>
           <span class="auth-back-link" onclick="doSignOut();showView('auth');switchAuthTab('signin')" style="color:#9ca3af;font-size:.78rem;">Sign out and use a different account</span>
         </div>
