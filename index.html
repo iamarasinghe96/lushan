@@ -732,16 +732,10 @@
 
       <!-- Register Step 2 -->
       <div id="auth-register-step2" style="display:none;">
-        <div style="font-size:.88rem;color:#374151;margin-bottom:12px;font-weight:600;">Subscription — AU$300/year</div>
-        <div class="payid-box">
-          <div class="payid-label">Transfer via CBA PayID</div>
-          <div class="payid-number">0484 920 892</div>
-          <div class="payid-ref">Reference: <strong id="payid-ref-email">your email address</strong></div>
-        </div>
         <div style="font-size:.8rem;color:var(--gray);margin-bottom:14px;line-height:1.5;">
-          Once payment is made, click below to register. Your account will be activated after payment is confirmed (usually within 1 business day).
+          LushNote is currently free while in development. Click below to create your account.
         </div>
-        <button class="auth-btn" onclick="doRegister()">I've completed the payment — Register</button>
+        <button class="auth-btn" onclick="doRegister()">Create Account</button>
         <span class="auth-back-link" onclick="regGoBack()">Back</span>
         <div class="auth-error" id="reg-step2-error"></div>
       </div>
@@ -758,8 +752,8 @@
         <circle cx="50" cy="50" r="50" fill="url(#lgb3)"/>
         <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
       </svg>
-      <h2>Account Pending Approval</h2>
-      <p>Your registration is being reviewed. Once your payment is confirmed, your account will be activated — usually within 1 business day.</p>
+      <h2>Account Pending Activation</h2>
+      <p>Your account is being set up. Please check your email to verify your address, then refresh this page. If the issue persists, contact support.</p>
       <div id="pending-verify-notice" style="display:none;background:#fffbeb;border:1px solid #fcd34d;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:.83rem;color:#92400e;line-height:1.55;">
         Please also <strong>verify your email address</strong> — check your inbox for a verification email from LushNote and click the link inside.
         <br><span id="pending-resend-wrap" style="display:inline-block;margin-top:6px;"><span class="auth-back-link" onclick="resendVerificationEmail()" style="color:#b45309;">Resend verification email</span></span>
@@ -957,7 +951,7 @@ With regards,
     <div class="user-menu-wrap">
       <button class="user-avatar" id="user-avatar-btn" onclick="toggleUserMenu(event)" title="Account">LV</button>
       <div class="user-menu-drop" id="user-menu-drop">
-        <button onclick="closeUserMenu(); openAccountSettings();">Account</button>
+        <button onclick="closeUserMenu(); window.location.href='settings/';">Account</button>
         <button onclick="doSignOut()">Sign Out</button>
       </div>
     </div>
@@ -2710,24 +2704,13 @@ async function doRegister() {
   try {
     const cred = await firebase.auth().createUserWithEmailAndPassword(_regEmail, _regPass);
     const uid  = cred.user.uid;
-    const isFree = _regEmail.toLowerCase() === FREE_EMAIL.toLowerCase();
-    const status = isFree ? 'active' : 'pending';
     const ts = firebase.firestore.FieldValue.serverTimestamp();
     await db.collection('users').doc(uid).set({
-      email: _regEmail, displayName: _regName, status,
+      email: _regEmail, displayName: _regName, status: 'active',
       tier: 'free', onboardingComplete: false, createdAt: ts
-    });
-    await db.collection('pending_registrations').doc(uid).set({
-      email: _regEmail, name: _regName, submittedAt: ts, status: 'pending'
     });
     // Send email verification
     try { await cred.user.sendEmailVerification(); } catch(e) { console.warn('Verification email failed:', e.message); }
-
-    if (!isFree) {
-      const subj = encodeURIComponent('New LushNote Registration – ' + _regName);
-      const body = encodeURIComponent('New registration pending approval:\n\nName: ' + _regName + '\nEmail: ' + _regEmail + '\nUID: ' + uid + '\n\nPlease verify payment and activate the account.');
-      window.open('mailto:' + ADMIN_EMAIL + '?subject=' + subj + '&body=' + body);
-    }
   } catch(e) {
     errEl.textContent = e.message || 'Registration failed.';
   }

@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LushNote – Settings</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='lgb' cx='42%25' cy='36%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%233da843'/%3E%3Cstop offset='100%25' stop-color='%231e6b22'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='url(%23lgb)'/%3E%3Ctext x='50' y='64' font-family='Arial Black%2CArial%2Csans-serif' font-weight='900' font-size='36' fill='white' text-anchor='middle' letter-spacing='3'%3ELN%3C/text%3E%3C/svg%3E">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <style>
+    :root {
+      --blue:    #1a56db;
+      --blue-dk: #1347b8;
+      --blue-lt: #ebf0ff;
+      --teal:    #0e9f6e;
+      --gray:    #6b7280;
+      --border:  #d1d5db;
+      --bg:      #f3f4f6;
+      --card:    #ffffff;
+      --danger:  #e02424;
+      --text:    #111827;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Top bar */
+    .topbar { display:flex; align-items:center; gap:12px; padding:13px 24px; border-bottom:1px solid #e5e7eb; background:#fff; flex-shrink:0; }
+    .topbar-back { display:flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid #e5e7eb;border-radius:8px;background:none;cursor:pointer;font-size:.84rem;color:#374151;font-weight:500;text-decoration:none;transition:all .15s; }
+    .topbar-back:hover { border-color:var(--blue);color:var(--blue); }
+    .topbar-title { font-size:1rem; font-weight:700; color:#111827; }
+
+    /* Layout */
+    .layout { display:flex; flex:1; overflow:hidden; }
+    .sidebar { width:220px; border-right:1px solid #e5e7eb; background:#f9fafb; padding:12px 8px; overflow-y:auto; flex-shrink:0; }
+    .content { flex:1; overflow-y:auto; padding:32px 40px; }
+
+    /* Sidebar nav */
+    .stnav-btn { display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;border-radius:8px;border:none;background:none;cursor:pointer;font-size:.86rem;color:#374151;text-align:left;margin-bottom:2px;transition:all .15s; }
+    .stnav-btn:hover { background:#f3f4f6; }
+    .stnav-btn.active { background:var(--blue-lt);color:var(--blue);font-weight:600; }
+
+    /* Panes */
+    .st-pane { display:none; max-width:700px; }
+    .st-pane.active { display:block; }
+    .st-h1 { font-size:1.4rem;font-weight:800;margin:0 0 4px; }
+    .st-sub { font-size:.88rem;color:#6b7280;margin:0 0 24px; }
+    .st-section { background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:20px; }
+    .st-section-h { font-size:.95rem;font-weight:700;margin:0 0 14px; }
+
+    /* Form fields */
+    label { display:block;font-size:.8rem;font-weight:600;margin-bottom:4px;color:#374151; }
+    input[type=text], input[type=email], input[type=number], input[type=search], textarea, select {
+      width:100%;border:1px solid var(--border);border-radius:7px;padding:8px 11px;font-size:.86rem;font-family:inherit;color:var(--text);resize:vertical;background:#fff;transition:border-color .15s,box-shadow .15s;
+    }
+    input:focus, textarea:focus, select:focus { outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.14); }
+    .field-row { margin-bottom:13px; }
+    .two-col { display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px; }
+
+    /* Buttons */
+    .btn { display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;font-size:.84rem;font-weight:600;cursor:pointer;border:none;transition:opacity .15s,transform .1s; }
+    .btn:active { transform:scale(.97); }
+    .btn-primary { background:var(--blue);color:#fff; }
+    .btn-outline { background:#fff;color:var(--blue);border:1.5px solid var(--blue); }
+    .btn-gray    { background:#e5e7eb;color:#374151; }
+    .btn:hover { opacity:.88; }
+
+    /* Toggle switch */
+    .st-toggle-row { display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid #f3f4f6; }
+    .st-toggle { position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0; }
+    .st-toggle input { opacity:0;width:0;height:0; }
+    .st-toggle-slider { position:absolute;inset:0;background:#d1d5db;border-radius:24px;cursor:pointer;transition:.2s; }
+    .st-toggle-slider::before { content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s; }
+    .st-toggle input:checked + .st-toggle-slider { background:var(--blue); }
+    .st-toggle input:checked + .st-toggle-slider::before { transform:translateX(20px); }
+
+    /* Radio rows */
+    .st-radio-row { display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .15s; }
+    .st-radio-row:has(input:checked) { border-color:var(--blue);background:var(--blue-lt); }
+    .st-radio-row input[type=radio] { margin-top:2px;accent-color:var(--blue);flex-shrink:0; }
+
+    /* Workplace cards */
+    .as-field { margin-bottom:12px; }
+    .as-field label { display:block;font-size:.78rem;font-weight:600;color:#374151;margin-bottom:3px; }
+    .as-field input,.as-field select,.as-field textarea { width:100%;border:1px solid #d1d5db;border-radius:7px;padding:7px 10px;font-size:.88rem; }
+    .as-wp-card { border:1px solid #e5e7eb;border-radius:9px;padding:12px 14px;margin-bottom:10px; }
+    .as-wp-card.as-wp-active { border-color:var(--blue);background:#f0f7ff; }
+    .as-wp-card-header { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px; }
+    .as-btn-sm { padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;background:#fff;font-size:.78rem;cursor:pointer; }
+    .as-btn-sm:hover { background:#f3f4f6; }
+    .as-btn-danger { border-color:#fca5a5;color:#dc2626; }
+    .as-btn-danger:hover { background:#fef2f2; }
+    .as-btn-primary { padding:7px 16px;border:none;border-radius:7px;background:var(--blue);color:#fff;font-size:.85rem;font-weight:600;cursor:pointer; }
+    .as-theme-swatch { width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s;display:inline-block; }
+    .as-theme-swatch:hover { transform:scale(1.1); }
+    .as-theme-swatch-active { border-color:#1a1a1a !important;transform:scale(1.15); }
+
+    /* Auth gate */
+    #auth-gate { position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:999; }
+
+    /* Toast */
+    #toast { position:fixed;bottom:22px;right:22px;background:#111827;color:#fff;padding:10px 16px;border-radius:8px;font-size:.83rem;font-weight:600;opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;z-index:999;pointer-events:none; }
+    #toast.show { opacity:1;transform:translateY(0); }
+
+    @media (max-width:640px) {
+      .layout { flex-direction:column; }
+      .sidebar { width:100%;border-right:none;border-bottom:1px solid #e5e7eb;display:flex;flex-direction:row;overflow-x:auto;padding:8px 6px;gap:2px;flex-shrink:0; }
+      .stnav-btn { white-space:nowrap;padding:7px 10px;font-size:.8rem; }
+      .content { padding:20px 16px; }
+      .two-col { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Auth gate -->
+<div id="auth-gate">
+  <div style="text-align:center;color:#6b7280;">
+    <div style="font-size:1.4rem;margin-bottom:8px;">🔒</div>
+    <p style="font-size:.88rem;">Checking authentication…</p>
+  </div>
+</div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <a href="../" class="topbar-back">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to App
+  </a>
+  <span class="topbar-title">Settings</span>
+</div>
+
+<!-- Main layout -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <button class="stnav-btn active" id="stnav-profile"        onclick="settingsNav('profile')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Profile
+    </button>
+    <button class="stnav-btn" id="stnav-workplaces"     onclick="settingsNav('workplaces')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" stroke="currentColor" stroke-width="2"/></svg>
+      Workplaces
+    </button>
+    <button class="stnav-btn" id="stnav-templates"      onclick="settingsNav('templates')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Templates
+    </button>
+    <button class="stnav-btn" id="stnav-transcripts"    onclick="settingsNav('transcripts')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" stroke="currentColor" stroke-width="2"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Transcripts
+    </button>
+    <button class="stnav-btn" id="stnav-personalisation" onclick="settingsNav('personalisation')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Personalisation
+    </button>
+    <button class="stnav-btn" id="stnav-subscription"   onclick="settingsNav('subscription')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M1 10h22" stroke="currentColor" stroke-width="2"/></svg>
+      Subscription
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Profile -->
+    <div class="st-pane active" id="st-pane-profile">
+      <h1 class="st-h1">Profile Settings</h1>
+      <p class="st-sub">Manage your account information and preferences</p>
+      <div class="st-section">
+        <h2 class="st-section-h">Personal Information</h2>
+        <div class="two-col">
+          <div class="field-row"><label>Display name</label><input id="st-name" placeholder="e.g. Dr Lushan Vasantha" /></div>
+          <div class="field-row"><label>Credentials</label><input id="st-credentials" placeholder="e.g. FRANZCP, MBChB" /></div>
+        </div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Email Template</h2>
+        <div class="field-row">
+          <label>Opening line for colleague emails</label>
+          <textarea id="st-email-pretext" rows="4" placeholder="e.g. I reviewed this patient today and wanted to share the following progress note…"></textarea>
+          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">Appears at the top of every "Send to Colleague" email.</p>
+        </div>
+      </div>
+      <div class="st-section" style="background:#fef2f2;border-color:#fecaca;">
+        <h2 class="st-section-h" style="color:#dc2626;">Change Password</h2>
+        <p style="font-size:.84rem;color:#6b7280;margin-bottom:12px;">A reset link will be sent to your registered email address.</p>
+        <button onclick="stSendPasswordReset()" class="btn btn-outline btn-sm" style="font-size:.82rem;padding:6px 14px;">Send password reset email</button>
+        <div id="st-pw-msg" style="font-size:.8rem;margin-top:8px;"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="stSaveProfile()">Save changes</button>
+      </div>
+    </div>
+
+    <!-- Workplaces -->
+    <div class="st-pane" id="st-pane-workplaces">
+      <h1 class="st-h1">Workplaces</h1>
+      <p class="st-sub">Manage your clinic or practice locations</p>
+      <div id="st-wp-list"></div>
+      <div id="st-add-wp-area" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Templates -->
+    <div class="st-pane" id="st-pane-templates">
+      <h1 class="st-h1">Templates</h1>
+      <p class="st-sub">Search, favourite, and create your own clinical note templates</p>
+      <div class="st-section">
+        <div style="margin-bottom:14px;">
+          <input id="st-tpl-search" type="search" placeholder="Search templates…" oninput="stRenderTemplates()" />
+        </div>
+        <div id="st-tpl-list" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;"></div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Create Custom Template</h2>
+        <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Custom templates appear in the template picker when generating notes. Write clear AI instructions in the Prompt field — the more specific, the better the output.</p>
+        <div class="field-row"><label>Template title <span style="color:var(--danger)">*</span></label><input id="st-ct-title" placeholder="e.g. My PTSD Review Note" /></div>
+        <div class="two-col">
+          <div class="field-row">
+            <label>Category <span style="color:var(--danger)">*</span></label>
+            <input id="st-ct-category" placeholder="e.g. Progress Notes" list="st-cat-list" />
+            <datalist id="st-cat-list">
+              <option value="Progress Notes"/><option value="Assessments"/><option value="Therapy Notes"/>
+              <option value="Risk & Safety"/><option value="Medication"/><option value="Administrative"/>
+            </datalist>
+          </div>
+          <div class="field-row"><label>Short description <span style="color:var(--danger)">*</span></label><input id="st-ct-desc" placeholder="What is this template for?" /></div>
+        </div>
+        <div class="field-row">
+          <label>AI Prompt Instructions <span style="color:var(--danger)">*</span></label>
+          <textarea id="st-ct-prompt" rows="6" placeholder="Describe exactly what you want the AI to generate. Example:&#10;&#10;Generate a trauma-focused EMDR session note. Include: current phase, target memory, SUDS rating before and after, bilateral stimulation used, patient response, and closure technique."></textarea>
+          <p style="font-size:.75rem;color:#6b7280;margin-top:5px;">This is the instruction sent to the AI when this template is selected. Be specific about sections, clinical focus, and format.</p>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn btn-primary" onclick="stSaveCustomTemplate()">Add Template</button>
+        </div>
+        <div id="st-ct-error" style="font-size:.82rem;color:var(--danger);margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- Transcripts -->
+    <div class="st-pane" id="st-pane-transcripts">
+      <h1 class="st-h1">Transcript Settings</h1>
+      <p class="st-sub">Manage recording preferences and transcript privacy controls</p>
+      <div class="st-section">
+        <h2 class="st-section-h">Information Privacy</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:16px;">Redact identifiable information from transcripts before they are sent to the AI.</p>
+        <div class="st-toggle-row">
+          <div><div style="font-weight:600;font-size:.88rem;">People's Names</div><div style="font-size:.78rem;color:#6b7280;">e.g. "Jane Smith" becomes "[NAME]"</div></div>
+          <label class="st-toggle"><input type="checkbox" id="st-redact-names" /><span class="st-toggle-slider"></span></label>
+        </div>
+        <div class="st-toggle-row">
+          <div><div style="font-weight:600;font-size:.88rem;">Dates of Birth</div><div style="font-size:.78rem;color:#6b7280;">e.g. "01/01/1980" becomes "[DOB]"</div></div>
+          <label class="st-toggle"><input type="checkbox" id="st-redact-dob" /><span class="st-toggle-slider"></span></label>
+        </div>
+        <div class="st-toggle-row" style="border-bottom:none;">
+          <div><div style="font-weight:600;font-size:.88rem;">Other identifiable information</div><div style="font-size:.78rem;color:#6b7280;">Email addresses, organisations, addresses, phone numbers</div></div>
+          <label class="st-toggle"><input type="checkbox" id="st-redact-other" /><span class="st-toggle-slider"></span></label>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin-top:14px;font-size:.82rem;color:#4b5563;line-height:1.6;">
+          <span style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;display:block;margin-bottom:5px;">Sample with redaction</span>
+          "I spoke with [NAME] who was born on [DOB] and lives at [ADDRESS]."
+        </div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Recording Defaults</h2>
+        <div class="st-toggle-row">
+          <div><div style="font-weight:600;font-size:.88rem;">Automatically stop recording after timeout</div><div style="font-size:.78rem;color:#6b7280;">Recording stops after the specified number of minutes</div></div>
+          <label class="st-toggle"><input type="checkbox" id="st-autostop" onchange="document.getElementById('st-autostop-row').style.display=this.checked?'':'none'" /><span class="st-toggle-slider"></span></label>
+        </div>
+        <div id="st-autostop-row" style="display:none;margin-top:12px;">
+          <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Auto-stop timeout (minutes)</label>
+          <input type="number" id="st-autostop-mins" value="55" min="1" max="150" style="width:100px;" />
+          <p style="font-size:.75rem;color:#9ca3af;margin-top:4px;">Maximum value is 150 minutes</p>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="stSaveTranscripts()">Save changes</button>
+      </div>
+    </div>
+
+    <!-- Personalisation -->
+    <div class="st-pane" id="st-pane-personalisation">
+      <h1 class="st-h1">Personalisation</h1>
+      <p class="st-sub">Customise how LushNote understands your preferences and generates notes</p>
+      <div class="st-section">
+        <h2 class="st-section-h">General</h2>
+        <div class="st-toggle-row" style="border-bottom:none;">
+          <div><div style="font-weight:600;font-size:.88rem;">Use patient information</div><div style="font-size:.78rem;color:#6b7280;">Use the patient's name, age, and gender to produce more personalised notes</div></div>
+          <label class="st-toggle"><input type="checkbox" id="st-use-client-info" checked /><span class="st-toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Length of Notes and Documents</h2>
+        <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Set the standard length and detail of generated notes.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label class="st-radio-row">
+            <input type="radio" name="st-note-length" value="brief" id="st-len-brief" />
+            <div><div style="font-weight:600;font-size:.88rem;">Brief</div><div style="font-size:.78rem;color:#6b7280;">Dot points and short phrases. Most important information only.</div></div>
+          </label>
+          <label class="st-radio-row">
+            <input type="radio" name="st-note-length" value="balanced" id="st-len-balanced" checked />
+            <div><div style="font-weight:600;font-size:.88rem;">Balanced <span style="font-size:.72rem;font-weight:400;color:#9ca3af;">(default)</span></div><div style="font-size:.78rem;color:#6b7280;">Full sentences with appropriate clinical detail.</div></div>
+          </label>
+          <label class="st-radio-row">
+            <input type="radio" name="st-note-length" value="detailed" id="st-len-detailed" />
+            <div><div style="font-weight:600;font-size:.88rem;">Detailed</div><div style="font-size:.78rem;color:#6b7280;">Comprehensive and thorough. Uses quotes and includes explanations.</div></div>
+          </label>
+        </div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Professional Identity</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label>What would you like LushNote to know about you?</label>
+          <button onclick="document.getElementById('st-prof-identity').value='My name is Dr Lushan Vasantha. I am a Psychiatrist practising in New South Wales and Victoria, Australia.'" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Reset to default</button>
+        </div>
+        <textarea id="st-prof-identity" rows="4" placeholder="e.g. My name is Dr Lushan Vasantha. I am a Psychiatrist practising in New South Wales and Victoria, Australia." oninput="stUpdateChars()"></textarea>
+        <div id="st-pi-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Treatment Approaches</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label>What treatment modalities should LushNote consider?</label>
+          <button onclick="document.getElementById('st-treatment').value='';stUpdateChars();" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Clear</button>
+        </div>
+        <textarea id="st-treatment" rows="4" placeholder="e.g. I use a trauma-informed, CBT-based approach. I integrate ACT and DBT skills where appropriate." oninput="stUpdateChars()"></textarea>
+        <div id="st-tr-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Document Style</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label>What writing style and formatting should LushNote apply?</label>
+          <button onclick="document.getElementById('st-doc-style').value='Use English standards consistent with Australia.\nUse professional language consistent with Psychiatry.\nRefer to the person receiving the service as a \"patient\".';stUpdateChars();" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Reset to default</button>
+        </div>
+        <textarea id="st-doc-style" rows="4" placeholder="e.g. Use English standards consistent with Australia. Use professional language. Refer to the person as 'patient'." oninput="stUpdateChars()"></textarea>
+        <div id="st-ds-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="stSavePersonalisation()">Save changes</button>
+      </div>
+    </div>
+
+    <!-- Subscription -->
+    <div class="st-pane" id="st-pane-subscription">
+      <h1 class="st-h1">Subscription</h1>
+      <p class="st-sub">Your plan and account details</p>
+      <div class="st-section" style="background:var(--blue-lt);border-color:var(--blue);text-align:center;padding:32px 24px;">
+        <div style="font-size:2rem;margin-bottom:10px;">🎉</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--blue);margin-bottom:6px;">LushNote is currently free</div>
+        <p style="font-size:.88rem;color:#374151;line-height:1.65;max-width:420px;margin:0 auto 18px;">LushNote is in active development. During this early stage, access is completely free — we're learning alongside our early users and improving constantly. Thank you for being part of the journey.</p>
+        <div style="font-size:.82rem;color:var(--gray);">Have thoughts or suggestions? We'd love to hear from you.</div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Share LushNote</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:16px;">Know a fellow clinician who could benefit? Share LushNote with a colleague.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="stShareEmail()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="2"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2"/></svg>
+            Share via Email
+          </button>
+          <button class="btn btn-outline" onclick="stShareLink()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Copy App Link
+          </button>
+          <button class="btn btn-gray" onclick="stShareNative()" id="st-share-native" style="display:none;">Share</button>
+        </div>
+        <div id="st-share-msg" style="font-size:.8rem;color:#059669;margin-top:10px;display:none;"></div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Send Feedback</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Your feedback directly shapes the development of LushNote. Tell us what's working, what isn't, and what you'd like to see.</p>
+        <textarea id="st-feedback-text" rows="4" placeholder="Share your thoughts, feature requests, or any issues…"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+          <button class="btn btn-primary" onclick="stSendFeedback()">Send Feedback</button>
+        </div>
+        <div id="st-feedback-msg" style="font-size:.8rem;margin-top:8px;"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /layout -->
+
+<div id="toast"></div>
+
+<script>
+// ── Config ──
+const FB_CONFIG = {
+  apiKey:            'AIzaSyAEgpB1eCm-zh9Rx-uTMoageFZWEBRXzQo',
+  authDomain:        'lush-note.firebaseapp.com',
+  projectId:         'lush-note',
+  storageBucket:     'lush-note.firebasestorage.app',
+  messagingSenderId: '557843066844',
+  appId:             '1:557843066844:web:4f120d8d9adee5fc716919',
+};
+const FREE_EMAIL  = 'lushhetti@gmail.com';
+const ADMIN_EMAIL = 'iamarasinghe96@gmail.com';
+const WP_THEMES = [
+  { primary: '#1a56db', dk: '#1347b8', lt: '#ebf0ff' },
+  { primary: '#7c3aed', dk: '#6d28d9', lt: '#ede9fe' },
+  { primary: '#0e9f6e', dk: '#0a7d57', lt: '#e3f9ee' },
+];
+const CLINICAL_TEMPLATES = [
+  { id:1,  title:'Standard Progress Note',        category:'Progress Notes',  description:'General psychiatric progress note for ongoing appointments', prompt:'' },
+  { id:2,  title:'Initial Psychiatric Assessment', category:'Assessments',     description:'First appointment comprehensive psychiatric assessment', prompt:'Generate a comprehensive initial psychiatric assessment note. Expand the content field to include: presenting complaint, history of presenting illness, past psychiatric history, past medical history, family psychiatric history, social and occupational history, developmental history, substance use history, MSE, biopsychosocial formulation, diagnosis with ICD-10 codes, and full management plan.' },
+  { id:3,  title:'CBT Progress Note',              category:'Therapy Notes',   description:'Cognitive Behavioural Therapy session progress note', prompt:'Generate a CBT-focused progress note. The content field must include: CBT model discussed, automatic thoughts identified, cognitive distortions noted, behavioural experiments discussed, homework review, new homework set, and patient response to CBT techniques.' },
+  { id:4,  title:'DBT Progress Note',              category:'Therapy Notes',   description:'Dialectical Behaviour Therapy session note', prompt:'Generate a DBT-focused progress note. Content must include: DBT skills module covered, diary card review, chain analysis if relevant, skills practiced this session, patient response, and plan.' },
+  { id:5,  title:'ACT Progress Note',              category:'Therapy Notes',   description:'Acceptance and Commitment Therapy session note', prompt:'Generate an ACT-focused progress note. Content must include: ACT processes discussed, metaphors or exercises used, patient values identified, and committed action steps.' },
+  { id:6,  title:'EMDR Session Note',              category:'Therapy Notes',   description:'Eye Movement Desensitisation and Reprocessing session note', prompt:'Generate an EMDR session note. Content must include: current EMDR phase, target memory or issue, SUDS rating, VoC rating if applicable, bilateral stimulation method, and patient response.' },
+  { id:7,  title:'Risk Assessment Note',           category:'Risk & Safety',   description:'Focused risk assessment including suicidality and self-harm', prompt:'Generate a risk-focused clinical note. Expand the risk field to include: suicidal ideation details, self-harm history and current urges, aggression risk, protective factors, overall risk formulation, and safety plan.' },
+  { id:8,  title:'Medication Review Note',         category:'Medication',      description:'Medication management and review appointment', prompt:'Generate a medication review note. Content must include: indication, dose, adherence, side effects, clinical response, dose changes with rationale, monitoring parameters, and patient education.' },
+  { id:9,  title:'ADHD Assessment Note',           category:'Assessments',     description:'ADHD diagnostic assessment including DSM-5-TR criteria', prompt:'Generate an ADHD diagnostic assessment note. Content must include: DSM-5-TR inattention and hyperactivity symptoms rated, age of onset, pervasiveness across settings, functional impairment, differential diagnoses, rating scales, and diagnostic formulation.' },
+  { id:10, title:'Autism Spectrum Assessment',     category:'Assessments',     description:'Autism Spectrum Disorder diagnostic assessment note', prompt:'Generate an ASD diagnostic assessment note. Content must include: DSM-5-TR Criteria A and B, developmental history, adaptive functioning, standardised assessments, sensory profile, differential diagnoses, and diagnostic formulation.' },
+  { id:11, title:'Trauma-Informed Note',           category:'Therapy Notes',   description:'Trauma-focused therapy session note', prompt:'Generate a trauma-informed progress note. Content must include: trauma responses, grounding or stabilisation techniques, window of tolerance observations, trauma narrative work if applicable, and current safety status.' },
+  { id:12, title:'Anxiety Disorder Note',          category:'Progress Notes',  description:'Progress note for anxiety disorders (GAD, panic, phobias)', prompt:'Generate an anxiety-focused progress note. Include: specific anxiety symptoms, avoidance behaviours, functional impairment, triggers, exposure hierarchy, and GAD-7 score if obtained.' },
+  { id:13, title:'Depression Progress Note',       category:'Progress Notes',  description:'Progress note for major depressive disorder', prompt:'Generate a depression-focused progress note. Include: core depressive symptoms, PHQ-9 score if obtained, functional impact, response to treatment, and behavioural activation discussed.' },
+  { id:14, title:'Bipolar Disorder Note',          category:'Progress Notes',  description:'Progress note for bipolar disorder I or II', prompt:'Generate a bipolar disorder progress note. Include: current mood phase, mood charting review, sleep pattern, energy level, impulsivity, medication levels if relevant, and psychoeducation provided.' },
+  { id:15, title:'Psychosis Progress Note',        category:'Progress Notes',  description:'Progress note for schizophrenia spectrum or psychotic disorders', prompt:'Generate a psychosis-focused progress note. Include: positive symptoms, negative symptoms, insight, antipsychotic adherence, side effects, and community support.' },
+  { id:16, title:'PTSD Progress Note',             category:'Progress Notes',  description:'Post-traumatic stress disorder progress note', prompt:'Generate a PTSD-focused progress note. Include: intrusion symptoms, avoidance, negative cognitions, hyperarousal, PCL-5 score if administered, and trauma-focused therapy progress.' },
+  { id:17, title:'OCD Progress Note',              category:'Progress Notes',  description:'Obsessive-compulsive disorder progress note', prompt:'Generate an OCD-focused progress note. Include: obsessions, compulsions, Y-BOCS score if obtained, ERP hierarchy, exposures attempted, and insight level.' },
+  { id:18, title:'Eating Disorder Note',           category:'Progress Notes',  description:'Eating disorder progress note', prompt:'Generate an eating disorder progress note. Include: eating patterns, restriction or binge/purge behaviour, body image disturbance, weight/BMI if discussed, and EDE-Q score if administered.' },
+  { id:19, title:'Substance Use Disorder Note',    category:'Progress Notes',  description:'Substance use disorder assessment and progress note', prompt:'Generate a substance use disorder note. Include: substances used, AUDIT/DAST scores, withdrawal risk, motivation to change, harm reduction goals, and pharmacotherapy.' },
+  { id:20, title:'Group Therapy Note',             category:'Therapy Notes',   description:'Group therapy session progress note', prompt:'Generate a group therapy note. Include: group type, theme covered, group dynamics, individual patient participation, insights, and plan.' },
+  { id:21, title:'Discharge Summary',              category:'Administrative',  description:'Discharge or episode closure summary', prompt:'Generate a discharge summary note. Include: reason for discharge, total sessions, presenting problem, treatment provided, response, mental state at discharge, medications, and recommendations.' },
+  { id:22, title:'Crisis Intervention Note',       category:'Risk & Safety',   description:'Crisis intervention or emergency contact note', prompt:'Generate a crisis intervention note. Include: nature of crisis, risk level, immediate interventions, safety plan, collateral contacts, disposition, and follow-up plan.' },
+  { id:23, title:'Telehealth Consultation Note',   category:'Progress Notes',  description:'Telehealth (video or phone) consultation note', prompt:'Generate a telehealth progress note. Note that this was a telehealth consultation. Include standard progress note content and any limitations of the telehealth format on the assessment.' },
+  { id:24, title:'Family Therapy Note',            category:'Therapy Notes',   description:'Family therapy or family meeting progress note', prompt:'Generate a family therapy progress note. Include: family members present (roles only), family dynamics, communication patterns, therapeutic interventions, and plan.' },
+  { id:25, title:'Forensic / Medico-Legal Note',  category:'Administrative',  description:'Forensic assessment or medico-legal opinion note', prompt:'Generate a forensic psychiatric note. Include: referral source, legal history, mental state, risk formulation, diagnosis, and opinions relevant to the legal question.' },
+];
+
+// ── State ──
+let db = null, currentUser = null;
+
+// ── Helpers ──
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+function settingsNav(tab) {
+  ['profile','workplaces','templates','transcripts','personalisation','subscription'].forEach(t => {
+    document.getElementById('stnav-' + t).classList.toggle('active', t === tab);
+    document.getElementById('st-pane-' + t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'workplaces') renderWorkplaces();
+  if (tab === 'templates')  stRenderTemplates();
+}
+
+// ── Firebase init + auth ──
+firebase.initializeApp(FB_CONFIG);
+db = firebase.firestore();
+
+firebase.auth().onAuthStateChanged(async user => {
+  if (!user) { window.location.href = '../'; return; }
+  try {
+    const doc = await db.collection('users').doc(user.uid).get();
+    if (!doc.exists) { window.location.href = '../'; return; }
+    const profile = doc.data();
+    if (!profile || profile.status !== 'active') { window.location.href = '../'; return; }
+    currentUser = { uid: user.uid, email: user.email, profile };
+    document.getElementById('auth-gate').style.display = 'none';
+    populateSettings();
+    // Show native share if available
+    if (navigator.share) document.getElementById('st-share-native').style.display = '';
+  } catch(e) {
+    document.getElementById('auth-gate').innerHTML = `<div style="text-align:center;color:#dc2626;"><p>Error loading settings: ${esc(e.message)}</p><a href="../" style="color:var(--blue);">Back to App</a></div>`;
+  }
+});
+
+function populateSettings() {
+  const p = currentUser.profile;
+  // Profile
+  document.getElementById('st-name').value         = p.displayName || '';
+  document.getElementById('st-credentials').value  = p.credentials || '';
+  document.getElementById('st-email-pretext').value = p.emailPretext || '';
+  // Transcripts
+  const tr = p.transcriptPrivacy || {};
+  document.getElementById('st-redact-names').checked = !!tr.redactNames;
+  document.getElementById('st-redact-dob').checked   = !!tr.redactDOB;
+  document.getElementById('st-redact-other').checked = !!tr.redactOther;
+  const rd = p.recordingDefaults || {};
+  document.getElementById('st-autostop').checked     = !!rd.autoStop;
+  document.getElementById('st-autostop-mins').value  = rd.autoStopMinutes || 55;
+  document.getElementById('st-autostop-row').style.display = rd.autoStop ? '' : 'none';
+  // Personalisation
+  const ps = p.personalisation || {};
+  document.getElementById('st-use-client-info').checked = ps.useClientInfo !== false;
+  const len = ps.noteLength || 'balanced';
+  document.getElementById('st-len-brief').checked    = len === 'brief';
+  document.getElementById('st-len-balanced').checked = len === 'balanced';
+  document.getElementById('st-len-detailed').checked = len === 'detailed';
+  document.getElementById('st-prof-identity').value  = ps.professionalIdentity || '';
+  document.getElementById('st-treatment').value      = ps.treatmentApproaches  || '';
+  document.getElementById('st-doc-style').value      = ps.documentStyle        || '';
+  stUpdateChars();
+}
+
+// ── Profile ──
+async function stSaveProfile() {
+  const p = currentUser.profile;
+  const name         = document.getElementById('st-name').value.trim();
+  const creds        = document.getElementById('st-credentials').value.trim();
+  const emailPretext = document.getElementById('st-email-pretext').value.trim();
+  try {
+    await db.collection('users').doc(currentUser.uid).update({
+      displayName: name, credentials: creds, emailPretext,
+      workplaces: p.workplaces || [], activeWorkplaceId: p.activeWorkplaceId || '',
+    });
+    p.displayName = name; p.credentials = creds; p.emailPretext = emailPretext;
+    toast('Profile saved');
+  } catch(e) { alert('Error saving: ' + e.message); }
+}
+
+async function stSendPasswordReset() {
+  const msgEl = document.getElementById('st-pw-msg');
+  try {
+    await firebase.auth().sendPasswordResetEmail(currentUser.email);
+    msgEl.style.color = '#059669';
+    msgEl.textContent = `Reset link sent to ${currentUser.email}`;
+  } catch(e) {
+    msgEl.style.color = 'var(--danger)';
+    msgEl.textContent = e.message;
+  }
+}
+
+// ── Workplaces ──
+function isAdminUser() { return currentUser?.profile?.tier === 'admin'; }
+function canAddWorkplace() {
+  if (isAdminUser()) return true;
+  return (currentUser?.profile?.workplaces || []).length < 1;
+}
+
+function renderWorkplaces() {
+  if (!currentUser) return;
+  const p = currentUser.profile;
+  const wps = p.workplaces || [];
+  const activeId = p.activeWorkplaceId || (wps[0]?.id);
+  const listEl = document.getElementById('st-wp-list');
+  const addEl  = document.getElementById('st-add-wp-area');
+  if (!listEl) return;
+
+  addEl.innerHTML = canAddWorkplace()
+    ? `<button class="as-btn-primary" onclick="wpAdd()">+ Add Workplace</button>`
+    : `<p style="font-size:.82rem;color:#6b7280;">Free plan includes 1 workplace.</p>`;
+
+  listEl.innerHTML = wps.map(wp => `
+    <div class="as-wp-card ${wp.id === activeId ? 'as-wp-active' : ''}" id="as-wp-card-${wp.id}">
+      <div class="as-wp-card-header">
+        <div>
+          <strong style="font-size:.9rem;">${esc(wp.name || 'Unnamed')}</strong>
+          <span style="font-size:.76rem;color:#6b7280;margin-left:8px;">${esc(wp.type || '')}</span>
+          ${wp.id === activeId ? '<span style="font-size:.7rem;background:var(--blue-lt);color:var(--blue);padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:600;">Active</span>' : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${wp.id !== activeId ? `<button class="as-btn-sm" onclick="wpSetActive('${wp.id}')">Set active</button>` : ''}
+          <button class="as-btn-sm" onclick="wpToggleEdit('${wp.id}')">Edit</button>
+          ${wps.length > 1 ? `<button class="as-btn-sm as-btn-danger" onclick="wpDelete('${wp.id}')">Delete</button>` : ''}
+        </div>
+      </div>
+      <div id="as-wp-edit-${wp.id}" style="display:none;margin-top:10px;">
+        <div class="as-field"><label>Workplace name</label><input id="as-wp-name-${wp.id}" value="${esc(wp.name || '')}" /></div>
+        <div class="as-field"><label>Type</label>
+          <select id="as-wp-type-${wp.id}">
+            ${['Private Practice','Hospital','Community Mental Health','Telehealth','Other'].map(t=>`<option ${wp.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="as-field"><label>Registration system</label>
+          <select id="as-wp-regsys-${wp.id}" onchange="wpRegSysChange('${wp.id}',this.value)">
+            <option value="none" ${(!wp.regSystem||wp.regSystem==='none')?'selected':''}>No patient ID system</option>
+            <option value="existing" ${wp.regSystem==='existing'?'selected':''}>Existing ID system</option>
+          </select>
+        </div>
+        <div id="as-wp-regformat-wrap-${wp.id}" style="${wp.regSystem==='existing'?'':'display:none'}">
+          <div class="as-field"><label>Paste example patient ID</label>
+            <input id="as-wp-regformat-${wp.id}" value="${esc(wp.regFormat && wp.regSystem==='existing' ? wp.regFormat : '')}" oninput="wpPreviewFormat('${wp.id}',this.value)" placeholder="e.g. Reg-12823-1292" />
+            <div id="as-wp-regpreview-${wp.id}" style="font-size:.75rem;color:#6b7280;margin-top:3px;"></div>
+          </div>
+        </div>
+        <div class="as-field"><label>Window colour theme</label>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            ${WP_THEMES.map((th,i)=>`<div class="as-theme-swatch ${wp.themeIndex===i?'as-theme-swatch-active':''}" style="background:${th.primary}" onclick="wpSetTheme('${wp.id}',${i})" title="Theme ${i+1}"></div>`).join('')}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="as-btn-primary" onclick="wpSave('${wp.id}')">Save</button>
+          <button class="as-btn-sm" onclick="document.getElementById('as-wp-edit-${wp.id}').style.display='none'">Cancel</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function wpToggleEdit(id) {
+  const el = document.getElementById('as-wp-edit-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+function wpRegSysChange(id, val) {
+  const el = document.getElementById('as-wp-regformat-wrap-' + id);
+  if (el) el.style.display = val === 'existing' ? '' : 'none';
+}
+function wpPreviewFormat(id, val) {
+  const el = document.getElementById('as-wp-regpreview-' + id);
+  if (!el) return;
+  if (!val.trim()) { el.innerHTML = ''; return; }
+  const p = detectIdPattern(val.trim());
+  el.innerHTML = p ? `Detected: <strong>${esc(p.description)}</strong> — <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">${esc(p.template)}</code>` : '';
+}
+function wpSetTheme(id, idx) {
+  const wp = (currentUser.profile.workplaces||[]).find(w => w.id === id);
+  if (wp) { wp.themeIndex = idx; renderWorkplaces(); }
+}
+function wpSetActive(id) {
+  currentUser.profile.activeWorkplaceId = id;
+  renderWorkplaces();
+}
+function wpDelete(id) {
+  if (!confirm('Remove this workplace?')) return;
+  const wps = currentUser.profile.workplaces || [];
+  currentUser.profile.workplaces = wps.filter(w => w.id !== id);
+  if (currentUser.profile.activeWorkplaceId === id)
+    currentUser.profile.activeWorkplaceId = (currentUser.profile.workplaces[0]||{}).id || '';
+  renderWorkplaces();
+}
+function wpAdd() {
+  if (!canAddWorkplace()) { alert('Free plan includes 1 workplace.'); return; }
+  const wps = currentUser.profile.workplaces || [];
+  const newId = 'wp_' + Date.now();
+  wps.push({ id:newId, name:'New Workplace', type:'Private Practice', regSystem:'none', themeIndex: wps.length % WP_THEMES.length });
+  currentUser.profile.workplaces = wps;
+  renderWorkplaces();
+  setTimeout(() => wpToggleEdit(newId), 50);
+}
+function wpSave(id) {
+  const wps = currentUser.profile.workplaces || [];
+  const wp = wps.find(w => w.id === id);
+  if (!wp) return;
+  wp.name      = document.getElementById('as-wp-name-' + id).value.trim() || wp.name;
+  wp.type      = document.getElementById('as-wp-type-' + id).value;
+  wp.regSystem = document.getElementById('as-wp-regsys-' + id).value;
+  if (wp.regSystem === 'existing') {
+    const raw = document.getElementById('as-wp-regformat-' + id).value.trim();
+    const det = detectIdPattern(raw);
+    wp.regFormat = raw; wp.regPattern = det?.regex || null; wp.regTemplate = det?.template || null;
+  } else {
+    wp.regFormat = ''; wp.regPattern = null; wp.regTemplate = null;
+  }
+  // Save to Firestore
+  db.collection('users').doc(currentUser.uid).update({
+    workplaces: currentUser.profile.workplaces,
+    activeWorkplaceId: currentUser.profile.activeWorkplaceId || '',
+  }).then(() => toast('Workplace saved')).catch(e => alert(e.message));
+  renderWorkplaces();
+}
+function detectIdPattern(example) {
+  if (!example || !example.trim()) return null;
+  example = example.trim();
+  const tokens = [];
+  let i = 0;
+  while (i < example.length) {
+    if (/[A-Za-z]/.test(example[i])) {
+      let j = i; while (j < example.length && /[A-Za-z]/.test(example[j])) j++;
+      tokens.push({ type:'alpha', value: example.slice(i,j) }); i = j;
+    } else if (/\d/.test(example[i])) {
+      let j = i; while (j < example.length && /\d/.test(example[j])) j++;
+      tokens.push({ type:'digit', value: example.slice(i,j) }); i = j;
+    } else {
+      tokens.push({ type:'sep', value: example[i] }); i++;
+    }
+  }
+  const regexParts = [], templateParts = [], descParts = [];
+  for (const tok of tokens) {
+    if (tok.type === 'alpha') {
+      regexParts.push(`[A-Za-z]{${tok.value.length}}`);
+      templateParts.push('A'.repeat(tok.value.length));
+      descParts.push(`${tok.value.length} letter${tok.value.length > 1 ? 's' : ''}`);
+    } else if (tok.type === 'digit') {
+      regexParts.push(`\\d{${tok.value.length}}`);
+      templateParts.push('#'.repeat(tok.value.length));
+      descParts.push(`${tok.value.length} digit${tok.value.length > 1 ? 's' : ''}`);
+    } else {
+      regexParts.push(tok.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      templateParts.push(tok.value);
+    }
+  }
+  return { regex:`^${regexParts.join('')}$`, template:templateParts.join(''), description:descParts.join(' + ') };
+}
+
+// ── Templates ──
+function stRenderTemplates() {
+  const q = (document.getElementById('st-tpl-search')?.value || '').toLowerCase();
+  const p = currentUser?.profile || {};
+  const favIds = new Set(p.favoriteTemplateIds || []);
+  const custom = (p.customTemplates || []).map(t => ({...t, custom:true}));
+  const all = [...CLINICAL_TEMPLATES.map(t => ({...t, custom:false})), ...custom];
+  const filtered = q ? all.filter(t => t.title.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)) : all;
+  filtered.sort((a,b) => (favIds.has(b.id)?1:0) - (favIds.has(a.id)?1:0));
+  const list = document.getElementById('st-tpl-list');
+  if (!list) return;
+  list.innerHTML = filtered.map(t => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${t.custom?'#e0d4ff':'var(--border)'};border-radius:9px;background:${t.custom?'#faf8ff':'#fff'};">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.86rem;font-weight:600;">${esc(t.title)}${t.custom?'<span style="font-size:.7rem;background:#ede9fe;color:#7c3aed;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600;">Custom</span>':''}</div>
+        <div style="font-size:.76rem;color:#9ca3af;margin-top:1px;">${esc(t.category)} · ${esc(t.description)}</div>
+      </div>
+      <button onclick="stToggleFav(${JSON.stringify(t.id)})" title="${favIds.has(t.id)?'Remove from favourites':'Add to favourites'}"
+        style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:4px;opacity:${favIds.has(t.id)?'1':'.35'};transition:opacity .15s;"
+        onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='${favIds.has(t.id)?'1':'.35'}'">
+        ${favIds.has(t.id) ? '★' : '☆'}
+      </button>
+      ${t.custom ? `<button onclick="stDeleteCustomTemplate(${JSON.stringify(t.id)})" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:#dc2626;padding:4px;">✕</button>` : ''}
+    </div>`).join('');
+}
+
+async function stToggleFav(tplId) {
+  const p = currentUser.profile;
+  let ids = [...(p.favoriteTemplateIds || [])];
+  ids = ids.includes(tplId) ? ids.filter(x => x !== tplId) : [tplId, ...ids];
+  p.favoriteTemplateIds = ids;
+  try { await db.collection('users').doc(currentUser.uid).update({ favoriteTemplateIds: ids }); } catch(e) {}
+  stRenderTemplates();
+}
+
+async function stSaveCustomTemplate() {
+  const title  = document.getElementById('st-ct-title').value.trim();
+  const cat    = document.getElementById('st-ct-category').value.trim();
+  const desc   = document.getElementById('st-ct-desc').value.trim();
+  const prompt = document.getElementById('st-ct-prompt').value.trim();
+  const errEl  = document.getElementById('st-ct-error');
+  errEl.textContent = '';
+  if (!title)  { errEl.textContent = 'Title is required.'; return; }
+  if (!cat)    { errEl.textContent = 'Category is required.'; return; }
+  if (!desc)   { errEl.textContent = 'Description is required.'; return; }
+  if (!prompt) { errEl.textContent = 'AI Prompt instructions are required.'; return; }
+  const p = currentUser.profile;
+  const customs = [...(p.customTemplates || []), { id:'custom_'+Date.now(), title, category:cat, description:desc, prompt, custom:true }];
+  p.customTemplates = customs;
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ customTemplates: customs });
+    ['st-ct-title','st-ct-category','st-ct-desc','st-ct-prompt'].forEach(id => document.getElementById(id).value = '');
+    stRenderTemplates();
+    toast('Template added');
+  } catch(e) { errEl.textContent = 'Save failed: ' + e.message; }
+}
+
+async function stDeleteCustomTemplate(tplId) {
+  if (!confirm('Delete this custom template?')) return;
+  const p = currentUser.profile;
+  p.customTemplates = (p.customTemplates || []).filter(t => t.id !== tplId);
+  try { await db.collection('users').doc(currentUser.uid).update({ customTemplates: p.customTemplates }); stRenderTemplates(); toast('Deleted'); } catch(e) { toast('Failed: '+e.message); }
+}
+
+// ── Transcripts ──
+async function stSaveTranscripts() {
+  const transcriptPrivacy = { redactNames: document.getElementById('st-redact-names').checked, redactDOB: document.getElementById('st-redact-dob').checked, redactOther: document.getElementById('st-redact-other').checked };
+  const recordingDefaults = { autoStop: document.getElementById('st-autostop').checked, autoStopMinutes: parseInt(document.getElementById('st-autostop-mins').value)||55 };
+  currentUser.profile.transcriptPrivacy = transcriptPrivacy;
+  currentUser.profile.recordingDefaults = recordingDefaults;
+  try { await db.collection('users').doc(currentUser.uid).update({ transcriptPrivacy, recordingDefaults }); toast('Transcript settings saved'); } catch(e) { alert(e.message); }
+}
+
+// ── Personalisation ──
+function stUpdateChars() {
+  [['st-prof-identity','st-pi-count',936],['st-treatment','st-tr-count',1000],['st-doc-style','st-ds-count',1000]].forEach(([inp,out,max]) => {
+    const el = document.getElementById(inp), co = document.getElementById(out);
+    if (el && co) co.textContent = `${el.value.length} / ${max} characters`;
+  });
+}
+async function stSavePersonalisation() {
+  const noteLength = document.querySelector('input[name="st-note-length"]:checked')?.value || 'balanced';
+  const personalisation = { useClientInfo: document.getElementById('st-use-client-info').checked, noteLength, professionalIdentity: document.getElementById('st-prof-identity').value.trim(), treatmentApproaches: document.getElementById('st-treatment').value.trim(), documentStyle: document.getElementById('st-doc-style').value.trim() };
+  currentUser.profile.personalisation = personalisation;
+  try { await db.collection('users').doc(currentUser.uid).update({ personalisation }); toast('Personalisation saved'); } catch(e) { alert(e.message); }
+}
+
+// ── Subscription / Share ──
+function stShareEmail() {
+  const subj = encodeURIComponent('LushNote – Clinical Note Builder for Psychiatrists');
+  const body = encodeURIComponent(`Hi,\n\nI've been using LushNote, a clinical note builder that uses AI to generate psychiatric progress notes from transcripts and recordings. It's currently free.\n\nTry it here: https://iamarasinghe96.github.io/lushan\n\nBest wishes`);
+  window.open(`mailto:?subject=${subj}&body=${body}`);
+}
+function stShareLink() {
+  const url = 'https://iamarasinghe96.github.io/lushan';
+  navigator.clipboard.writeText(url).then(() => {
+    const msg = document.getElementById('st-share-msg');
+    msg.textContent = 'Link copied!'; msg.style.display = '';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+  }).catch(() => prompt('Copy this link:', url));
+}
+async function stShareNative() {
+  try { await navigator.share({ title:'LushNote', text:'Clinical Note Builder for Psychiatrists', url:'https://iamarasinghe96.github.io/lushan' }); } catch(e) {}
+}
+async function stSendFeedback() {
+  const text = document.getElementById('st-feedback-text').value.trim();
+  const msgEl = document.getElementById('st-feedback-msg');
+  if (!text) { msgEl.style.color='var(--danger)'; msgEl.textContent='Please write something first.'; return; }
+  const name = currentUser?.profile?.displayName || currentUser?.email || 'User';
+  const subj = encodeURIComponent('LushNote Feedback');
+  const body = encodeURIComponent(`From: ${name}\nEmail: ${currentUser.email}\n\n${text}`);
+  window.open(`mailto:iamarasinghe96@gmail.com?subject=${subj}&body=${body}`);
+  msgEl.style.color='#059669'; msgEl.textContent='Thank you — your email client should have opened.';
+  document.getElementById('st-feedback-text').value='';
+}
+
+// Handle ?tab= param in URL
+const urlTab = new URLSearchParams(window.location.search).get('tab');
+if (urlTab) settingsNav(urlTab);
+</script>
+</body>
+</html>
