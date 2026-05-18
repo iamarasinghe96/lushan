@@ -3989,9 +3989,10 @@ function openSettings(tab) {
   document.getElementById('st-redact-dob').checked   = !!tr.redactDOB;
   document.getElementById('st-redact-other').checked = !!tr.redactOther;
   const rd = p.recordingDefaults || {};
-  document.getElementById('st-autostop').checked     = !!rd.autoStop;
+  const autoStopOn = rd.autoStop !== false; // default true if never set
+  document.getElementById('st-autostop').checked     = autoStopOn;
   document.getElementById('st-autostop-mins').value  = rd.autoStopMinutes || 55;
-  document.getElementById('st-autostop-row').style.display = rd.autoStop ? '' : 'none';
+  document.getElementById('st-autostop-row').style.display = autoStopOn ? '' : 'none';
 
   // Personalisation tab
   const ps = p.personalisation || {};
@@ -4563,9 +4564,9 @@ function saveWorkplace(wpId) {
               <div style="font-weight:600;font-size:.88rem;">Automatically stop recording after timeout</div>
               <div style="font-size:.78rem;color:#6b7280;">Recording will stop after the specified number of minutes</div>
             </div>
-            <label class="st-toggle"><input type="checkbox" id="st-autostop" onchange="document.getElementById('st-autostop-row').style.display=this.checked?'':'none'" /><span class="st-toggle-slider"></span></label>
+            <label class="st-toggle"><input type="checkbox" id="st-autostop" checked onchange="document.getElementById('st-autostop-row').style.display=this.checked?'':'none'" /><span class="st-toggle-slider"></span></label>
           </div>
-          <div id="st-autostop-row" style="display:none;margin-top:12px;">
+          <div id="st-autostop-row" style="margin-top:12px;">
             <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Auto-stop timeout (minutes)</label>
             <input type="number" id="st-autostop-mins" value="55" min="1" max="150" style="width:100px;" />
             <p style="font-size:.75rem;color:#9ca3af;margin-top:4px;">Maximum value is 150 minutes</p>
