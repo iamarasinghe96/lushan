@@ -2622,7 +2622,13 @@ async function transcribeAudio(blob) {
     const e = await res.json().catch(()=>({}));
     throw new Error(e.error?.message || `Transcription error ${res.status}`);
   }
-  return (await res.text()).trim();
+  const raw = await res.text();
+  try {
+    const json = JSON.parse(raw);
+    return String(json.text || json.transcript || raw).trim();
+  } catch {
+    return raw.trim();
+  }
 }
 
 async function callGroqWithMode(transcript, mode) {
@@ -2653,10 +2659,9 @@ function showAssignPatientModal(transcript, mode) {
         </div>
         <div class="rec-modal-body">
           <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Transcript ready — <strong>${wc} words</strong>. Assign to a patient before generating the note.</p>
-          <div class="as-field" style="position:relative;">
+          <div class="as-field">
             <label>Patient name</label>
-            <input id="apm-patient" placeholder="First name or full name" autocomplete="off" oninput="apmPatientInput(this.value)" />
-            <div id="apm-drop" class="autocomplete-drop" style="display:none;"></div>
+            <input id="apm-patient" placeholder="First name or full name" autocomplete="off" oninput="apmPatientInput(this.value)" onblur="setTimeout(()=>{ const d=document.getElementById('apm-drop-fixed'); if(d) d.style.display='none'; },180)" />
           </div>
           <div class="as-field">
             <label>Patient ID / Reg # <span style="color:#9ca3af;font-weight:400;">(optional)</span></label>
@@ -2670,20 +2675,41 @@ function showAssignPatientModal(transcript, mode) {
       </div>`;
     document.body.appendChild(modal);
 
+    // Create a fixed-position dropdown outside the modal to avoid overflow clipping
+    const apmDropEl = document.createElement('div');
+    apmDropEl.id = 'apm-drop-fixed';
+    apmDropEl.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #d1d5db;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,.16);display:none;min-width:260px;max-height:220px;overflow-y:auto;';
+    document.body.appendChild(apmDropEl);
+
     function apmPatientInput(v) {
-      const drop = document.getElementById('apm-drop');
+      const drop = apmDropEl;
       if (!v.trim() || !_patientIndex) { drop.style.display='none'; return; }
-      const matches = Object.values(_patientIndex).filter(p => p.name.toLowerCase().includes(v.toLowerCase())).slice(0,5);
+      const matches = Object.values(_patientIndex).filter(p => p.name.toLowerCase().includes(v.toLowerCase())).slice(0,6);
       if (!matches.length) { drop.style.display='none'; return; }
-      drop.style.display='block';
-      drop.innerHTML = matches.map(p => `<div class="autocomplete-item" onmousedown="apmSelectPatient('${esc(p.name)}','${esc(p.regNumber||'')}')">${esc(p.name)}${p.regNumber?` <span style='color:#9ca3af;font-size:.8em'>${esc(p.regNumber)}</span>`:''}</div>`).join('');
+      const inp = document.getElementById('apm-patient');
+      const r = inp.getBoundingClientRect();
+      drop.style.top  = (r.bottom + 4) + 'px';
+      drop.style.left = r.left + 'px';
+      drop.style.width = r.width + 'px';
+      drop.style.display = 'block';
+      drop.innerHTML = matches.map(p => `
+        <div style="padding:9px 12px;font-size:.84rem;cursor:pointer;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;"
+          onmouseover="this.style.background='var(--blue-lt)'" onmouseout="this.style.background=''"
+          onmousedown="apmSelectPatient('${esc(p.name)}','${esc(p.regNumber||'')}')">
+          <span>${esc(p.name)}</span>
+          ${p.regNumber ? `<span style="font-size:.74rem;color:#9ca3af;">${esc(p.regNumber)}</span>` : ''}
+        </div>`).join('');
     }
     window.apmPatientInput = apmPatientInput;
     window.apmSelectPatient = (name, reg) => {
       document.getElementById('apm-patient').value = name;
       if (reg) document.getElementById('apm-reg').value = reg;
-      document.getElementById('apm-drop').style.display='none';
+      apmDropEl.style.display = 'none';
     };
+
+    // Clean up the floating dropdown when modal closes
+    const origRemove = modal.remove.bind(modal);
+    modal.remove = () => { apmDropEl.remove(); origRemove(); };
 
     function done(patient, reg) { modal.remove(); resolve({ patient, reg }); }
     document.getElementById('apm-confirm').onclick = () => done(document.getElementById('apm-patient').value.trim(), document.getElementById('apm-reg').value.trim());
