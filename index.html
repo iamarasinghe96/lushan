@@ -974,28 +974,35 @@
         </div>
       </div>
 
-      <!-- Register Step 1 -->
-      <div id="auth-register-step1" style="display:none;">
+      <!-- Register Form -->
+      <div id="auth-register-form" style="display:none;">
+        <p style="font-size:.78rem;color:#9ca3af;margin:0 0 14px;text-align:center;">Free during early access — no credit card needed</p>
         <input class="auth-input" type="text" id="reg-name" placeholder="Full name (e.g. Dr Lushan Vasantha)" autocomplete="name" />
         <input class="auth-input" type="email" id="reg-email" placeholder="Email address" autocomplete="email" />
         <div class="auth-pw-wrap">
-          <input class="auth-input" type="password" id="reg-password" placeholder="Choose a password" autocomplete="new-password" />
+          <input class="auth-input" type="password" id="reg-password" placeholder="Choose a password (min. 6 characters)" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()" />
           <button type="button" class="auth-pw-eye" onclick="togglePwVis('reg-password',this)" tabindex="-1" aria-label="Show password">
             <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
           </button>
         </div>
-        <button class="auth-btn" onclick="regStep1Next()">Register</button>
-        <div class="auth-error" id="reg-step1-error"></div>
+        <button class="auth-btn" id="reg-submit-btn" onclick="doRegister()">Create Free Account</button>
+        <div class="auth-error" id="reg-error"></div>
       </div>
 
-      <!-- Register Step 2 -->
-      <div id="auth-register-step2" style="display:none;">
-        <div style="font-size:.8rem;color:var(--gray);margin-bottom:14px;line-height:1.5;">
-          LushNote is currently free while in development. Click below to create your account.
+      <!-- Verify Email Screen -->
+      <div id="auth-verify-form" style="display:none;text-align:center;">
+        <div style="font-size:2.8rem;margin-bottom:10px;">📬</div>
+        <h3 style="font-size:1rem;font-weight:800;margin:0 0 8px;">Check your inbox</h3>
+        <p style="font-size:.84rem;color:#4b5563;margin:0 0 6px;line-height:1.6;">We sent a verification link to</p>
+        <p id="verify-email-addr" style="font-size:.88rem;font-weight:700;color:#1d4ed8;margin:0 0 18px;word-break:break-all;"></p>
+        <p style="font-size:.8rem;color:#6b7280;margin:0 0 20px;line-height:1.6;">Click the link in the email, then come back here and press the button below.</p>
+        <button class="auth-btn" id="verify-check-btn" onclick="checkEmailVerification()">I've verified my email →</button>
+        <div class="auth-error" id="verify-error" style="margin-top:8px;"></div>
+        <div id="verify-success" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;font-size:.83rem;color:#166534;margin-top:8px;">Email verified! Setting up your account…</div>
+        <div style="margin-top:16px;display:flex;flex-direction:column;gap:6px;align-items:center;">
+          <span class="auth-back-link" id="verify-resend-btn" onclick="resendAndCooldown()">Resend verification email</span>
+          <span class="auth-back-link" onclick="doSignOut();showView('auth');switchAuthTab('signin')" style="color:#9ca3af;font-size:.78rem;">Sign out and use a different account</span>
         </div>
-        <button class="auth-btn" onclick="doRegister()">Create Account</button>
-        <span class="auth-back-link" onclick="regGoBack()">Back</span>
-        <div class="auth-error" id="reg-step2-error"></div>
       </div>
     </div>
   </div>
@@ -2856,12 +2863,15 @@ function landingSignUp() {
 function startAuthListener() {
   firebase.auth().onAuthStateChanged(async user => {
     if (!user) { showView('landing'); return; }
+    // Require email verification before proceeding
+    if (!user.emailVerified) {
+      showView('auth');
+      showVerifyScreen(user.email);
+      return;
+    }
     const profile = await loadUserProfile(user.uid);
     if (!profile || profile.status === 'pending') {
       document.getElementById('pending-email').textContent = user.email;
-      // Show email verification notice if not yet verified
-      const verNotice = document.getElementById('pending-verify-notice');
-      if (verNotice) verNotice.style.display = user.emailVerified ? 'none' : '';
       showView('pending');
       return;
     }
@@ -2890,25 +2900,18 @@ async function loadUserProfile(uid) {
 // Sign In / Sign Out
 // ─────────────────────────────────────────────────────────────────────────────
 function showForgotPassword() {
-  document.getElementById('auth-signin-form').style.display  = 'none';
-  document.getElementById('auth-forgot-form').style.display  = '';
   document.getElementById('auth-tab-signin').classList.add('active');
   document.getElementById('auth-tab-register').classList.remove('active');
-  document.getElementById('auth-register-step1').style.display = 'none';
-  document.getElementById('auth-register-step2').style.display = 'none';
   document.getElementById('forgot-error').textContent = '';
   document.getElementById('forgot-success').style.display = 'none';
   const fi = document.getElementById('forgot-email');
-  // Pre-fill from sign-in field if already typed
   fi.value = document.getElementById('signin-email').value || '';
+  _showAuthPanel('auth-forgot-form');
   setTimeout(() => fi.focus(), 80);
 }
 
 function showSignIn() {
-  document.getElementById('auth-forgot-form').style.display   = 'none';
-  document.getElementById('auth-signin-form').style.display   = '';
-  document.getElementById('auth-register-step1').style.display = 'none';
-  document.getElementById('auth-register-step2').style.display = 'none';
+  _showAuthPanel('auth-signin-form');
 }
 
 async function doForgotPassword() {
@@ -2968,11 +2971,9 @@ async function doLogin() {
   btn.textContent = 'Signing in…'; btn.disabled = true;
   try {
     await firebase.auth().signInWithEmailAndPassword(email, pass);
+    // auth listener handles routing
   } catch(e) {
-    const msg = e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential'
-      ? 'Incorrect password. Try again or use "Forgot password?" below.'
-      : (e.code === 'auth/user-not-found' ? 'No account found with that email.' : (e.code === 'auth/invalid-email' ? 'Please enter a valid email address.' : (e.message || 'Sign in failed.')));
-    errEl.textContent = msg;
+    errEl.textContent = friendlyAuthError(e.code) || e.message || 'Sign in failed.';
     btn.textContent = 'Sign In'; btn.disabled = false;
   }
 }
@@ -2985,55 +2986,120 @@ async function doSignOut() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Register flow
+// Auth panel switching
 // ─────────────────────────────────────────────────────────────────────────────
-let _regName = '', _regEmail = '', _regPass = '';
+function _showAuthPanel(panel) {
+  ['auth-signin-form','auth-forgot-form','auth-register-form','auth-verify-form'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === panel ? '' : 'none';
+  });
+}
 
 function switchAuthTab(tab) {
   document.getElementById('auth-tab-signin').classList.toggle('active', tab === 'signin');
   document.getElementById('auth-tab-register').classList.toggle('active', tab === 'register');
-  document.getElementById('auth-signin-form').style.display       = tab === 'signin'   ? '' : 'none';
-  document.getElementById('auth-forgot-form').style.display       = 'none';
-  document.getElementById('auth-register-step1').style.display    = tab === 'register' ? '' : 'none';
-  document.getElementById('auth-register-step2').style.display    = 'none';
+  _showAuthPanel(tab === 'signin' ? 'auth-signin-form' : 'auth-register-form');
 }
 
-function regStep1Next() {
+function showVerifyScreen(email) {
+  document.getElementById('verify-email-addr').textContent = email;
+  document.getElementById('verify-error').textContent = '';
+  document.getElementById('verify-success').style.display = 'none';
+  const btn = document.getElementById('verify-check-btn');
+  if (btn) { btn.disabled = false; btn.style.display = ''; btn.textContent = "I've verified my email →"; }
+  _showAuthPanel('auth-verify-form');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Register flow
+// ─────────────────────────────────────────────────────────────────────────────
+async function doRegister() {
   const name  = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const pass  = document.getElementById('reg-password').value;
-  const errEl = document.getElementById('reg-step1-error');
+  const errEl = document.getElementById('reg-error');
+  const btn   = document.getElementById('reg-submit-btn');
   errEl.textContent = '';
-  if (!name)  { errEl.textContent = 'Please enter your full name.'; return; }
-  if (!email) { errEl.textContent = 'Please enter your email.'; return; }
+  if (!name)           { errEl.textContent = 'Please enter your full name.'; return; }
+  if (!email)          { errEl.textContent = 'Please enter your email address.'; return; }
   if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
-  _regName = name; _regEmail = email; _regPass = pass;
-  document.getElementById('payid-ref-email').textContent = email;
-  document.getElementById('auth-register-step1').style.display = 'none';
-  document.getElementById('auth-register-step2').style.display = '';
-}
-
-function regGoBack() {
-  document.getElementById('auth-register-step2').style.display = 'none';
-  document.getElementById('auth-register-step1').style.display = '';
-}
-
-async function doRegister() {
-  const errEl = document.getElementById('reg-step2-error');
-  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Creating account…';
   try {
-    const cred = await firebase.auth().createUserWithEmailAndPassword(_regEmail, _regPass);
+    const cred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
     const uid  = cred.user.uid;
-    const ts = firebase.firestore.FieldValue.serverTimestamp();
+    const ts   = firebase.firestore.FieldValue.serverTimestamp();
     await db.collection('users').doc(uid).set({
-      email: _regEmail, displayName: _regName, status: 'active',
+      email, displayName: name, status: 'active',
       tier: 'free', onboardingComplete: false, createdAt: ts
     });
-    // Send email verification
-    try { await cred.user.sendEmailVerification(); } catch(e) { console.warn('Verification email failed:', e.message); }
+    await cred.user.sendEmailVerification();
+    showVerifyScreen(email);
   } catch(e) {
-    errEl.textContent = e.message || 'Registration failed.';
+    errEl.textContent = friendlyAuthError(e.code) || e.message || 'Registration failed.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Free Account';
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Email verification
+// ─────────────────────────────────────────────────────────────────────────────
+async function checkEmailVerification() {
+  const btn   = document.getElementById('verify-check-btn');
+  const errEl = document.getElementById('verify-error');
+  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try {
+    await firebase.auth().currentUser.reload();
+    const user = firebase.auth().currentUser;
+    if (user.emailVerified) {
+      document.getElementById('verify-success').style.display = '';
+      btn.style.display = 'none';
+      const profile = await loadUserProfile(user.uid);
+      currentUser = { uid: user.uid, email: user.email, profile };
+      if (!profile || !profile.onboardingComplete) { showView('onboarding'); startOnboarding(); }
+      else { applyWorkspaceTheme(); updateHeaderUser(); showView('app'); initApp(); }
+    } else {
+      errEl.textContent = 'Not verified yet — please click the link in your inbox first, then try again.';
+      btn.disabled = false; btn.textContent = "I've verified my email →";
+    }
+  } catch(e) {
+    errEl.textContent = e.message || 'Could not check. Please try again.';
+    btn.disabled = false; btn.textContent = "I've verified my email →";
+  }
+}
+
+let _resendCooldown = false;
+async function resendAndCooldown() {
+  const btn = document.getElementById('verify-resend-btn');
+  if (_resendCooldown) return;
+  try {
+    await firebase.auth().currentUser.sendEmailVerification();
+    _resendCooldown = true;
+    btn.textContent = 'Email sent ✓ (wait 60s to resend)';
+    btn.style.opacity = '.5'; btn.style.pointerEvents = 'none';
+    setTimeout(() => {
+      _resendCooldown = false;
+      btn.textContent = 'Resend verification email';
+      btn.style.opacity = ''; btn.style.pointerEvents = '';
+    }, 60000);
+  } catch(e) {
+    document.getElementById('verify-error').textContent = e.message || 'Could not resend email.';
+  }
+}
+
+function friendlyAuthError(code) {
+  const map = {
+    'auth/email-already-in-use':  'An account with this email already exists. Try signing in instead.',
+    'auth/invalid-email':          'Please enter a valid email address.',
+    'auth/weak-password':          'Password too weak — please use at least 6 characters.',
+    'auth/user-not-found':         'No account found with this email.',
+    'auth/wrong-password':         'Incorrect password.',
+    'auth/invalid-credential':     'Invalid email or password.',
+    'auth/too-many-requests':      'Too many attempts — please wait a moment and try again.',
+    'auth/network-request-failed': 'Network error — check your connection.',
+  };
+  return map[code] || null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
