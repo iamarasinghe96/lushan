@@ -3389,21 +3389,34 @@ function landingSignUp() {
 function startAuthListener() {
   firebase.auth().onAuthStateChanged(async user => {
     if (!user) { showView('landing'); return; }
-    // Require email verification before proceeding
     if (!user.emailVerified) {
       showView('auth');
       showVerifyScreen(user.email);
       return;
     }
-    // Show a brief "loading" overlay while we fetch the profile so the
-    // user sees immediate feedback after sign-in
     const loadingEl = document.getElementById('auth-loading-overlay');
     if (loadingEl) loadingEl.style.display = '';
-    const profile = await loadUserProfile(user.uid);
+    // Force token refresh so email_verified claim is current
+    try { await user.getIdToken(true); } catch(e) {}
+    // Retry profile load up to 3 times — App Check token may need a moment
+    let profile = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 1500));
+      profile = await loadUserProfile(user.uid);
+      if (profile !== null) break;
+    }
     if (loadingEl) loadingEl.style.display = 'none';
-    if (!profile || profile.status === 'pending') {
+    if (!profile) {
+      // All 3 retries failed — likely App Check or network issue
       document.getElementById('pending-email').textContent = user.email;
       showView('pending');
+      return;
+    }
+    if (profile.__missing || profile.status === 'pending') {
+      // New user with no profile doc yet → go straight to onboarding
+      currentUser = { uid: user.uid, email: user.email, profile: {} };
+      showView('onboarding');
+      startOnboarding();
       return;
     }
     currentUser = { uid: user.uid, email: user.email, profile };
@@ -3423,8 +3436,13 @@ async function loadUserProfile(uid) {
   if (!db) return null;
   try {
     const doc = await db.collection('users').doc(uid).get();
-    return doc.exists ? doc.data() : null;
-  } catch(e) { return null; }
+    if (doc.exists) return doc.data();
+    // Document doesn't exist yet — new user, return sentinel
+    return { __missing: true };
+  } catch(e) {
+    console.warn('Profile load error:', e.code, e.message);
+    return null; // null = transient error (App Check/network), retry
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
