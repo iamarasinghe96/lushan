@@ -3279,6 +3279,26 @@ function switchTab(name) {
 }
 document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
+// Sync window scroll → preview pane proportionally when Edit tab is active
+(function() {
+  let _syncing = false;
+  window.addEventListener('scroll', () => {
+    if (_syncing) return;
+    const editTab = document.getElementById('tab-edit');
+    if (!editTab || !editTab.classList.contains('active')) return;
+    const pane = document.getElementById('preview-pane');
+    if (!pane) return;
+    const winScrollable = document.documentElement.scrollHeight - window.innerHeight;
+    if (winScrollable <= 0) return;
+    const ratio = window.scrollY / winScrollable;
+    const paneScrollable = pane.scrollHeight - pane.clientHeight;
+    if (paneScrollable <= 0) return;
+    _syncing = true;
+    pane.scrollTop = ratio * paneScrollable;
+    requestAnimationFrame(() => { _syncing = false; });
+  }, { passive: true });
+})();
+
 // Auto-save when any form field loses focus
 document.addEventListener('focusout', e => {
   if (e.target.closest('.form-panel') && e.target.matches('input[type=text], textarea')) {
