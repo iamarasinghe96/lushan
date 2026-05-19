@@ -749,6 +749,9 @@
       .section-title { margin-top: 12px; margin-bottom: 6px; }
       .edit-grid { gap: 10px; }
       #current-note-bar { padding: 8px 10px; }
+      .btn-group { flex-wrap: nowrap; }
+      .btn-form-action { font-size: .75rem !important; padding: 7px 12px !important; white-space: nowrap; }
+      #preview-pane { -webkit-overflow-scrolling: touch; }
 
       .paste-hero { padding: 28px 14px 24px; border-radius: var(--r); }
       .paste-icon { font-size: 2.6rem; margin-bottom: 10px; }
@@ -1502,8 +1505,8 @@ With regards,
           </div>
 
           <div class="btn-group" style="margin-top:4px;">
-            <button class="btn btn-teal" onclick="saveCurrentNote()">Save to History</button>
-            <button class="btn btn-primary" onclick="switchTab('export')">Export</button>
+            <button class="btn btn-teal btn-form-action" onclick="saveCurrentNote()">Save to History</button>
+            <button class="btn btn-primary btn-form-action" onclick="switchTab('export')">Export</button>
           </div>
         </div>
       </div>
