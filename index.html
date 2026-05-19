@@ -742,9 +742,13 @@
       .tabs::-webkit-scrollbar { display: none; }
       .tab-btn { font-size: .78rem; padding: 10px 10px; white-space: nowrap; }
 
-      main { padding: 10px 10px 80px; }
-      .card { padding: 14px 12px; border-radius: var(--r); }
+      main { padding: 6px 8px 60px; }
+      .card { padding: 10px 10px; border-radius: var(--r); }
       .card h2 { font-size: .88rem; }
+      .field-row { margin-bottom: 10px; }
+      .section-title { margin-top: 12px; margin-bottom: 6px; }
+      .edit-grid { gap: 10px; }
+      #current-note-bar { padding: 8px 10px; }
 
       .paste-hero { padding: 28px 14px 24px; border-radius: var(--r); }
       .paste-icon { font-size: 2.6rem; margin-bottom: 10px; }
@@ -3363,7 +3367,6 @@ const _tabToHash = { generate: 'generate', edit: 'edit', export: 'export', histo
 function switchTab(name, { updateHash = true } = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
-  if (name === 'edit' && window.innerWidth <= 760) window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'history') loadHistoryData();
   if (name === 'export')  updateExportPreview();
   if (updateHash) {
