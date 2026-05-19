@@ -609,10 +609,11 @@
 
     /* ── Template picker modal ── */
     .tpl-picker-overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9300;display:flex;align-items:center;justify-content:center; }
-    .tpl-picker-box { background:#fff;border-radius:14px;width:min(680px,96vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.28); }
-    .tpl-picker-head { padding:18px 22px 14px;border-bottom:1px solid #e5e7eb;flex-shrink:0; }
+    .tpl-picker-box { background:#fff;border-radius:14px;width:min(680px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.28); }
+    .tpl-picker-head { padding:16px 22px 12px;border-bottom:1px solid #e5e7eb;flex-shrink:0; }
     .tpl-picker-head h3 { font-size:1rem;font-weight:700;margin:0 0 3px; }
     .tpl-picker-head p { font-size:.8rem;color:#6b7280;margin:0; }
+    .tpl-picker-controls { padding:10px 22px;border-bottom:1px solid #f0f0f0;flex-shrink:0;background:#fff; }
     .tpl-picker-body { flex:1;overflow-y:auto;padding:16px 22px; }
     .tpl-section-label { font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;margin:0 0 8px; }
     .tpl-type-tabs { display:flex;gap:6px;margin-bottom:12px;border-bottom:2px solid #f3f4f6;padding-bottom:0; }
@@ -2001,6 +2002,7 @@ async function pasteAndGenerate() {
   // Template picker
   const chosenTemplate = await showTemplatePickerModal(transcript.slice(0, 600));
 
+  _genLengthOverride = chosenTemplate?._chosenLength || null;
   state.lastTranscript = transcript;
   state.lastTranscriptMode = 'paste';
   state.lastChosenTemplate = chosenTemplate || null;
@@ -2289,6 +2291,7 @@ async function changeTemplate() {
   const groqKey = localStorage.getItem('groq_api_key') || GROQ_KEY;
   const chosenTemplate = await showTemplatePickerModal(state.lastTranscript.slice(0, 600));
   if (!chosenTemplate && chosenTemplate !== null) return; // picker dismissed
+  _genLengthOverride = chosenTemplate?._chosenLength || null;
   const patient = document.getElementById('e-patient').value;
   const reg     = document.getElementById('e-reg-number').value;
   const date    = document.getElementById('e-date-display').value;
@@ -3107,6 +3110,7 @@ function pickTime(which, t) {
 // Patient autocomplete
 // ─────────────────────────────────────────────────────────────────────────────
 let _patientIndex = {}; // name_lower → { name, regNumber, visitCount }
+let _genLengthOverride = null; // per-generation length override from template picker slider
 
 async function loadPatientIndex() {
   if (!db || !currentUser) return;
@@ -3946,17 +3950,43 @@ function showTemplatePickerModal(contentHint) {
             <p style="margin:0;">Choose a template, or skip to use the default progress note</p>
           </div>
         </div>
+        <div class="tpl-picker-controls">
+          ${renderTypeTabs()}
+          <input class="tpl-search" id="tpl-search-inp" placeholder="Search templates…" style="margin-top:8px;" oninput="(()=>{const q=this.value.toLowerCase().trim();let tpls=getFilteredTemplates();if(q)tpls=tpls.filter(t=>t.title.toLowerCase().includes(q)||t.category.toLowerCase().includes(q)||t.description.toLowerCase().includes(q));document.getElementById('tpl-all-list').innerHTML=buildAllListHtml(tpls);bindCardClicks(document.getElementById('tpl-all-list'));bindStarClicks(document.getElementById('tpl-all-list'));})()" />
+        </div>
         <div class="tpl-picker-body">
           <div id="tpl-top-sections"></div>
-          ${renderTypeTabs()}
-          <input class="tpl-search" id="tpl-search-inp" placeholder="Search templates…" oninput="(()=>{const q=this.value.toLowerCase().trim();let tpls=getFilteredTemplates();if(q)tpls=tpls.filter(t=>t.title.toLowerCase().includes(q)||t.category.toLowerCase().includes(q)||t.description.toLowerCase().includes(q));document.getElementById('tpl-all-list').innerHTML=buildAllListHtml(tpls);bindCardClicks(document.getElementById('tpl-all-list'));bindStarClicks(document.getElementById('tpl-all-list'));})()" />
           <div class="tpl-list" id="tpl-all-list"></div>
         </div>
-        <div class="tpl-picker-foot">
-          <button id="tpl-skip-btn" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;font-weight:500;">Skip — use default note</button>
+        <div class="tpl-picker-foot" style="flex-direction:column;gap:10px;">
+          <div style="width:100%;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:.78rem;font-weight:700;color:#374151;letter-spacing:.03em;text-transform:uppercase;">Note Length</span>
+              <span id="tpl-len-label" style="font-size:.78rem;font-weight:600;color:var(--blue);">Balanced</span>
+            </div>
+            <input type="range" id="tpl-len-slider" min="0" max="2" step="1" value="1"
+              style="width:100%;accent-color:var(--blue);cursor:pointer;"
+              oninput="const l=['Brief','Balanced','Detailed'][+this.value];document.getElementById('tpl-len-label').textContent=l;" />
+            <div style="display:flex;justify-content:space-between;margin-top:2px;">
+              <span style="font-size:.72rem;color:#9ca3af;">Brief</span>
+              <span style="font-size:.72rem;color:#9ca3af;">Balanced</span>
+              <span style="font-size:.72rem;color:#9ca3af;">Detailed</span>
+            </div>
+          </div>
+          <button id="tpl-skip-btn" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;font-weight:500;">Skip — use default note</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
+
+    // Pre-set slider from saved noteLength setting
+    const savedLen = currentUser?.profile?.personalisation?.noteLength || 'balanced';
+    const lenIdx = { brief: 0, balanced: 1, detailed: 2 }[savedLen] ?? 1;
+    const slider = document.getElementById('tpl-len-slider');
+    if (slider) {
+      slider.value = lenIdx;
+      document.getElementById('tpl-len-label').textContent = ['Brief','Balanced','Detailed'][lenIdx];
+    }
+
     renderTopSections();
     rebuildAllList();
 
@@ -3969,10 +3999,16 @@ function showTemplatePickerModal(contentHint) {
       rebuildAllList();
     });
 
+    function getChosenLength() {
+      const s = document.getElementById('tpl-len-slider');
+      return ['brief','balanced','detailed'][+(s?.value ?? 1)];
+    }
+
     function done(template) {
       if (template) recordTemplateUsage(template.id);
+      const chosenLength = getChosenLength();
       modal.remove();
-      resolve(template || null);
+      resolve(template ? { ...template, _chosenLength: chosenLength } : null);
     }
 
     function bindChipClicks(container) {
@@ -4247,7 +4283,7 @@ async function processAudioAndGenerate(blob, mode) {
   if (!assignment) return;
 
   const chosenTemplate = await showTemplatePickerModal(transcript.slice(0, 600));
-
+  _genLengthOverride = chosenTemplate?._chosenLength || null;
   state.lastTranscript = transcript;
   state.lastTranscriptMode = mode;
   state.lastChosenTemplate = chosenTemplate || null;
@@ -4603,7 +4639,7 @@ function openCreateDocumentModal() {
 
     // Template picker
     const chosenTemplate = await showTemplatePickerModal(content.slice(0, 600));
-
+    _genLengthOverride = chosenTemplate?._chosenLength || null;
     // Patient assignment
     const assignment = await showAssignPatientModal(content, 'document');
     if (!assignment) return;
@@ -5025,7 +5061,8 @@ function getPersonalisationPrefix() {
   if (ps.treatmentApproaches)  parts.push('Treatment approach: ' + ps.treatmentApproaches);
   if (ps.documentStyle)        parts.push('Document style: ' + ps.documentStyle);
   const lenMap = { brief: 'Write concisely using dot points and short phrases. Include only the most important information.', detailed: 'Write comprehensively and thoroughly. Use full sentences with explanations and include direct quotes where relevant.' };
-  if (lenMap[ps.noteLength]) parts.push(lenMap[ps.noteLength]);
+  const activeLen = _genLengthOverride || ps.noteLength;
+  if (lenMap[activeLen]) parts.push(lenMap[activeLen]);
   return parts.length ? parts.join('\n') + '\n\n' : '';
 }
 
