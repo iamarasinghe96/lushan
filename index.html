@@ -79,7 +79,7 @@
     .settings-btn:hover { background: rgba(255,255,255,.24); }
 
     /* ── Tabs ── */
-    .tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; border-bottom: 1px solid var(--border); background: var(--card); padding: 0 20px; box-shadow: var(--shadow-xs); }
+    .tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; touch-action: pan-x; border-bottom: 1px solid var(--border); background: var(--card); padding: 0 20px; box-shadow: var(--shadow-xs); }
     .tabs::-webkit-scrollbar { display: none; }
     .tab-btn {
       padding: 12px 18px; font-size: .83rem; font-weight: 600;
@@ -738,7 +738,7 @@
       /* Prevent iOS Safari auto-zoom on input focus */
       input, select, textarea { font-size: 16px !important; }
 
-      .tabs { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+      .tabs { padding: 0 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; touch-action: pan-x; }
       .tabs::-webkit-scrollbar { display: none; }
       .tab-btn { font-size: .78rem; padding: 10px 10px; white-space: nowrap; }
 
