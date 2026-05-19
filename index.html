@@ -3113,7 +3113,7 @@ async function loadPatientIndex() {
   try {
     const snap = await db.collection(COLLECTION)
       .where('userId', '==', currentUser.uid)
-      .orderBy('createdAt','desc').limit(500).get();
+      .limit(500).get();
     _patientIndex = {};
     snap.docs.forEach(d => {
       const n = d.data();
