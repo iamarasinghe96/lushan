@@ -1793,7 +1793,7 @@ function normalisePatientKey(name) {
 // Settings Modal
 // ─────────────────────────────────────────────────────────────────────────────
 function showSettings() {
-  document.getElementById('s-groq-key').value       = localStorage.getItem('groq_api_key') || '';
+  document.getElementById('s-groq-key').value       = sessionStorage.getItem('groq_api_key') || '';
   document.getElementById('s-firebase-config').value = localStorage.getItem('firebase_config') || '';
   document.getElementById('settings-overlay').style.display = 'flex';
 }
@@ -1805,8 +1805,8 @@ function overlayClick(e) {
 }
 function saveSettings() {
   const groqKey = document.getElementById('s-groq-key').value.trim();
-  if (groqKey) localStorage.setItem('groq_api_key', groqKey);
-  else         localStorage.removeItem('groq_api_key');
+  if (groqKey) { sessionStorage.setItem('groq_api_key', groqKey); localStorage.removeItem('groq_api_key'); }
+  else         { sessionStorage.removeItem('groq_api_key'); localStorage.removeItem('groq_api_key'); }
   const fbCfg = document.getElementById('s-firebase-config').value.trim();
   if (fbCfg) {
     try { JSON.parse(fbCfg); localStorage.setItem('firebase_config', fbCfg); }
@@ -2391,7 +2391,7 @@ function updateNoteBar() {
 
 async function changeTemplate() {
   if (!state.lastTranscript) { toast('No transcript loaded. Generate a note first'); return; }
-  const groqKey = localStorage.getItem('groq_api_key') || GROQ_KEY;
+  const groqKey = sessionStorage.getItem('groq_api_key') || localStorage.getItem('groq_api_key') || GROQ_KEY;
   const chosenTemplate = await showTemplatePickerModal(state.lastTranscript.slice(0, 600));
   if (!chosenTemplate && chosenTemplate !== null) return; // picker dismissed
   _genLengthOverride = chosenTemplate?._chosenLength || null;
@@ -3562,6 +3562,13 @@ async function doSignOut() {
   closeUserMenu();
   await firebase.auth().signOut();
   currentUser = null;
+  state.currentNoteId   = null;
+  state.allNotes        = [];
+  state.lastTranscript  = null;
+  state.lastTranscriptMode = 'paste';
+  state.lastChosenTemplate = null;
+  state.patientProfiles = {};
+  _patientIndex = {};
   showView('landing');
 }
 
@@ -4261,7 +4268,7 @@ function showTemplatePickerModal(contentHint, opts = {}) {
 // Groq API key check for audio features
 // ─────────────────────────────────────────────────────────────────────────────
 function _hasPersonalGroqKey() {
-  return !!(localStorage.getItem('groq_api_key') || '').trim();
+  return !!(sessionStorage.getItem('groq_api_key') || localStorage.getItem('groq_api_key') || '').trim();
 }
 
 function _checkGroqAudioKey(onProceed) {
