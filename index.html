@@ -3239,13 +3239,28 @@ function showConfirm(message, opts = {}) {
   });
 }
 
-function switchTab(name) {
+const _hashToTab = { generate: 'generate', edit: 'edit', export: 'export', patients: 'history' };
+const _tabToHash = { generate: 'generate', edit: 'edit', export: 'export', history: 'patients' };
+
+function switchTab(name, { updateHash = true } = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   if (name === 'history') loadHistoryData();
   if (name === 'export')  updateExportPreview();
+  if (updateHash) {
+    const hash = _tabToHash[name] || name;
+    history.replaceState(null, '', '#' + hash);
+  }
 }
 document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.slice(1);
+  const tab = _hashToTab[hash];
+  if (tab && document.getElementById('view-app') && document.getElementById('view-app').style.display !== 'none') {
+    switchTab(tab, { updateHash: false });
+  }
+});
 
 // Sync window scroll → preview pane proportionally when Edit tab is active
 (function() {
@@ -4797,6 +4812,10 @@ function initApp() {
   const clinEl = document.getElementById('e-clinician');
   if (clinEl && !clinEl.value) clinEl.value = currentClinicianLabel();
   loadPatientProfiles();
+  const startHash = window.location.hash.slice(1);
+  const startTab = _hashToTab[startHash];
+  if (startTab) switchTab(startTab, { updateHash: false });
+  else history.replaceState(null, '', '#generate');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
