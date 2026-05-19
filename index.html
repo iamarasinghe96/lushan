@@ -3612,14 +3612,18 @@ async function obComplete() {
     : [{ id: 'wp_1', name: 'My Practice', type: 'Private Practice', regSystem: 'lushnote', regFormat: 'YYYYMMDDNN' }];
   const activeId = wps[0].id;
   try {
-    await db.collection('users').doc(currentUser.uid).update({
+    await db.collection('users').doc(currentUser.uid).set({
+      email: currentUser.email,
       displayName: d.displayName,
       credentials: d.credentials || '',
       workplaces: wps,
       activeWorkplaceId: activeId,
       emailPretext: d.emailPretext || '',
       onboardingComplete: true,
-    });
+      status: 'active',
+      tier: 'free',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
     currentUser.profile = {
       ...currentUser.profile,
       displayName: d.displayName,
