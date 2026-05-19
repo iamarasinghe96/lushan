@@ -1897,7 +1897,10 @@ function transcriptConfirmModal(text) {
         <div style="padding:20px 22px 0;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
             <span style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b7280;">Clipboard preview</span>
-            <span style="font-size:.72rem;color:#9ca3af;">${words.length} words</span>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:.72rem;color:#9ca3af;">${words.length} words</span>
+              <button id="tcm-close-x" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.3rem;line-height:1;padding:0;" title="Close">&times;</button>
+            </div>
           </div>
           <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:9px;padding:14px 16px;font-size:.85rem;line-height:1.65;color:#1f2937;max-height:130px;overflow:hidden;position:relative;">
             <span>${esc(preview)}${more ? '…' : ''}</span>
@@ -1980,8 +1983,9 @@ function transcriptConfirmModal(text) {
       setTimeout(() => { modal.remove(); resolve(confirmed ? { confirmed: true, patient, reg } : null); }, 220);
     }
 
-    document.getElementById('tcm-confirm').onclick = () => close(true);
-    document.getElementById('tcm-cancel').onclick  = () => close(false);
+    document.getElementById('tcm-confirm').onclick  = () => close(true);
+    document.getElementById('tcm-cancel').onclick   = () => close(false);
+    document.getElementById('tcm-close-x').onclick  = () => close(false);
     modal.addEventListener('click', e => { if (e.target === modal) close(false); });
   });
 }
