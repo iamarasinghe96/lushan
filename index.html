@@ -466,10 +466,11 @@
     .time-item.sel  { background: var(--blue); color: #fff; }
 
     @media (max-width: 760px) {
-      .edit-grid { grid-template-columns: 1fr; }
-      .preview-sticky { position: static; }
+      .edit-grid { grid-template-columns: 1fr; display: flex; flex-direction: column; }
+      .preview-sticky { position: static; order: 0; }
+      .form-panel { order: 1; }
       .two-col, .three-col { grid-template-columns: 1fr; }
-      #preview-pane { max-height: 60vh; }
+      #preview-pane { max-height: 60vh; overflow-y: auto; }
     }
 
     @media print {
@@ -1362,10 +1363,6 @@ With regards,
         </span>
       </div>
       <div class="btn-group">
-        <button class="btn btn-teal btn-sm" onclick="saveCurrentNote()">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Save
-        </button>
         <button class="btn btn-outline btn-sm" id="change-template-btn" onclick="changeTemplate()" style="display:none;">
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Change Template
         </button>
@@ -2537,7 +2534,9 @@ async function reassignPatient() {
 // ─────────────────────────────────────────────────────────────────────────────
 function livePreview() {
   const f = getFields();
-  document.getElementById('preview-pane').innerHTML = buildPreviewHTML(f);
+  const pane = document.getElementById('preview-pane');
+  pane.innerHTML = buildPreviewHTML(f);
+  if (window.innerWidth <= 760) pane.scrollTop = 0;
   updateNoteBar();
 }
 
@@ -3365,6 +3364,7 @@ const _tabToHash = { generate: 'generate', edit: 'edit', export: 'export', histo
 function switchTab(name, { updateHash = true } = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if (name === 'edit' && window.innerWidth <= 760) window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'history') loadHistoryData();
   if (name === 'export')  updateExportPreview();
   if (updateHash) {
