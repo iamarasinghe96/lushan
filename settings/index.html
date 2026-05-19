@@ -218,7 +218,7 @@
       </div>
       <div class="st-section">
         <h2 class="st-section-h">Create Custom Template</h2>
-        <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Custom templates appear in the template picker when generating notes. Write clear AI instructions in the Prompt field — the more specific, the better the output.</p>
+        <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Custom templates appear in the template picker when generating notes. Write clear AI instructions in the Prompt field. The more specific, the better the output.</p>
         <div class="field-row"><label>Template title <span style="color:var(--danger)">*</span></label><input id="st-ct-title" placeholder="e.g. My PTSD Review Note" /></div>
         <div class="two-col">
           <div class="field-row">
@@ -292,7 +292,7 @@
 
       <div class="st-section">
         <h2 class="st-section-h">Groq API Key</h2>
-        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Required for audio features — Record Session, Dictate Note, and Upload Recording. Free to set up, no credit card needed.</p>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Required for audio features: Record Session, Dictate Note, and Upload Recording. Free to set up, no credit card needed.</p>
 
         <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
           <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:10px;">How to get your free API key</div>
@@ -300,7 +300,7 @@
             <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a> and sign in with your Google account</li>
             <li>Click <strong>Create API key</strong></li>
             <li>Give it a name (e.g. <em>LushNote</em>), then click <strong>Submit</strong></li>
-            <li>Copy the key shown — it starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">gsk_</code></li>
+            <li>Copy the key shown. It starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">gsk_</code></li>
             <li>Paste it in the field below and click <strong>Save Key</strong></li>
           </ol>
         </div>
@@ -382,7 +382,7 @@
       <div class="st-section" style="background:var(--blue-lt);border-color:var(--blue);text-align:center;padding:32px 24px;">
         <div style="font-size:2rem;margin-bottom:10px;">🎉</div>
         <div style="font-size:1.1rem;font-weight:800;color:var(--blue);margin-bottom:6px;">LushNote is currently free</div>
-        <p style="font-size:.88rem;color:#374151;line-height:1.65;max-width:420px;margin:0 auto 18px;">LushNote is in active development. During this early stage, access is completely free — we're learning alongside our early users and improving constantly. Thank you for being part of the journey.</p>
+        <p style="font-size:.88rem;color:#374151;line-height:1.65;max-width:420px;margin:0 auto 18px;">LushNote is in active development. During this early stage, access is completely free. We're learning alongside our early users and improving constantly. Thank you for being part of the journey.</p>
         <div style="font-size:.82rem;color:var(--gray);">Have thoughts or suggestions? We'd love to hear from you.</div>
       </div>
       <div class="st-section">
@@ -733,7 +733,7 @@ function wpPreviewFormat(id, val) {
   if (!el) return;
   if (!val.trim()) { el.innerHTML = ''; return; }
   const p = detectIdPattern(val.trim());
-  el.innerHTML = p ? `Detected: <strong>${esc(p.description)}</strong> — <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">${esc(p.template)}</code>` : '';
+  el.innerHTML = p ? `Detected: <strong>${esc(p.description)}</strong>, <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">${esc(p.template)}</code>` : '';
 }
 function wpSetTheme(id, idx) {
   const wp = (currentUser.profile.workplaces||[]).find(w => w.id === id);
@@ -937,7 +937,7 @@ async function stSendFeedback() {
   const subj = encodeURIComponent('LushNote Feedback');
   const body = encodeURIComponent(`From: ${name}\nEmail: ${currentUser.email}\n\n${text}`);
   window.open(`mailto:iamarasinghe96@gmail.com?subject=${subj}&body=${body}`);
-  msgEl.style.color='#059669'; msgEl.textContent='Thank you — your email client should have opened.';
+  msgEl.style.color='#059669'; msgEl.textContent='Thank you. Your email client should have opened.';
   document.getElementById('st-feedback-text').value='';
 }
 
