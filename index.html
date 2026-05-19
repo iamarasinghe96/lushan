@@ -1909,21 +1909,21 @@ function transcriptConfirmModal(text) {
               <div>
                 <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:3px;">Patient name</label>
                 <input id="tcm-patient" placeholder="First name or full name" autocomplete="off"
-                  style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.83rem;font-family:inherit;"
+                  style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.83rem;font-family:inherit;"
                   oninput="tcmPatientInput(this.value)"
                   onblur="setTimeout(()=>{ const d=document.getElementById('tcm-drop-fixed'); if(d) d.style.display='none'; },180)" />
               </div>
               <div>
                 <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:3px;">Patient ID / Reg #</label>
                 <input id="tcm-reg" placeholder="${regPlaceholder}"
-                  style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.83rem;font-family:inherit;" />
+                  style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.83rem;font-family:inherit;" />
               </div>
             </div>
           </div>
         </div>
         <div style="display:flex;gap:10px;padding:16px 22px;">
-          <button id="tcm-cancel" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.88rem;cursor:pointer;font-weight:500;">Cancel</button>
-          <button id="tcm-confirm" style="flex:2;padding:10px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;">Yes, generate report</button>
+          <button id="tcm-cancel" style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;font-size:.88rem;cursor:pointer;font-weight:500;font-family:inherit;color:#475569;">Cancel</button>
+          <button id="tcm-confirm" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(37,99,235,.25);">Yes, generate report</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
@@ -2412,7 +2412,7 @@ async function reassignPatient() {
       <label style="display:block;font-size:.78rem;font-weight:600;color:#374151;margin-bottom:4px;">New patient name</label>
       <div style="position:relative;">
         <input id="reassign-input" type="text" placeholder="Type patient name…" autocomplete="off"
-          style="width:100%;border:1.5px solid #d1d5db;border-radius:7px;padding:8px 11px;font-size:.86rem;font-family:inherit;">
+          style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 11px;font-size:.86rem;font-family:inherit;">
         <div id="reassign-drop" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #e5e7eb;border-radius:7px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:10;max-height:180px;overflow-y:auto;"></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:16px;">
@@ -2827,8 +2827,8 @@ function openPatientModal(existingKey, prefill = {}) {
         </div>
         <div id="pm-error" style="font-size:.82rem;color:#dc2626;display:none;"></div>
         <div style="display:flex;gap:10px;margin-top:4px;">
-          <button onclick="document.getElementById('patient-modal-overlay')?.remove()" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;">Cancel</button>
-          <button onclick="pmSave('${existingKey || ''}')" style="flex:1;padding:10px;border:none;border-radius:8px;background:#111827;color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;">${isEdit ? 'Save' : 'Save & Start'}</button>
+          <button onclick="document.getElementById('patient-modal-overlay')?.remove()" style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-family:inherit;color:#475569;font-weight:500;">Cancel</button>
+          <button onclick="pmSave('${existingKey || ''}')" style="flex:1;padding:10px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(37,99,235,.25);">${isEdit ? 'Save' : 'Save & Start'}</button>
         </div>
       </div>
     </div>`;
@@ -4064,10 +4064,10 @@ function showTemplatePickerModal(contentHint) {
             </div>
           </div>
           <div style="display:flex;gap:10px;">
-            <button id="tpl-back-btn" style="padding:10px 18px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:6px;">
+            <button id="tpl-back-btn" style="padding:10px 18px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-weight:500;font-family:inherit;color:#475569;display:flex;align-items:center;gap:6px;">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back
             </button>
-            <button id="tpl-skip-btn" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;font-weight:500;">Skip, use default note</button>
+            <button id="tpl-skip-btn" style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-weight:500;font-family:inherit;color:#475569;">Skip, use default note</button>
           </div>
         </div>
       </div>`;
@@ -4306,8 +4306,8 @@ function showAssignPatientModal(transcript, mode) {
             <input id="apm-reg" placeholder="${(()=>{ try{const p=currentUser.profile,wps=p.workplaces||[],aw=wps.find(w=>w.id===p.activeWorkplaceId)||wps[0]; return aw&&aw.regTemplate?aw.regTemplate:'e.g. 100234';}catch(e){return 'e.g. 100234';} })()}" />
           </div>
           <div style="display:flex;gap:10px;margin-top:18px;">
-            <button id="apm-skip" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;">Skip patient</button>
-            <button id="apm-confirm" style="flex:2;padding:10px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;">Generate note</button>
+            <button id="apm-skip" style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-family:inherit;color:#475569;font-weight:500;">Skip patient</button>
+            <button id="apm-confirm" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(37,99,235,.25);">Generate note</button>
           </div>
         </div>
       </div>`;
@@ -4671,9 +4671,9 @@ function openCreateDocumentModal() {
         <p style="font-size:.84rem;color:#6b7280;margin-bottom:16px;">Upload a text file or paste content below. A clinical template will help structure the output.</p>
 
         <!-- Drop zone -->
-        <div id="cdm-drop" style="border:2px dashed #d1d5db;border-radius:10px;padding:12px 16px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:10px;display:flex;align-items:center;gap:12px;"
+        <div id="cdm-drop" style="border:2px dashed #e2e8f0;border-radius:10px;padding:12px 16px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:10px;display:flex;align-items:center;gap:12px;"
           ondragover="event.preventDefault();this.style.borderColor='var(--blue)';this.style.background='var(--blue-lt)'"
-          ondragleave="this.style.borderColor='#d1d5db';this.style.background=''"
+          ondragleave="this.style.borderColor='#e2e8f0';this.style.background=''"
           ondrop="cdmHandleDrop(event)">
           <div style="flex-shrink:0;color:#6b7280;"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
           <div style="text-align:left;min-width:0;">
@@ -4681,7 +4681,7 @@ function openCreateDocumentModal() {
             <p style="font-size:.72rem;color:#b0b7c3;margin:0;">Word files: open in Word, copy all (Ctrl+A, Ctrl+C), paste below</p>
           </div>
           <input type="file" id="cdm-file-inp" accept=".txt,.text" style="display:none" onchange="cdmHandleFile(this.files[0])" />
-          <button onclick="document.getElementById('cdm-file-inp').click()" style="margin-left:auto;flex-shrink:0;padding:5px 12px;border:1px solid #d1d5db;border-radius:7px;background:#fff;font-size:.8rem;cursor:pointer;">Browse</button>
+          <button onclick="document.getElementById('cdm-file-inp').click()" style="margin-left:auto;flex-shrink:0;padding:5px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:.8rem;cursor:pointer;font-family:inherit;color:#475569;">Browse</button>
         </div>
 
         <!-- Paste area -->
@@ -4693,8 +4693,8 @@ function openCreateDocumentModal() {
         <div id="cdm-file-name" style="display:none;font-size:.78rem;color:#059669;margin-bottom:10px;"></div>
 
         <div style="display:flex;gap:10px;">
-          <button onclick="document.getElementById('create-doc-modal').remove()" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;">Cancel</button>
-          <button onclick="cdmProceed()" style="flex:2;padding:10px;border:none;border-radius:8px;background:var(--blue);color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;">Select Template & Generate</button>
+          <button onclick="document.getElementById('create-doc-modal').remove()" style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-family:inherit;color:#475569;font-weight:500;">Cancel</button>
+          <button onclick="cdmProceed()" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(37,99,235,.25);">Select Template & Generate</button>
         </div>
       </div>
     </div>`;
@@ -4703,7 +4703,7 @@ function openCreateDocumentModal() {
   window.cdmHandleDrop = function(e) {
     e.preventDefault();
     const drop = document.getElementById('cdm-drop');
-    if (drop) { drop.style.borderColor = '#d1d5db'; drop.style.background = ''; }
+    if (drop) { drop.style.borderColor = '#e2e8f0'; drop.style.background = ''; }
     const file = e.dataTransfer?.files[0];
     if (file) cdmHandleFile(file);
   };
