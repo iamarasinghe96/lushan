@@ -295,10 +295,11 @@
     }
     .patient-card:hover { border-color: var(--blue); box-shadow: 0 4px 16px rgba(37,99,235,.1); }
     .patient-card-avatar {
-      width: 42px; height: 42px; border-radius: 50%; background: var(--blue-lt);
-      color: var(--blue); font-size: .95rem; font-weight: 700;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
+    .patient-card-avatar svg { display:block; }
     .patient-card-info { flex: 1; min-width: 0; }
     .patient-card-info h3 { font-size: .92rem; font-weight: 700; margin-bottom: 2px; }
     .patient-card-info .meta { font-size: .77rem; color: var(--gray); }
@@ -323,10 +324,11 @@
       box-shadow: var(--shadow-sm);
     }
     .pd-avatar {
-      width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg,#3b82f6,#6366f1);
+      width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg,#3b82f6,#6366f1);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.15rem; font-weight: 700; color: #fff; flex-shrink: 0; letter-spacing: 1px;
+      color: #fff; flex-shrink: 0;
     }
+    .pd-avatar svg { width:30px; height:30px; display:block; }
     .pd-info-main { flex: 1; min-width: 0; }
     .pd-info-name { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
     .pd-info-reg  { font-size: .79rem; color: var(--gray); margin-bottom: 14px; }
@@ -2595,7 +2597,6 @@ function renderPatients(notes) {
 
   const html = sorted.map(([key, sessions]) => {
     const displayName = sessions[0].patient || 'Unknown';
-    const initial = displayName.charAt(0).toUpperCase();
     const count = sessions.length;
     const lastSession = sessions.reduce((best, n) => {
       const t = n.createdAt?.toMillis?.() || 0;
@@ -2604,9 +2605,13 @@ function renderPatients(notes) {
     const lastDate = lastSession.date || '';
     const reg = sessions.find(n => n.reg_number)?.reg_number || '';
     const profile = state.patientProfiles[key] || {};
+    const gender = (profile.gender || '').toLowerCase();
+    const avatarBg = gender === 'female' ? 'background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;'
+                   : gender === 'male'   ? 'background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;'
+                   :                       'background:linear-gradient(135deg,#64748b,#94a3b8);color:#fff;';
     return `
       <div class="patient-card" onclick="showPatientDetail('${esc(key)}')">
-        <div class="patient-card-avatar">${esc(initial)}</div>
+        <div class="patient-card-avatar" style="${avatarBg}">${patientAvatarSvg(profile.gender)}</div>
         <div class="patient-card-info">
           <h3>${esc(displayName)}</h3>
           <div class="meta">${reg ? `ID: ${esc(reg)}  ·  ` : ''}${lastDate ? `Last session: ${esc(lastDate)}` : 'No date recorded'}${profile?.dob ? `  ·  DOB: ${profile.dob}` : ''}${profile?.gender ? `  ·  ${profile.gender}` : ''}</div>
@@ -2618,8 +2623,33 @@ function renderPatients(notes) {
   area.insertAdjacentHTML('beforeend', html);
 }
 
-// Alias for older call sites
-function renderHistory(notes) { renderPatients(notes); }
+// Gender-based SVG avatar for patient cards and detail view
+function patientAvatarSvg(gender) {
+  const g = (gender || '').toLowerCase();
+  if (g === 'female') {
+    // Female silhouette — rounder head, wider shoulders suggestion
+    return `<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <circle cx="24" cy="16" r="9" fill="currentColor" opacity=".85"/>
+      <path d="M8 44c0-8.837 7.163-14 16-14s16 5.163 16 14" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" fill="none" opacity=".85"/>
+      <ellipse cx="24" cy="44" rx="10" ry="3" fill="currentColor" opacity=".18"/>
+    </svg>`;
+  }
+  if (g === 'male') {
+    // Male silhouette — slightly squarer proportions
+    return `<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <circle cx="24" cy="15" r="9" fill="currentColor" opacity=".85"/>
+      <path d="M7 44c0-9.389 7.611-15 17-15s17 5.611 17 15" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".85"/>
+      <ellipse cx="24" cy="44" rx="11" ry="2.5" fill="currentColor" opacity=".15"/>
+    </svg>`;
+  }
+  // Unknown / other — neutral silhouette
+  return `<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+    <circle cx="24" cy="16" r="9" fill="currentColor" opacity=".75"/>
+    <path d="M8 44c0-8.837 7.163-14 16-14s16 5.163 16 14" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" fill="none" opacity=".75"/>
+  </svg>`;
+}
+
+
 
 function showPatientList() {
   document.getElementById('patients-list-view').style.display = 'block';
@@ -2649,9 +2679,16 @@ function showPatientDetail(patientKey) {
   const firstSeen   = sessions[sessions.length - 1]?.date || '';
   const lastSeen    = sessions[0]?.date || '';
 
-  // Avatar initials from name (strip titles)
-  const initials = displayName.replace(/^(mr|mrs|ms|dr|miss)\.?\s+/i,'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  document.getElementById('detail-avatar').textContent = initials;
+  // Gender avatar
+  const detailAvatarEl = document.getElementById('detail-avatar');
+  const detailGender = (profile.gender || '').toLowerCase();
+  detailAvatarEl.style.background = detailGender === 'female'
+    ? 'linear-gradient(135deg,#ec4899,#a855f7)'
+    : detailGender === 'male'
+    ? 'linear-gradient(135deg,#3b82f6,#6366f1)'
+    : 'linear-gradient(135deg,#64748b,#94a3b8)';
+  detailAvatarEl.style.color = '#fff';
+  detailAvatarEl.innerHTML = patientAvatarSvg(profile.gender);
 
   document.getElementById('detail-patient-name').textContent = displayName;
   document.getElementById('detail-patient-reg').textContent  = reg ? `Registration #${reg}` : '';
