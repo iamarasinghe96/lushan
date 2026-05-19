@@ -2047,7 +2047,7 @@ async function pasteAndGenerate() {
     switchTab('edit');
     toast('Report generated!');
   } catch(e) {
-    toast('Error: ' + e.message);
+    if (!e._dailyLimit) toast('Error: ' + e.message);
     console.error(e);
   } finally {
     setLoading(false);
@@ -2072,9 +2072,25 @@ async function groqFetchWithRetry(url, init) {
   // Parse wait time from Groq error body
   const errBody = await res.json().catch(() => ({}));
   const errMsg = errBody.error?.message || '';
-  const waitMatch = errMsg.match(/try again in ([\d.]+)s/i);
-  const waitSecs = waitMatch ? Math.ceil(parseFloat(waitMatch[1])) + 1 : 15;
-  // Show prominent banner with countdown + progress bar
+
+  // Daily token limit — "try again in Xh Ym Zs" format
+  const dailyMatch = errMsg.match(/try again in\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:([\d.]+)s)?/i);
+  const hrs  = parseInt(dailyMatch?.[1] || '0');
+  const mins = parseInt(dailyMatch?.[2] || '0');
+  const secs = parseFloat(dailyMatch?.[3] || '0');
+  const totalSecs = hrs * 3600 + mins * 60 + Math.ceil(secs);
+
+  // If wait is more than 2 minutes it's a daily limit — show toast and give up
+  if (totalSecs > 120) {
+    const resetTime = new Date(Date.now() + totalSecs * 1000);
+    const resetStr  = resetTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const humanWait = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+    toast(`Daily token limit reached. Resets in ${humanWait} — try again after ${resetStr}.`, 'error', 12000);
+    throw Object.assign(new Error('daily_limit'), { _dailyLimit: true });
+  }
+
+  // Per-minute rate limit — short wait, show countdown banner
+  const waitSecs = totalSecs || 15;
   const banner  = document.getElementById('rate-limit-banner');
   const secsEl  = document.getElementById('rl-secs');
   const barEl   = document.getElementById('rl-bar');
@@ -2083,7 +2099,6 @@ async function groqFetchWithRetry(url, init) {
     barEl.style.transition = 'none';
     barEl.style.width = '100%';
     banner.classList.add('show');
-    // Kick off bar shrink after a frame
     requestAnimationFrame(() => {
       barEl.style.transition = `width ${waitSecs}s linear`;
       barEl.style.width = '0%';
@@ -2320,7 +2335,7 @@ async function changeTemplate() {
     livePreview(); updateExportPreview(); updateEmailSubject(); updateNoteBar();
     toast('Note regenerated with new template', 'success');
   } catch(e) {
-    toast('Error: ' + e.message);
+    if (!e._dailyLimit) toast('Error: ' + e.message);
   } finally {
     setLoading(false);
   }
@@ -3186,7 +3201,7 @@ function setLoading(on, msg = '') {
 }
 
 let _toastTimer;
-function toast(msg, type) {
+function toast(msg, type, duration) {
   const el = document.getElementById('toast');
   el.className = type ? 'toast-' + type : '';
   const icons = { success: '✓', error: '✕', warning: '⚠' };
@@ -3194,7 +3209,7 @@ function toast(msg, type) {
   el.innerHTML = `<span style="font-size:1rem;line-height:1">${icon}</span><span>${msg}</span>`;
   el.classList.add('show');
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), duration || 2800);
 }
 
 function showConfirm(message, opts = {}) {
