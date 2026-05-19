@@ -3941,14 +3941,9 @@ function showTemplatePickerModal(contentHint) {
 
     modal.innerHTML = `
       <div class="tpl-picker-box">
-        <div class="tpl-picker-head" style="display:flex;align-items:flex-start;gap:12px;">
-          <button id="tpl-back-btn" style="flex-shrink:0;background:none;border:1px solid #e5e7eb;border-radius:7px;padding:5px 10px;font-size:.78rem;color:#6b7280;cursor:pointer;display:flex;align-items:center;gap:4px;margin-top:2px;">
-            <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back
-          </button>
-          <div>
-            <h3 style="margin:0 0 3px;">Select Clinical Template</h3>
-            <p style="margin:0;">Choose a template, or skip to use the default progress note</p>
-          </div>
+        <div class="tpl-picker-head">
+          <h3 style="margin:0 0 3px;">Select Clinical Template</h3>
+          <p style="margin:0;">Choose a template, or skip to use the default progress note</p>
         </div>
         <div class="tpl-picker-controls">
           ${renderTypeTabs()}
@@ -3973,7 +3968,12 @@ function showTemplatePickerModal(contentHint) {
               <span style="font-size:.72rem;color:#9ca3af;">Detailed</span>
             </div>
           </div>
-          <button id="tpl-skip-btn" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;font-weight:500;">Skip — use default note</button>
+          <div style="display:flex;gap:10px;">
+            <button id="tpl-back-btn" style="padding:10px 18px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back
+            </button>
+            <button id="tpl-skip-btn" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:.86rem;cursor:pointer;font-weight:500;">Skip — use default note</button>
+          </div>
         </div>
       </div>`;
     document.body.appendChild(modal);
