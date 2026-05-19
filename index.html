@@ -79,13 +79,14 @@
     .settings-btn:hover { background: rgba(255,255,255,.24); }
 
     /* ── Tabs ── */
-    .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--card); padding: 0 20px; box-shadow: var(--shadow-xs); }
+    .tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; border-bottom: 1px solid var(--border); background: var(--card); padding: 0 20px; box-shadow: var(--shadow-xs); }
+    .tabs::-webkit-scrollbar { display: none; }
     .tab-btn {
       padding: 12px 18px; font-size: .83rem; font-weight: 600;
       cursor: pointer; border: none; background: none; color: var(--gray);
       border-bottom: 2px solid transparent; margin-bottom: -1px;
       transition: color .15s, border-color .15s;
-      font-family: inherit;
+      font-family: inherit; white-space: nowrap; flex-shrink: 0;
     }
     .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
     .tab-btn:hover:not(.active) { color: var(--text); }
