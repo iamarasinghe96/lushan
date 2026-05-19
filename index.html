@@ -3109,9 +3109,11 @@ function pickTime(which, t) {
 let _patientIndex = {}; // name_lower → { name, regNumber, visitCount }
 
 async function loadPatientIndex() {
-  if (!db) return;
+  if (!db || !currentUser) return;
   try {
-    const snap = await db.collection(COLLECTION).orderBy('createdAt','desc').limit(500).get();
+    const snap = await db.collection(COLLECTION)
+      .where('userId', '==', currentUser.uid)
+      .orderBy('createdAt','desc').limit(500).get();
     _patientIndex = {};
     snap.docs.forEach(d => {
       const n = d.data();
@@ -3652,7 +3654,7 @@ async function obComplete() {
 async function migrateNotes(uid) {
   if (!db) return;
   try {
-    const snap = await db.collection(COLLECTION).orderBy('createdAt','desc').limit(500).get();
+    const snap = await db.collection(COLLECTION).where('userId', '==', uid).orderBy('createdAt','desc').limit(500).get();
     const batch = db.batch();
     let count = 0;
     snap.docs.forEach(doc => {
