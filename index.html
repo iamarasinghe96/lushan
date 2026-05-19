@@ -457,26 +457,15 @@
     .auth-logo-area { text-align: center; margin-bottom: 24px; }
     .auth-logo-area h1 { font-size: 1.7rem; font-weight: 800; color: #1a1a1a; margin: 10px 0 4px; }
     .auth-logo-area p  { font-size: .85rem; color: var(--gray); }
-    .auth-tab-bar {
-      display: flex; background: #f3f4f6; border-radius: 10px; padding: 3px; margin-bottom: 22px;
+    .google-signin-btn {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      width: 100%; padding: 12px 20px; border: 1.5px solid #dadce0; border-radius: 10px;
+      background: #fff; font-size: .95rem; font-weight: 600; color: #3c4043;
+      cursor: pointer; transition: box-shadow .15s, border-color .15s;
+      font-family: inherit; letter-spacing: .01em;
     }
-    .auth-tab-btn {
-      flex: 1; padding: 8px; border: none; background: transparent; border-radius: 8px;
-      font-size: .85rem; font-weight: 600; cursor: pointer; color: var(--gray);
-      transition: background .15s, color .15s;
-    }
-    .auth-tab-btn.active { background: #fff; color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
-    .auth-input {
-      width: 100%; border: 1.5px solid var(--border); border-radius: 9px;
-      padding: 10px 13px; font-size: .9rem; font-family: inherit;
-      color: var(--text); background: #fff; margin-bottom: 12px;
-      transition: border-color .15s, box-shadow .15s;
-    }
-    .auth-input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,159,110,.14); }
-    .auth-pw-wrap { position:relative; margin-bottom:12px; }
-    .auth-pw-wrap .auth-input { margin-bottom:0; padding-right:42px; }
-    .auth-pw-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:4px; color:#9ca3af; line-height:1; }
-    .auth-pw-eye:hover { color:#374151; }
+    .google-signin-btn:hover { box-shadow: 0 2px 8px rgba(0,0,0,.12); border-color: #bbb; }
+    .google-signin-btn:disabled { opacity: .6; cursor: default; }
     .auth-btn {
       width: 100%; padding: 12px; border: none; border-radius: 9px;
       background: var(--teal); color: #fff; font-size: .95rem; font-weight: 700;
@@ -992,7 +981,6 @@
 <!-- ══════════════════════ VIEW: AUTH ══════════════════════ -->
 <div id="view-auth" style="display:none;">
   <div class="view-auth-page">
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     <div class="auth-box">
       <div class="auth-logo-area">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="56" height="56">
@@ -1003,67 +991,13 @@
         <h1>LushNote</h1>
         <p>Clinical Note Builder for Psychiatrists</p>
       </div>
-
-      <div class="auth-tab-bar">
-        <button class="auth-tab-btn active" id="auth-tab-signin" onclick="switchAuthTab('signin')">Sign In</button>
-        <button class="auth-tab-btn" id="auth-tab-register" onclick="switchAuthTab('register')">Register</button>
-      </div>
-
-      <!-- Sign In Form -->
-      <div id="auth-signin-form">
-        <input class="auth-input" type="email" id="signin-email" placeholder="Email address" autocomplete="email" />
-        <div class="auth-pw-wrap">
-          <input class="auth-input" type="password" id="signin-password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" />
-          <button type="button" class="auth-pw-eye" onclick="togglePwVis('signin-password',this)" tabindex="-1" aria-label="Show password">
-            <svg id="eye-show" width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
-          </button>
-        </div>
-        <button class="auth-btn" onclick="doLogin()">Sign In</button>
-        <div class="auth-error" id="signin-error"></div>
-        <div style="text-align:center;margin-top:10px;">
-          <span class="auth-back-link" onclick="showForgotPassword()">Forgot password?</span>
-        </div>
-      </div>
-
-      <!-- Forgot Password Form -->
-      <div id="auth-forgot-form" style="display:none;">
-        <p style="font-size:.84rem;color:#374151;margin-bottom:14px;line-height:1.5;">Enter your email address and we'll send you a link to reset your password.</p>
-        <input class="auth-input" type="email" id="forgot-email" placeholder="Email address" autocomplete="email" onkeydown="if(event.key==='Enter')doForgotPassword()" />
-        <button class="auth-btn" onclick="doForgotPassword()">Send Reset Email</button>
-        <div class="auth-error" id="forgot-error"></div>
-        <div id="forgot-success" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;font-size:.84rem;color:#166534;line-height:1.5;margin-top:10px;"></div>
-        <div style="text-align:center;margin-top:10px;">
-          <span class="auth-back-link" onclick="showSignIn()">Back to Sign In</span>
-        </div>
-      </div>
-
-      <!-- Register Form -->
-      <div id="auth-register-form" style="display:none;">
-        <p style="font-size:.78rem;color:#9ca3af;margin:0 0 14px;text-align:center;">Completely free — no credit card needed</p>
-        <input class="auth-input" type="text" id="reg-name" placeholder="Full name (e.g. Dr Lushan Vasantha)" autocomplete="name" />
-        <input class="auth-input" type="email" id="reg-email" placeholder="Email address" autocomplete="email" />
-        <div class="auth-pw-wrap">
-          <input class="auth-input" type="password" id="reg-password" placeholder="Choose a password (min. 6 characters)" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()" />
-          <button type="button" class="auth-pw-eye" onclick="togglePwVis('reg-password',this)" tabindex="-1" aria-label="Show password">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
-          </button>
-        </div>
-        <button class="auth-btn" id="reg-submit-btn" onclick="doRegister()">Create Free Account</button>
-        <div class="auth-error" id="reg-error"></div>
-      </div>
-
-      <!-- Verify Email Screen -->
-      <div id="auth-verify-form" style="display:none;text-align:center;">
-        <div style="margin-bottom:10px;display:flex;justify-content:center;"><svg width="48" height="48" fill="none" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#1a56db" stroke-width="1.6" stroke-linejoin="round"/><path d="M22 6l-10 7L2 6" stroke="#1a56db" stroke-width="1.6" stroke-linecap="round"/></svg></div>
-        <h3 style="font-size:1rem;font-weight:800;margin:0 0 8px;">Check your inbox</h3>
-        <p style="font-size:.84rem;color:#4b5563;margin:0 0 6px;line-height:1.6;">We sent a verification link to</p>
-        <p id="verify-email-addr" style="font-size:.88rem;font-weight:700;color:#1d4ed8;margin:0 0 18px;word-break:break-all;"></p>
-        <p style="font-size:.82rem;color:#6b7280;margin:0 0 24px;line-height:1.65;">Click the link in the email — it will verify your account and bring you back to the app automatically.</p>
-        <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
-          <span class="auth-back-link" id="verify-resend-btn" onclick="resendAndCooldown()">Resend verification email</span>
-          <span class="auth-back-link" onclick="doSignOut();showView('auth');switchAuthTab('signin')" style="color:#9ca3af;font-size:.78rem;">Sign out and use a different account</span>
-        </div>
-      </div>
+      <p style="text-align:center;font-size:.84rem;color:#6b7280;margin:0 0 24px;line-height:1.6;">Sign in with your Google account to access your workspace. New users are set up automatically.</p>
+      <button class="google-signin-btn" id="google-signin-btn" onclick="doGoogleSignIn()">
+        <svg width="20" height="20" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+        Sign in with Google
+      </button>
+      <div class="auth-error" id="google-signin-error" style="text-align:center;margin-top:12px;"></div>
+      <p style="text-align:center;font-size:.75rem;color:#9ca3af;margin-top:20px;line-height:1.6;">By signing in you agree to keep patient data confidential.<br>Only your Google account can access your notes.</p>
     </div>
   </div>
 </div>
@@ -1079,10 +1013,6 @@
       </svg>
       <h2>Connection Issue</h2>
       <p>We couldn't load your account data — this is usually a temporary network or security token issue. Please try again.</p>
-      <div id="pending-verify-notice" style="display:none;background:#fffbeb;border:1px solid #fcd34d;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:.83rem;color:#92400e;line-height:1.55;">
-        Please also <strong>verify your email address</strong> — check your inbox for a verification email from LushNote and click the link inside.
-        <br><span id="pending-resend-wrap" style="display:inline-block;margin-top:6px;"><span class="auth-back-link" onclick="resendVerificationEmail()" style="color:#b45309;">Resend verification email</span></span>
-      </div>
       <p style="margin-top:10px;font-size:.84rem;color:#6b7280;">Signed in as: <span class="pending-email" id="pending-email"></span></p>
       <button class="btn-primary" style="margin-top:16px;padding:10px 28px;font-size:.9rem;" onclick="location.reload()">Try Again</button>
       <button class="pending-signout" onclick="doSignOut()">Sign out</button>
@@ -3375,8 +3305,6 @@ function showView(name) {
 
 function landingSignUp() {
   showView('auth');
-  // Switch to the register tab
-  if (typeof switchAuthTab === 'function') switchAuthTab('register');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3385,11 +3313,6 @@ function landingSignUp() {
 function startAuthListener() {
   firebase.auth().onAuthStateChanged(async user => {
     if (!user) { showView('landing'); return; }
-    if (!user.emailVerified) {
-      showView('auth');
-      showVerifyScreen(user.email);
-      return;
-    }
     const loadingEl = document.getElementById('auth-loading-overlay');
     if (loadingEl) loadingEl.style.display = 'flex';
     // Force token refresh so email_verified claim is current in Firestore
@@ -3442,86 +3365,25 @@ async function loadUserProfile(uid) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sign In / Sign Out
+// Sign In / Sign Out — Google only
 // ─────────────────────────────────────────────────────────────────────────────
-function showForgotPassword() {
-  document.getElementById('auth-tab-signin').classList.add('active');
-  document.getElementById('auth-tab-register').classList.remove('active');
-  document.getElementById('forgot-error').textContent = '';
-  document.getElementById('forgot-success').style.display = 'none';
-  const fi = document.getElementById('forgot-email');
-  fi.value = document.getElementById('signin-email').value || '';
-  _showAuthPanel('auth-forgot-form');
-  setTimeout(() => fi.focus(), 80);
-}
-
-function showSignIn() {
-  _showAuthPanel('auth-signin-form');
-}
-
-async function doForgotPassword() {
-  const email = document.getElementById('forgot-email').value.trim();
-  const errEl = document.getElementById('forgot-error');
-  const sucEl = document.getElementById('forgot-success');
-  errEl.textContent = ''; sucEl.style.display = 'none';
-  if (!email) { errEl.textContent = 'Please enter your email address.'; return; }
-  const btn = document.querySelector('#auth-forgot-form .auth-btn');
-  btn.textContent = 'Sending…'; btn.disabled = true;
+async function doGoogleSignIn() {
+  const btn   = document.getElementById('google-signin-btn');
+  const errEl = document.getElementById('google-signin-error');
+  if (errEl) errEl.textContent = '';
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg> Signing in…';
   try {
-    await firebase.auth().sendPasswordResetEmail(email);
-    sucEl.textContent = `Password reset email sent to ${email}. Check your inbox (and spam folder). The link expires in 1 hour.`;
-    sucEl.style.display = '';
-    btn.textContent = 'Sent!';
-    setTimeout(() => { btn.textContent = 'Send Reset Email'; btn.disabled = false; }, 4000);
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await firebase.auth().signInWithPopup(provider);
+    // onAuthStateChanged handles routing from here
   } catch(e) {
-    const msg = e.code === 'auth/user-not-found'
-      ? 'No account found with that email address.'
-      : (e.code === 'auth/invalid-email' ? 'Please enter a valid email address.' : (e.message || 'Could not send reset email. Try again.'));
-    errEl.textContent = msg;
-    btn.textContent = 'Send Reset Email'; btn.disabled = false;
-  }
-}
-
-async function resendVerificationEmail() {
-  const user = firebase.auth().currentUser;
-  if (!user) return;
-  const link = document.getElementById('pending-resend-wrap');
-  if (link) link.innerHTML = 'Sending…';
-  try {
-    await user.sendEmailVerification({ url: 'https://iamarasinghe96.github.io/lushan/email-verified/' }).catch(()=>{});
-    if (link) link.innerHTML = '<span style="color:#166534;">Verification email sent — check your inbox</span>';
-  } catch(e) {
-    if (link) link.innerHTML = `<span style="color:#dc2626;">${e.message || 'Could not send email'}</span>`;
-  }
-}
-
-function togglePwVis(inputId, btn) {
-  const inp = document.getElementById(inputId);
-  if (!inp) return;
-  const showing = inp.type === 'text';
-  inp.type = showing ? 'password' : 'text';
-  btn.innerHTML = showing
-    ? '<svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>'
-    : '<svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
-  btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-}
-
-async function doLogin() {
-  const email = document.getElementById('signin-email').value.trim();
-  const pass  = document.getElementById('signin-password').value;
-  const errEl = document.getElementById('signin-error');
-  errEl.textContent = '';
-  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; return; }
-  const btn = document.querySelector('#auth-signin-form .auth-btn');
-  btn.textContent = 'Signing in…'; btn.disabled = true;
-  try {
-    await firebase.auth().signInWithEmailAndPassword(email, pass);
-    btn.textContent = 'Loading…';
-    // auth listener handles routing; reset button after a timeout as fallback
-    setTimeout(() => { btn.textContent = 'Sign In'; btn.disabled = false; }, 6000);
-  } catch(e) {
-    errEl.textContent = friendlyAuthError(e.code) || e.message || 'Sign in failed.';
-    btn.textContent = 'Sign In'; btn.disabled = false;
+    if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+      if (errEl) errEl.textContent = e.message || 'Google sign-in failed. Please try again.';
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg> Sign in with Google';
   }
 }
 
@@ -3529,130 +3391,11 @@ async function doSignOut() {
   closeUserMenu();
   await firebase.auth().signOut();
   currentUser = null;
-  showView('auth');
+  showView('landing');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Auth panel switching
-// ─────────────────────────────────────────────────────────────────────────────
-function _showAuthPanel(panel) {
-  ['auth-signin-form','auth-forgot-form','auth-register-form','auth-verify-form'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = id === panel ? '' : 'none';
-  });
-}
 
-function switchAuthTab(tab) {
-  document.getElementById('auth-tab-signin').classList.toggle('active', tab === 'signin');
-  document.getElementById('auth-tab-register').classList.toggle('active', tab === 'register');
-  _showAuthPanel(tab === 'signin' ? 'auth-signin-form' : 'auth-register-form');
-}
 
-function showVerifyScreen(email) {
-  const addrEl = document.getElementById('verify-email-addr');
-  if (addrEl) addrEl.textContent = email;
-  const errEl = document.getElementById('verify-error');
-  if (errEl) errEl.textContent = '';
-  const sucEl = document.getElementById('verify-success');
-  if (sucEl) sucEl.style.display = 'none';
-  const btn = document.getElementById('verify-check-btn');
-  if (btn) { btn.disabled = false; btn.style.display = ''; btn.textContent = "I've verified my email"; }
-  _showAuthPanel('auth-verify-form');
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Register flow
-// ─────────────────────────────────────────────────────────────────────────────
-async function doRegister() {
-  const name  = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const pass  = document.getElementById('reg-password').value;
-  const errEl = document.getElementById('reg-error');
-  const btn   = document.getElementById('reg-submit-btn');
-  errEl.textContent = '';
-  if (!name)           { errEl.textContent = 'Please enter your full name.'; return; }
-  if (!email)          { errEl.textContent = 'Please enter your email address.'; return; }
-  if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
-  btn.disabled = true; btn.textContent = 'Creating account…';
-  try {
-    const cred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
-    const uid  = cred.user.uid;
-    const ts   = firebase.firestore.FieldValue.serverTimestamp();
-    await db.collection('users').doc(uid).set({
-      email, displayName: name, status: 'active',
-      tier: 'free', onboardingComplete: false, createdAt: ts
-    });
-    await cred.user.sendEmailVerification({ url: 'https://iamarasinghe96.github.io/lushan/email-verified/' }).catch(()=>{});
-    showVerifyScreen(email);
-  } catch(e) {
-    errEl.textContent = friendlyAuthError(e.code) || e.message || 'Registration failed.';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Create Free Account';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Email verification
-// ─────────────────────────────────────────────────────────────────────────────
-async function checkEmailVerification() {
-  const btn   = document.getElementById('verify-check-btn');
-  const errEl = document.getElementById('verify-error');
-  if (errEl) errEl.textContent = '';
-  if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
-  try {
-    await firebase.auth().currentUser.reload();
-    const user = firebase.auth().currentUser;
-    if (user.emailVerified) {
-      const sucEl = document.getElementById('verify-success');
-      if (sucEl) sucEl.style.display = '';
-      if (btn) btn.style.display = 'none';
-      const profile = await loadUserProfile(user.uid);
-      currentUser = { uid: user.uid, email: user.email, profile };
-      if (!profile || !profile.onboardingComplete) { showView('onboarding'); startOnboarding(); }
-      else { applyWorkspaceTheme(); updateHeaderUser(); showView('app'); initApp(); }
-    } else {
-      if (errEl) errEl.textContent = 'Not verified yet — please click the link in your inbox first, then try again.';
-      if (btn) { btn.disabled = false; btn.textContent = "I've verified my email"; }
-    }
-  } catch(e) {
-    if (errEl) errEl.textContent = e.message || 'Could not check. Please try again.';
-    if (btn) { btn.disabled = false; btn.textContent = "I've verified my email"; }
-  }
-}
-
-let _resendCooldown = false;
-async function resendAndCooldown() {
-  const btn = document.getElementById('verify-resend-btn');
-  if (_resendCooldown) return;
-  try {
-    await firebase.auth().currentUser.sendEmailVerification({ url: 'https://iamarasinghe96.github.io/lushan/email-verified/' }).catch(()=>{});
-    _resendCooldown = true;
-    btn.textContent = 'Email sent ✓ (wait 60s to resend)';
-    btn.style.opacity = '.5'; btn.style.pointerEvents = 'none';
-    setTimeout(() => {
-      _resendCooldown = false;
-      btn.textContent = 'Resend verification email';
-      btn.style.opacity = ''; btn.style.pointerEvents = '';
-    }, 60000);
-  } catch(e) {
-    const errEl = document.getElementById('verify-error');
-    if (errEl) errEl.textContent = e.message || 'Could not resend email.';
-  }
-}
-
-function friendlyAuthError(code) {
-  const map = {
-    'auth/email-already-in-use':  'An account with this email already exists. Try signing in instead.',
-    'auth/invalid-email':          'Please enter a valid email address.',
-    'auth/weak-password':          'Password too weak — please use at least 6 characters.',
-    'auth/user-not-found':         'No account found with this email.',
-    'auth/wrong-password':         'Incorrect password.',
-    'auth/invalid-credential':     'Invalid email or password.',
-    'auth/too-many-requests':      'Too many attempts — please wait a moment and try again.',
-    'auth/network-request-failed': 'Network error — check your connection.',
-  };
-  return map[code] || null;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Header user display
