@@ -1636,7 +1636,7 @@ With regards,
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL    = 'llama-3.3-70b-versatile';
 const COLLECTION    = 'progress_notes';
-const GROQ_KEY      = ['gsk_2EVGi7uZuqJ1tHhb','GLyIWGdyb3FY8q58p9lPd6xL4pYqVjiKUbc0'].join('');
+function getGroqKey() { return (sessionStorage.getItem('groq_api_key') || localStorage.getItem('groq_api_key') || '').trim(); }
 const FREE_EMAIL    = 'lushhetti@gmail.com';
 const ADMIN_EMAIL   = 'iamarasinghe96@gmail.com';
 const WP_THEMES = [
@@ -1835,8 +1835,9 @@ function updateApiStatusBar() {
 
   const groqDot  = document.getElementById('groq-dot');
   const groqText = document.getElementById('groq-status-text');
-  if (groqDot)  groqDot.className    = 'status-dot dot-green';
-  if (groqText) groqText.textContent = 'Groq API ready';
+  const hasKey   = !!getGroqKey();
+  if (groqDot)  groqDot.className    = 'status-dot ' + (hasKey ? 'dot-green' : 'dot-yellow');
+  if (groqText) groqText.textContent = hasKey ? 'Groq API ready' : 'Groq key required — add in Settings';
 
   const fbDot  = document.getElementById('fb-dot');
   const fbText = document.getElementById('fb-status-text');
@@ -2053,7 +2054,8 @@ function showTranscriptRejection(message) {
 }
 
 async function pasteAndGenerate() {
-  const groqKey = GROQ_KEY;
+  const groqKey = getGroqKey();
+  if (!groqKey) { _checkGroqAudioKey(() => pasteAndGenerate()); return; }
 
   let transcript;
   try {
@@ -2391,7 +2393,7 @@ function updateNoteBar() {
 
 async function changeTemplate() {
   if (!state.lastTranscript) { toast('No transcript loaded. Generate a note first'); return; }
-  const groqKey = sessionStorage.getItem('groq_api_key') || localStorage.getItem('groq_api_key') || GROQ_KEY;
+  const groqKey = getGroqKey();
   const chosenTemplate = await showTemplatePickerModal(state.lastTranscript.slice(0, 600));
   if (!chosenTemplate && chosenTemplate !== null) return; // picker dismissed
   _genLengthOverride = chosenTemplate?._chosenLength || null;
@@ -4267,9 +4269,7 @@ function showTemplatePickerModal(contentHint, opts = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Groq API key check for audio features
 // ─────────────────────────────────────────────────────────────────────────────
-function _hasPersonalGroqKey() {
-  return !!(sessionStorage.getItem('groq_api_key') || localStorage.getItem('groq_api_key') || '').trim();
-}
+function _hasPersonalGroqKey() { return !!getGroqKey(); }
 
 function _checkGroqAudioKey(onProceed) {
   if (_hasPersonalGroqKey()) { onProceed(); return; }
@@ -4334,7 +4334,7 @@ async function transcribeAudio(blob) {
   form.append('response_format', 'text');
   const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${GROQ_KEY}` },
+    headers: { 'Authorization': `Bearer ${getGroqKey()}` },
     body: form
   });
   if (!res.ok) {
@@ -4361,7 +4361,7 @@ async function callGroqWithMode(transcript, mode, templatePrompt = null) {
     : `Structure this consultation transcript into a clinical note:\n\n${redacted}`;
   const res = await groqFetchWithRetry(GROQ_ENDPOINT, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+    headers: { 'Authorization': `Bearer ${getGroqKey()}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role:'system', content: systemPrompt }, { role:'user', content: userMsg }], temperature: 0.1, max_tokens: 2048 })
   });
   if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `Groq error ${res.status}`); }
@@ -5734,7 +5734,7 @@ function saveWorkplace(wpId) {
         <p class="st-sub">Your plan and account details</p>
         <div class="st-section" style="background:var(--blue-lt);border-color:var(--blue);text-align:center;padding:32px 24px;">
           <div style="font-size:1.1rem;font-weight:800;color:var(--blue);margin-bottom:10px;">LushNote is free to use</div>
-          <p style="font-size:.88rem;color:#374151;line-height:1.7;max-width:440px;margin:0 auto 14px;">This tool is built to support clinicians, not to generate profit. You bring your own Groq API key, so there are no server costs on our end, which is what keeps it sustainable. The AI usage limits and waits you occasionally see are Groq's free tier limits, outside our control.</p>
+          <p style="font-size:.88rem;color:#374151;line-height:1.7;max-width:440px;margin:0 auto 14px;">This tool is built to support clinicians, not to generate profit. You bring your own Groq API key — your usage is billed directly to your Groq account, so there are no shared limits, no queues, and no costs on our end.</p>
           <p style="font-size:.84rem;color:#6b7280;line-height:1.65;max-width:440px;margin:0 auto;">If usage grows to a point where infrastructure costs become a burden, we may ask for a small voluntary contribution. It would be a last resort, not a goal.. Our goal is to keep access open for every clinician who needs it.</p>
         </div>
         <div class="st-section">
