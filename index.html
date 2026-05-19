@@ -1923,9 +1923,25 @@ function transcriptConfirmModal(text) {
                   style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.83rem;font-family:inherit;" />
               </div>
             </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:10px;padding:16px 22px;">
+            <div id="tcm-new-fields" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;">
+              <p style="font-size:.72rem;font-weight:600;color:#059669;margin:0 0 8px;display:flex;align-items:center;gap:5px;">
+                <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                New patient — a couple more details
+              </p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:3px;">Date of birth <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+                  <input id="tcm-dob" type="date" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.83rem;font-family:inherit;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:3px;">Gender <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+                  <div style="display:flex;gap:6px;">
+                    <button type="button" id="tcm-gender-m" onclick="tcmSetGender('male')" style="flex:1;padding:7px 4px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:.81rem;cursor:pointer;font-family:inherit;font-weight:500;color:#374151;">Male</button>
+                    <button type="button" id="tcm-gender-f" onclick="tcmSetGender('female')" style="flex:1;padding:7px 4px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:.81rem;cursor:pointer;font-family:inherit;font-weight:500;color:#374151;">Female</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           <button id="tcm-cancel" style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;font-size:.88rem;cursor:pointer;font-weight:500;font-family:inherit;color:#475569;">Cancel</button>
           <button id="tcm-confirm" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(37,99,235,.25);">Yes, generate report</button>
         </div>
@@ -1938,10 +1954,20 @@ function transcriptConfirmModal(text) {
     tcmDropEl.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #d1d5db;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,.16);display:none;min-width:220px;max-height:200px;overflow-y:auto;';
     document.body.appendChild(tcmDropEl);
 
+    window.tcmSetGender = function(g) {
+      const sel = 'flex:1;padding:7px 4px;border:1.5px solid #2563eb;border-radius:8px;background:#eff6ff;font-size:.81rem;cursor:pointer;font-family:inherit;font-weight:600;color:#1d4ed8;';
+      const nor = 'flex:1;padding:7px 4px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:.81rem;cursor:pointer;font-family:inherit;font-weight:500;color:#374151;';
+      const m = document.getElementById('tcm-gender-m');
+      const f = document.getElementById('tcm-gender-f');
+      if (m) { m.style.cssText = g === 'male' ? sel : nor; m.dataset.sel = g === 'male' ? '1' : ''; }
+      if (f) { f.style.cssText = g === 'female' ? sel : nor; f.dataset.sel = g === 'female' ? '1' : ''; }
+    };
     window.tcmPatientInput = function(v) {
       const drop = tcmDropEl;
-      if (!v.trim() || !_patientIndex) { drop.style.display='none'; return; }
-      const matches = Object.values(_patientIndex).filter(p => p.name.toLowerCase().includes(v.toLowerCase())).slice(0,6);
+      const newFields = document.getElementById('tcm-new-fields');
+      if (!v.trim()) { drop.style.display='none'; if (newFields) newFields.style.display='none'; return; }
+      const matches = _patientIndex ? Object.values(_patientIndex).filter(p => p.name.toLowerCase().includes(v.toLowerCase())).slice(0,6) : [];
+      if (newFields) newFields.style.display = matches.length ? 'none' : '';
       if (!matches.length) { drop.style.display='none'; return; }
       const inp = document.getElementById('tcm-patient');
       if (!inp) return;
@@ -1964,6 +1990,8 @@ function transcriptConfirmModal(text) {
       if (pi) pi.value = name;
       if (reg && ri) ri.value = reg;
       tcmDropEl.style.display = 'none';
+      const nf = document.getElementById('tcm-new-fields');
+      if (nf) nf.style.display = 'none';
     };
 
     requestAnimationFrame(() => {
@@ -1977,10 +2005,16 @@ function transcriptConfirmModal(text) {
       modal.style.background = 'rgba(0,0,0,0)';
       const inner = document.getElementById('tcm-inner');
       if (inner) { inner.style.opacity = '0'; inner.style.transform = 'translateY(10px)'; }
-      const patient = (document.getElementById('tcm-patient')?.value || '').trim();
-      const reg     = (document.getElementById('tcm-reg')?.value     || '').trim();
+      const patient      = (document.getElementById('tcm-patient')?.value || '').trim();
+      const reg          = (document.getElementById('tcm-reg')?.value     || '').trim();
+      const dob          = (document.getElementById('tcm-dob')?.value     || '').trim();
+      const genderM      = document.getElementById('tcm-gender-m');
+      const genderF      = document.getElementById('tcm-gender-f');
+      const gender       = genderM?.dataset.sel === '1' ? 'male' : genderF?.dataset.sel === '1' ? 'female' : '';
+      const nf           = document.getElementById('tcm-new-fields');
+      const isNewPatient = !!(patient && nf && nf.style.display !== 'none');
       tcmDropEl.remove();
-      setTimeout(() => { modal.remove(); resolve(confirmed ? { confirmed: true, patient, reg } : null); }, 220);
+      setTimeout(() => { modal.remove(); resolve(confirmed ? { confirmed: true, patient, reg, dob, gender, isNewPatient } : null); }, 220);
     }
 
     document.getElementById('tcm-confirm').onclick  = () => close(true);
@@ -2035,7 +2069,7 @@ async function pasteAndGenerate() {
   }
 
   // Template picker
-  const chosenTemplate = await showTemplatePickerModal(transcript.slice(0, 600));
+  const chosenTemplate = await showTemplatePickerModal(transcript.slice(0, 600), { isNewPatient: confirmResult?.isNewPatient });
   if (chosenTemplate?._back) return;
 
   _genLengthOverride = chosenTemplate?._chosenLength || null;
@@ -2078,6 +2112,14 @@ async function pasteAndGenerate() {
     if (db) {
       state.currentNoteId = null; // new note
       await saveCurrentNote(true);
+    }
+
+    // Auto-create patient profile for new patients
+    if (confirmResult.isNewPatient && confirmResult.patient) {
+      const npKey = normalisePatientKey(confirmResult.patient);
+      if (!state.patientProfiles[npKey]) {
+        try { await savePatientProfile(npKey, { displayName: confirmResult.patient, dob: confirmResult.dob || '', gender: confirmResult.gender || '' }); } catch(e) {}
+      }
     }
 
     switchTab('edit');
@@ -3949,10 +3991,15 @@ function getAllTemplates() {
   return all;
 }
 
-function showTemplatePickerModal(contentHint) {
+function showTemplatePickerModal(contentHint, opts = {}) {
+  const { isNewPatient = false } = opts;
   return new Promise(resolve => {
     const recent    = getRecentTemplates(3);
     const suggested = getSuggestedTemplates(contentHint, 3);
+    const newPatientTpls = isNewPatient ? (() => {
+      const kw = /first.session|initial.*assess|intake|psychiatric.*interview|clinical.*interview.*assess/i;
+      return getAllTemplates().filter(t => kw.test(t.title + ' ' + t.description)).slice(0, 4);
+    })() : [];
 
     const modal = document.createElement('div');
     modal.className = 'tpl-picker-overlay';
@@ -4007,13 +4054,16 @@ function showTemplatePickerModal(contentHint) {
     function renderTopSections() {
       const el = modal.querySelector('#tpl-top-sections');
       if (!el) return;
+      const newPatientHtml = newPatientTpls.length ? `
+        <div class="tpl-section-label" style="color:#059669;">Suggested for new patient</div>
+        <div class="tpl-chips">${newPatientTpls.map(t => `<div class="tpl-chip" data-tpl-id="${t.id}">${esc(t.title)}</div>`).join('')}</div>` : '';
       const recentHtml = recent.length ? `
-        <div class="tpl-section-label">Recently used</div>
+        <div class="tpl-section-label" style="margin-top:${newPatientTpls.length?'4px':'0'};">Recently used</div>
         <div class="tpl-chips">${recent.map(t => `<div class="tpl-chip" data-tpl-id="${t.id}">${esc(t.title)}</div>`).join('')}</div>` : '';
       const suggestedHtml = suggested.length ? `
-        <div class="tpl-section-label" style="margin-top:${recent.length?'4px':'0'};">Suggested for this session</div>
+        <div class="tpl-section-label" style="margin-top:${(recent.length||newPatientTpls.length)?'4px':'0'};">Suggested for this session</div>
         <div class="tpl-chips">${suggested.map(t => `<div class="tpl-chip" data-tpl-id="${t.id}">${esc(t.title)}</div>`).join('')}</div>` : '';
-      el.innerHTML = buildStarredHtml() + recentHtml + suggestedHtml;
+      el.innerHTML = buildStarredHtml() + newPatientHtml + recentHtml + suggestedHtml;
       bindChipClicks(el);
     }
 
@@ -4311,6 +4361,25 @@ function showAssignPatientModal(transcript, mode) {
             <label>Patient ID / Reg # <span style="color:#9ca3af;font-weight:400;">(optional)</span></label>
             <input id="apm-reg" placeholder="${(()=>{ try{const p=currentUser.profile,wps=p.workplaces||[],aw=wps.find(w=>w.id===p.activeWorkplaceId)||wps[0]; return aw&&aw.regTemplate?aw.regTemplate:'e.g. 100234';}catch(e){return 'e.g. 100234';} })()}" />
           </div>
+          <div id="apm-new-fields" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;">
+            <p style="font-size:.72rem;font-weight:600;color:#059669;margin:0 0 8px;display:flex;align-items:center;gap:5px;">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+              New patient — a couple more details
+            </p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div>
+                <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:3px;">Date of birth <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+                <input id="apm-dob" type="date" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.83rem;font-family:inherit;box-sizing:border-box;" />
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:3px;">Gender <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" id="apm-gender-m" onclick="apmSetGender('male')" style="flex:1;padding:7px 4px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:.81rem;cursor:pointer;font-family:inherit;font-weight:500;color:#374151;">Male</button>
+                  <button type="button" id="apm-gender-f" onclick="apmSetGender('female')" style="flex:1;padding:7px 4px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:.81rem;cursor:pointer;font-family:inherit;font-weight:500;color:#374151;">Female</button>
+                </div>
+              </div>
+            </div>
+          </div>
           <div style="display:flex;gap:10px;margin-top:18px;">
             <button id="apm-skip" style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-family:inherit;color:#475569;font-weight:500;">Skip patient</button>
             <button id="apm-confirm" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(37,99,235,.25);">Generate note</button>
@@ -4327,8 +4396,10 @@ function showAssignPatientModal(transcript, mode) {
 
     function apmPatientInput(v) {
       const drop = apmDropEl;
-      if (!v.trim() || !_patientIndex) { drop.style.display='none'; return; }
-      const matches = Object.values(_patientIndex).filter(p => p.name.toLowerCase().includes(v.toLowerCase())).slice(0,6);
+      const newFields = document.getElementById('apm-new-fields');
+      if (!v.trim()) { drop.style.display='none'; if (newFields) newFields.style.display='none'; return; }
+      const matches = _patientIndex ? Object.values(_patientIndex).filter(p => p.name.toLowerCase().includes(v.toLowerCase())).slice(0,6) : [];
+      if (newFields) newFields.style.display = matches.length ? 'none' : '';
       if (!matches.length) { drop.style.display='none'; return; }
       const inp = document.getElementById('apm-patient');
       const r = inp.getBoundingClientRect();
@@ -4345,17 +4416,36 @@ function showAssignPatientModal(transcript, mode) {
         </div>`).join('');
     }
     window.apmPatientInput = apmPatientInput;
+    window.apmSetGender = function(g) {
+      const sel = 'flex:1;padding:7px 4px;border:1.5px solid #2563eb;border-radius:8px;background:#eff6ff;font-size:.81rem;cursor:pointer;font-family:inherit;font-weight:600;color:#1d4ed8;';
+      const nor = 'flex:1;padding:7px 4px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:.81rem;cursor:pointer;font-family:inherit;font-weight:500;color:#374151;';
+      const m = document.getElementById('apm-gender-m');
+      const f = document.getElementById('apm-gender-f');
+      if (m) { m.style.cssText = g === 'male' ? sel : nor; m.dataset.sel = g === 'male' ? '1' : ''; }
+      if (f) { f.style.cssText = g === 'female' ? sel : nor; f.dataset.sel = g === 'female' ? '1' : ''; }
+    };
     window.apmSelectPatient = (name, reg) => {
       document.getElementById('apm-patient').value = name;
       if (reg) document.getElementById('apm-reg').value = reg;
       apmDropEl.style.display = 'none';
+      const nf = document.getElementById('apm-new-fields');
+      if (nf) nf.style.display = 'none';
     };
 
     // Clean up the floating dropdown when modal closes
     const origRemove = modal.remove.bind(modal);
     modal.remove = () => { apmDropEl.remove(); origRemove(); };
 
-    function done(patient, reg) { modal.remove(); resolve({ patient, reg }); }
+    function done(patient, reg) {
+      const dob     = (document.getElementById('apm-dob')?.value || '').trim();
+      const gm      = document.getElementById('apm-gender-m');
+      const gf      = document.getElementById('apm-gender-f');
+      const gender  = gm?.dataset.sel === '1' ? 'male' : gf?.dataset.sel === '1' ? 'female' : '';
+      const nf      = document.getElementById('apm-new-fields');
+      const isNewPatient = !!(patient && nf && nf.style.display !== 'none');
+      modal.remove();
+      resolve({ patient, reg, dob, gender, isNewPatient });
+    }
     document.getElementById('apm-confirm').onclick = () => done(document.getElementById('apm-patient').value.trim(), document.getElementById('apm-reg').value.trim());
     document.getElementById('apm-skip').onclick = () => done('', '');
     document.getElementById('apm-cancel-x').onclick = () => { modal.remove(); resolve(null); };
@@ -4384,7 +4474,7 @@ async function processAudioAndGenerate(blob, mode) {
   while (true) {
     assignment = await showAssignPatientModal(transcript, mode);
     if (!assignment) return;
-    chosenTemplate = await showTemplatePickerModal(transcript.slice(0, 600));
+    chosenTemplate = await showTemplatePickerModal(transcript.slice(0, 600), { isNewPatient: assignment?.isNewPatient });
     if (!chosenTemplate?._back) break;
   }
   _genLengthOverride = chosenTemplate?._chosenLength || null;
@@ -4409,6 +4499,15 @@ async function processAudioAndGenerate(blob, mode) {
     const wc = transcript.trim().split(/\s+/).length;
     document.getElementById('transcript-chip-text').textContent = `${mode === 'dictation' ? 'Dictation' : 'Recording'}, ${wc} words${chosenTemplate ? ' · ' + chosenTemplate.title : ''}`;
     chip.style.display = 'inline-flex';
+
+    // Auto-create patient profile for new patients
+    if (assignment.isNewPatient && assignment.patient) {
+      const npKey = normalisePatientKey(assignment.patient);
+      if (!state.patientProfiles[npKey]) {
+        try { await savePatientProfile(npKey, { displayName: assignment.patient, dob: assignment.dob || '', gender: assignment.gender || '' }); } catch(e) {}
+      }
+    }
+
     toast('Note generated successfully');
   } catch(e) {
     toast('Generation failed: ' + e.message, 'error');
