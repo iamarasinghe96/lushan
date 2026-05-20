@@ -4441,6 +4441,15 @@ Return ONLY the raw JSON object — no markdown fences, no explanation.`;
 
 let _recorder = null, _recChunks = [], _recTimer = null, _recSeconds = 0, _recStartTime = 0, _recStream = null, _recMode = 'conversation';
 
+// TEMP DEBUG — remove before production (see CLAUDE.md)
+function debugLog(event, data) {
+  if (!db || !currentUser) return;
+  const entry = Object.assign({ ts: new Date().toISOString(), event }, data || {});
+  db.collection('users').doc(currentUser.uid).update({
+    _debugLog: firebase.firestore.FieldValue.arrayUnion(entry)
+  }).catch(() => {});
+}
+
 function _micErrorToast(e) {
   const msg = (e && e.message || '').toLowerCase();
   if (msg.includes('overlay') || msg.includes('permission') && msg.includes('bubble')) {
@@ -4460,6 +4469,8 @@ function _recFormatTime(s) {
 
 async function transcribeAudio(blob) {
   const ext = (blob.type||'').includes('ogg') ? 'ogg' : (blob.type||'').includes('mp4') ? 'mp4' : 'webm';
+  // TEMP DEBUG — remove before production (see CLAUDE.md)
+  debugLog('transcribe_start', { blobSizeKb: Math.round(blob.size / 1024), blobType: blob.type, ext });
   const form = new FormData();
   form.append('file', blob, `recording.${ext}`);
   form.append('model', 'whisper-large-v3-turbo');
@@ -4471,14 +4482,23 @@ async function transcribeAudio(blob) {
   });
   if (!res.ok) {
     const e = await res.json().catch(()=>({}));
-    throw new Error(e.error?.message || `Transcription error ${res.status}`);
+    const errMsg = e.error && e.error.message ? e.error.message : ('Transcription error ' + res.status);
+    // TEMP DEBUG — remove before production (see CLAUDE.md)
+    debugLog('transcribe_error', { status: res.status, message: errMsg, blobSizeKb: Math.round(blob.size / 1024) });
+    throw new Error(errMsg);
   }
   const raw = await res.text();
   try {
     const json = JSON.parse(raw);
-    return String(json.text || json.transcript || raw).trim();
+    const result = String(json.text || json.transcript || raw).trim();
+    // TEMP DEBUG — remove before production (see CLAUDE.md)
+    debugLog('transcribe_done', { wordCount: result.split(/\s+/).length });
+    return result;
   } catch {
-    return raw.trim();
+    const result = raw.trim();
+    // TEMP DEBUG — remove before production (see CLAUDE.md)
+    debugLog('transcribe_done', { wordCount: result.split(/\s+/).length });
+    return result;
   }
 }
 
@@ -4692,8 +4712,12 @@ async function processAudioAndGenerate(blob, mode) {
       }
     }
 
+    // TEMP DEBUG — remove before production (see CLAUDE.md)
+    debugLog('generate_done', { durationSecs: state.lastRecordingDuration, transcriptWords: transcript.trim().split(/\s+/).length });
     toast('Note generated successfully');
   } catch(e) {
+    // TEMP DEBUG — remove before production (see CLAUDE.md)
+    debugLog('generate_error', { message: e.message, durationSecs: state.lastRecordingDuration });
     toast('Generation failed: ' + e.message, 'error');
   } finally {
     setLoading(false);
@@ -4756,10 +4780,15 @@ async function startDictateRecording() {
     _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
     _recorder.start(1000);
     clearInterval(_recTimer);
+    // TEMP DEBUG — remove before production (see CLAUDE.md)
+    const rdD = (currentUser && currentUser.profile && currentUser.profile.recordingDefaults) || {};
+    debugLog('rec_start', { mode: 'dictate', autoStop: rdD.autoStop !== false, autoStopMinutes: rdD.autoStopMinutes || 60, mimeType: _recorder.mimeType });
     _recTimer = setInterval(() => {
       _recSeconds = Math.floor((Date.now() - _recStartTime) / 1000);
       const el = document.getElementById('dictate-timer');
       if (el) el.textContent = _recFormatTime(_recSeconds);
+      // TEMP DEBUG — remove before production (see CLAUDE.md)
+      if (_recSeconds > 0 && _recSeconds % 300 === 0) debugLog('rec_heartbeat', { elapsed_secs: _recSeconds, chunks: _recChunks.length, recorder_state: _recorder ? _recorder.state : 'null' });
     }, 1000);
   } catch(e) {
     _micErrorToast(e);
@@ -4923,16 +4952,23 @@ function _startRecorderForSession(prefix) {
   _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
   _recorder.start(1000);
   clearInterval(_recTimer);
+  // TEMP DEBUG — remove before production (see CLAUDE.md)
+  const rd = (currentUser && currentUser.profile && currentUser.profile.recordingDefaults) || {};
+  debugLog('rec_start', { mode: prefix, autoStop: rd.autoStop !== false, autoStopMinutes: rd.autoStopMinutes || 60, mimeType: _recorder.mimeType });
   _recTimer = setInterval(() => {
     _recSeconds = Math.floor((Date.now() - _recStartTime) / 1000);
     const el = document.getElementById(prefix + '-timer');
     if (el) el.textContent = _recFormatTime(_recSeconds);
+    // TEMP DEBUG — remove before production (see CLAUDE.md)
+    if (_recSeconds > 0 && _recSeconds % 300 === 0) debugLog('rec_heartbeat', { elapsed_secs: _recSeconds, chunks: _recChunks.length, recorder_state: _recorder ? _recorder.state : 'null' });
   }, 1000);
 }
 async function _stopAndProcess(prefix) {
   if (!_recorder) return;
   const actualDuration = _recStartTime ? Math.floor((Date.now() - _recStartTime) / 1000) : _recSeconds;
   state.lastRecordingDuration = actualDuration;
+  // TEMP DEBUG — remove before production (see CLAUDE.md)
+  debugLog('rec_stop', { stoppedBy: 'user', durationSecs: actualDuration, chunks: _recChunks.length, blobSizeKb: Math.round(_recChunks.reduce((s, c) => s + c.size, 0) / 1024) });
   clearInterval(_recTimer);
   _recorder.stop();
   const mode = _recMode;

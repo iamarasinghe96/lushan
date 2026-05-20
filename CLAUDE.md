@@ -276,3 +276,25 @@ Both exist as scaffolding remnants. Remove when refactoring that section.
 - Do NOT add HTML element IDs without verifying any JS that references them is correct
 - Do NOT make changes to multiple systems at once — one concern per commit
 - ALWAYS run `node --check` on the extracted script after editing JS to catch syntax errors before pushing
+
+## TEMPORARY DEBUG CODE — REMOVE BEFORE PRODUCTION
+
+`debugLog(event, data)` writes to `users/{uid}._debugLog` via `firebase.firestore.FieldValue.arrayUnion`.
+Allowed by Firestore rules because `profileValid()` has no `hasOnly()`.
+
+**Remove ALL of the following before production:**
+1. `function debugLog(...)` definition (~line 4452) — marked `// TEMP DEBUG`
+2. `debugLog('rec_start', ...)` call in `_startRecorderForSession` (~line 4946)
+3. `debugLog('rec_heartbeat', ...)` call inside `_recTimer` setInterval in `_startRecorderForSession`
+4. `debugLog('rec_start', ...)` call in `startDictateRecording` (~line 4773)
+5. `debugLog('rec_heartbeat', ...)` call inside `_recTimer` setInterval in `startDictateRecording`
+6. `debugLog('rec_stop', ...)` call in `_stopAndProcess` (~line 4957)
+7. `debugLog('transcribe_start', ...)` call in `transcribeAudio` (~line 4477)
+8. `debugLog('transcribe_error', ...)` call in `transcribeAudio` error branch
+9. `debugLog('transcribe_done', ...)` calls (×2) after `transcribeAudio` response parse
+10. `debugLog('generate_done', ...)` call in `processAudioAndGenerate` success path
+11. `debugLog('generate_error', ...)` call in `processAudioAndGenerate` catch block
+
+After removing: delete the `_debugLog` field from the Firestore user document in Firebase console.
+
+**Events logged:** `rec_start` · `rec_heartbeat` (every 5 min) · `rec_stop` · `transcribe_start` · `transcribe_done` · `transcribe_error` · `generate_done` · `generate_error`
