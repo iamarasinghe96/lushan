@@ -1889,7 +1889,7 @@ function validateTranscript(text) {
 function transcriptConfirmModal(text) {
   return new Promise(resolve => {
     const words = text.trim().split(/\s+/);
-    const sentences = text.trim().split(/(?<=[.!?])\s+/);
+    const sentences = text.trim().split(/[.!?]+\s+/);
     const preview = sentences.slice(0, 3).join(' ').slice(0, 280).trim();
     const more = text.trim().length > 280;
 
