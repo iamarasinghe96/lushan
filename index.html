@@ -811,14 +811,14 @@
 <body>
 
 <!-- Global loading overlay — sits outside all views so it's always visible -->
-<div id="auth-loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+<div id="auth-loading-overlay" style="display:flex;position:fixed;inset:0;background:#fff;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
   <div style="width:40px;height:40px;border:3px solid #e5e7eb;border-top-color:#1d4ed8;border-radius:50%;animation:spin-global .7s linear infinite;"></div>
   <div style="font-size:.88rem;color:#6b7280;font-weight:600;letter-spacing:.02em;">Setting up your session…</div>
 </div>
 <style>@keyframes spin-global{to{transform:rotate(360deg)}}</style>
 
 <!-- ══════════════════════ VIEW: LANDING ══════════════════════ -->
-<div id="view-landing">
+<div id="view-landing" style="display:none;">
 <style>
   #view-landing { background:var(--bg); min-height:100vh; overflow-y:auto; font-family:'Inter','Segoe UI',system-ui,sans-serif; }
   .ln-nav { display:flex; align-items:center; justify-content:space-between; padding:16px 40px; background:#fff; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(15,23,42,.05); }
@@ -3494,6 +3494,8 @@ function scheduleAutoSave() {
 // View management
 // ─────────────────────────────────────────────────────────────────────────────
 function showView(name) {
+  const loadingEl = document.getElementById('auth-loading-overlay');
+  if (loadingEl) loadingEl.style.display = 'none';
   ['landing','auth','pending','onboarding','app'].forEach(v => {
     const el = document.getElementById('view-' + v);
     if (el) el.style.display = (v === name) ? '' : 'none';
