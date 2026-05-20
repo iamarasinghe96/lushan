@@ -319,6 +319,10 @@
           <label>Groq API Key</label>
           <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" style="font-family:monospace;" />
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <input type="checkbox" id="st-groq-remember" style="width:auto;accent-color:var(--blue);cursor:pointer;" />
+          <label for="st-groq-remember" style="margin:0;font-size:.8rem;font-weight:500;color:var(--text2);cursor:pointer;">Remember on this device (saves across sessions)</label>
+        </div>
         <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:4px;">Save Key</button>
         <span id="st-groq-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
       </div>
@@ -613,6 +617,7 @@ function populateSettings() {
   document.getElementById('st-email-pretext').value = p.emailPretext || '';
   // Groq key (stored in localStorage, not Firestore)
   document.getElementById('st-groq-key').value = sessionStorage.getItem('groq_api_key') || localStorage.getItem('groq_api_key') || '';
+  document.getElementById('st-groq-remember').checked = !!localStorage.getItem('groq_api_key');
   // Transcripts
   const tr = p.transcriptPrivacy || {};
   document.getElementById('st-redact-names').checked = !!tr.redactNames;
@@ -894,7 +899,11 @@ function stSaveGroqKey() {
   const key = document.getElementById('st-groq-key').value.trim();
   if (!key) return;
   sessionStorage.setItem('groq_api_key', key);
-  localStorage.removeItem('groq_api_key');
+  if (document.getElementById('st-groq-remember').checked) {
+    localStorage.setItem('groq_api_key', key);
+  } else {
+    localStorage.removeItem('groq_api_key');
+  }
   const saved = document.getElementById('st-groq-key-saved');
   saved.style.display = 'inline';
   setTimeout(() => { window.location.href = '../?key=saved#generate'; }, 900);

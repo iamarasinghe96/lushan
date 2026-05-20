@@ -4408,7 +4408,20 @@ Return ONLY the raw JSON object — no markdown fences, no explanation.`;
 
 let _recorder = null, _recChunks = [], _recTimer = null, _recSeconds = 0, _recStartTime = 0, _recStream = null, _recMode = 'conversation';
 
-function _recFormatTime(s) {
+function _micErrorToast(e) {
+  const msg = (e && e.message || '').toLowerCase();
+  if (msg.includes('overlay') || msg.includes('permission') && msg.includes('bubble')) {
+    toast('Close any floating chat bubbles or screen overlays from other apps, then try again.', 'error', 7000);
+  } else if (e && e.name === 'NotAllowedError') {
+    toast('Microphone blocked. Tap the lock icon in your browser address bar and allow microphone access.', 'error', 7000);
+  } else if (e && e.name === 'NotFoundError') {
+    toast('No microphone found. Check that your device has a working microphone.', 'error');
+  } else {
+    _micErrorToast(e);
+  }
+}
+
+
   return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 }
 
@@ -4716,7 +4729,7 @@ async function startDictateRecording() {
       if (el) el.textContent = _recFormatTime(_recSeconds);
     }, 1000);
   } catch(e) {
-    toast('Microphone access denied. Please allow microphone access and try again.', 'error');
+    _micErrorToast(e);
   }
 }
 
@@ -4819,7 +4832,7 @@ async function startInPersonRecord() {
     _showRecordingUI('record-modal-body', 'record');
     _startRecorderForSession('record');
   } catch(e) {
-    toast('Microphone access denied. Please allow microphone access and try again.', 'error');
+    _micErrorToast(e);
   }
 }
 function showTelehealthSetup() {
