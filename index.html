@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LushNote</title>
-  <!-- DEBUG: remove after diagnosis -->
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -4165,7 +4162,7 @@ function showTemplatePickerModal(contentHint, opts = {}) {
 
     // Pre-set slider from saved noteLength setting
     const savedLen = currentUser?.profile?.personalisation?.noteLength || 'balanced';
-    const lenIdx = { brief: 0, balanced: 1, detailed: 2 }[savedLen] ?? 1;
+    const lenIdx = ({ brief: 0, balanced: 1, detailed: 2 }[savedLen] !== undefined) ? { brief: 0, balanced: 1, detailed: 2 }[savedLen] : 1;
     const slider = document.getElementById('tpl-len-slider');
     if (slider) {
       slider.value = lenIdx;
@@ -4186,7 +4183,7 @@ function showTemplatePickerModal(contentHint, opts = {}) {
 
     function getChosenLength() {
       const s = document.getElementById('tpl-len-slider');
-      return ['brief','balanced','detailed'][+(s?.value ?? 1)];
+      return ['brief','balanced','detailed'][+(s && s.value !== null && s.value !== undefined ? s.value : 1)];
     }
 
     function done(template) {
