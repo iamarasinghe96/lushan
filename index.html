@@ -646,7 +646,7 @@
 
     /* ── Template picker modal ── */
     .tpl-picker-overlay { position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9300;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px); }
-    .tpl-picker-box { background:#fff;border-radius:var(--r-xl);width:min(680px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--shadow-xl); }
+    .tpl-picker-box { background:#fff;border-radius:var(--r-xl);width:min(680px,96vw);max-height:88vh;height:min(700px,88vh);display:flex;flex-direction:column;box-shadow:var(--shadow-xl); }
     .tpl-picker-head { padding:18px 24px 12px;border-bottom:1px solid var(--border);flex-shrink:0; }
     .tpl-picker-head h3 { font-size:.97rem;font-weight:700;margin:0 0 3px; }
     .tpl-picker-head p { font-size:.79rem;color:var(--gray);margin:0; }
@@ -733,6 +733,8 @@
 
     /* ── Responsive: Mobile ── */
     @media (max-width: 640px) {
+      .tpl-picker-box { max-height:92dvh;height:92dvh;border-radius:var(--r-xl) var(--r-xl) 0 0;align-self:flex-end; }
+      .tpl-picker-overlay { align-items:flex-end; }
       header { padding: 10px 12px; }
       header p { display: none; }
       .wp-chip { display: none !important; }
@@ -1795,6 +1797,26 @@ async function savePatientProfile(key, data) {
   state.patientProfiles[key] = { ...(state.patientProfiles[key] || {}), ...data };
 }
 
+// Auto-inserts slashes as user types DOB in DD/MM/YYYY format
+function dobAutoFormat(input) {
+  let v = input.value.replace(/\D/g, '').slice(0, 8);
+  if (v.length >= 5) v = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4);
+  else if (v.length >= 3) v = v.slice(0,2) + '/' + v.slice(2);
+  input.value = v;
+}
+// Convert stored ISO date (YYYY-MM-DD) to display format (DD/MM/YYYY)
+function dobToDisplay(iso) {
+  if (!iso) return '';
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? m[3] + '/' + m[2] + '/' + m[1] : iso;
+}
+// Convert display format (DD/MM/YYYY) to ISO (YYYY-MM-DD) for storage
+function dobToISO(display) {
+  if (!display) return '';
+  const m = display.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? m[3] + '-' + m[2] + '-' + m[1] : display;
+}
+
 function normalisePatientKey(name) {
   return (name || '').trim().toLowerCase();
 }
@@ -1949,7 +1971,7 @@ function transcriptConfirmModal(text) {
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <div>
                   <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:3px;">Date of birth <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
-                  <input id="tcm-dob" type="date" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.83rem;font-family:inherit;box-sizing:border-box;" />
+                  <input id="tcm-dob" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.83rem;font-family:inherit;box-sizing:border-box;" oninput="dobAutoFormat(this)" />
                 </div>
                 <div>
                   <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:3px;">Gender <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
@@ -2028,7 +2050,7 @@ function transcriptConfirmModal(text) {
       if (inner) { inner.style.opacity = '0'; inner.style.transform = 'translateY(10px)'; }
       const patient      = (document.getElementById('tcm-patient')?.value || '').trim();
       const reg          = (document.getElementById('tcm-reg')?.value     || '').trim();
-      const dob          = (document.getElementById('tcm-dob')?.value     || '').trim();
+      const dob          = dobToISO((document.getElementById('tcm-dob')?.value || '').trim());
       const genderM      = document.getElementById('tcm-gender-m');
       const genderF      = document.getElementById('tcm-gender-f');
       const gender       = genderM?.dataset.sel === '1' ? 'male' : genderF?.dataset.sel === '1' ? 'female' : '';
@@ -2885,7 +2907,7 @@ function openPatientModal(existingKey, prefill = {}) {
         </div>`}
         <div>
           <label style="font-size:.8rem;font-weight:700;display:block;margin-bottom:5px;">Date of Birth</label>
-          <input id="pm-dob" type="date" style="width:auto;max-width:100%;border:1.5px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-size:.88rem;outline:none;box-sizing:border-box;" value="${prefill.dob || ''}" />
+          <input id="pm-dob" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" style="width:auto;max-width:100%;border:1.5px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-size:.88rem;outline:none;box-sizing:border-box;" value="${dobToDisplay(prefill.dob || '')}" oninput="dobAutoFormat(this)" />
         </div>
         <div>
           <label style="font-size:.8rem;font-weight:700;display:block;margin-bottom:5px;">Gender</label>
@@ -2920,7 +2942,7 @@ async function pmSave(existingKey) {
     if (!first) { errEl.textContent = 'Please enter a first name.'; errEl.style.display = ''; return; }
     name = last ? `${first} ${last}` : first;
   }
-  const dob    = document.getElementById('pm-dob')?.value || '';
+  const dob    = dobToISO(document.getElementById('pm-dob')?.value || '');
   const gender = document.querySelector('input[name="pm-gender"]:checked')?.value || '';
   const key    = existingKey || normalisePatientKey(name);
   await savePatientProfile(key, { displayName: name, dob, gender });
@@ -4141,7 +4163,7 @@ function showTemplatePickerModal(contentHint, opts = {}) {
         </div>
         <div class="tpl-picker-controls">
           ${renderTypeTabs()}
-          <input class="tpl-search" id="tpl-search-inp" placeholder="Search templates…" style="margin-top:8px;" oninput="(()=>{const q=this.value.toLowerCase().trim();let tpls=getFilteredTemplates();if(q)tpls=tpls.filter(t=>t.title.toLowerCase().includes(q)||t.category.toLowerCase().includes(q)||t.description.toLowerCase().includes(q));document.getElementById('tpl-all-list').innerHTML=buildAllListHtml(tpls);bindCardClicks(document.getElementById('tpl-all-list'));bindStarClicks(document.getElementById('tpl-all-list'));})()" />
+          <input class="tpl-search" id="tpl-search-inp" placeholder="Search templates…" style="margin-top:8px;" oninput="(()=>{const q=this.value.toLowerCase().trim();const top=document.getElementById('tpl-top-sections');if(top)top.style.display=q?'none':'';let tpls=getFilteredTemplates();if(q)tpls=tpls.filter(t=>t.title.toLowerCase().includes(q)||t.category.toLowerCase().includes(q)||t.description.toLowerCase().includes(q));document.getElementById('tpl-all-list').innerHTML=buildAllListHtml(tpls);bindCardClicks(document.getElementById('tpl-all-list'));bindStarClicks(document.getElementById('tpl-all-list'));})()" />
         </div>
         <div class="tpl-picker-body">
           <div id="tpl-top-sections"></div>
@@ -4410,7 +4432,7 @@ function showAssignPatientModal(transcript, mode) {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
               <div>
                 <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:3px;">Date of birth <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
-                <input id="apm-dob" type="date" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.83rem;font-family:inherit;box-sizing:border-box;" />
+                <input id="apm-dob" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.83rem;font-family:inherit;box-sizing:border-box;" oninput="dobAutoFormat(this)" />
               </div>
               <div>
                 <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:3px;">Gender <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
@@ -4478,7 +4500,7 @@ function showAssignPatientModal(transcript, mode) {
     modal.remove = () => { apmDropEl.remove(); origRemove(); };
 
     function done(patient, reg) {
-      const dob     = (document.getElementById('apm-dob')?.value || '').trim();
+      const dob     = dobToISO((document.getElementById('apm-dob')?.value || '').trim());
       const gm      = document.getElementById('apm-gender-m');
       const gf      = document.getElementById('apm-gender-f');
       const gender  = gm?.dataset.sel === '1' ? 'male' : gf?.dataset.sel === '1' ? 'female' : '';
@@ -5041,8 +5063,10 @@ function initApp() {
 // Init
 // ─────────────────────────────────────────────────────────────────────────────
 window.onerror = function() {
-  const landing = document.getElementById('view-landing');
-  if (landing) landing.style.display = '';
+  if (!currentUser) {
+    const landing = document.getElementById('view-landing');
+    if (landing) landing.style.display = '';
+  }
 };
 
 function init() {
