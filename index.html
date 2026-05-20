@@ -5585,6 +5585,36 @@ function asSetTheme(wpId, themeIdx) {
   if (wp) { wp.themeIndex = themeIdx; renderAccountWorkplaces(); applyWorkspaceTheme(); }
 }
 
+function asAddWorkplace() { addWorkplace(); }
+function asToggleEdit(wpId) { editWorkplace(wpId); }
+
+async function asSetActive(wpId) {
+  switchActiveWorkplace(wpId);
+  const p = currentUser.profile;
+  try { await db.collection('users').doc(currentUser.uid).update({ workplaces: p.workplaces || [], activeWorkplaceId: p.activeWorkplaceId || '' }); }
+  catch(e) { toast('Save failed: ' + e.message, 'error'); }
+}
+
+async function asDeleteWorkplace(wpId) {
+  if (!currentUser || !currentUser.profile) return;
+  if (!await showConfirm('Remove this workplace?', {title: 'Remove Workplace', confirmText: 'Remove', dangerConfirm: true})) return;
+  const p = currentUser.profile;
+  p.workplaces = (p.workplaces || []).filter(w => w.id !== wpId);
+  if (p.activeWorkplaceId === wpId) p.activeWorkplaceId = (p.workplaces[0] || {}).id || '';
+  renderAccountWorkplaces();
+  try { await db.collection('users').doc(currentUser.uid).update({ workplaces: p.workplaces, activeWorkplaceId: p.activeWorkplaceId || '' }); }
+  catch(e) { toast('Delete failed: ' + e.message, 'error'); }
+}
+
+async function asSaveWpEdit(wpId) {
+  saveWorkplace(wpId);
+  const editPanel = document.getElementById('as-wp-edit-' + wpId);
+  if (editPanel) editPanel.style.display = 'none';
+  const p = currentUser.profile;
+  try { await db.collection('users').doc(currentUser.uid).update({ workplaces: p.workplaces || [] }); toast('Workplace saved'); }
+  catch(e) { toast('Save failed: ' + e.message, 'error'); }
+}
+
 function editWorkplace(wpId) {
   const card = document.getElementById('as-wp-edit-' + wpId);
   if (card) card.style.display = card.style.display === 'none' ? '' : 'none';
