@@ -1521,6 +1521,44 @@ With regards,
             <button class="btn btn-primary btn-form-action" onclick="switchTab('export')">Export</button>
           </div>
         </div>
+
+        <!-- Session Stats Card (shown after audio recording) -->
+        <div id="session-stats-card" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:14px;padding:14px 16px;margin-top:12px;">
+          <button onclick="document.getElementById('session-stats-card').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;font-size:1rem;line-height:1;color:#64748b;padding:0;margin:-2px -4px 0 0;" title="Dismiss">&times;</button>
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0369a1;margin-bottom:10px;">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:4px;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Session Quality
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+            <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;border:1px solid #e0f2fe;">
+              <div id="stat-duration" style="font-size:1.25rem;font-weight:700;color:#0369a1;line-height:1;">—</div>
+              <div style="font-size:.7rem;color:#64748b;margin-top:3px;">Duration</div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;border:1px solid #e0f2fe;">
+              <div id="stat-words" style="font-size:1.25rem;font-weight:700;color:#0369a1;line-height:1;">—</div>
+              <div style="font-size:.7rem;color:#64748b;margin-top:3px;">Words</div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:10px 8px;text-align:center;border:1px solid #e0f2fe;">
+              <div id="stat-wpm" style="font-size:1.25rem;font-weight:700;color:#0369a1;line-height:1;">—</div>
+              <div style="font-size:.7rem;color:#64748b;margin-top:3px;">Words/min</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw Transcript Section (collapsible, shown after audio recording) -->
+        <div id="raw-transcript-section" style="display:none;margin-top:12px;">
+          <button onclick="toggleRawTranscript()" style="width:100%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;text-align:left;cursor:pointer;font-family:inherit;font-size:.83rem;font-weight:600;color:#374151;display:flex;align-items:center;justify-content:space-between;">
+            <span>
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:5px;color:#6b7280;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              Raw Transcript
+            </span>
+            <span id="raw-transcript-toggle-icon" style="font-size:.9rem;color:#6b7280;">▼</span>
+          </button>
+          <div id="raw-transcript-body" style="display:none;background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:12px 14px;">
+            <div id="raw-transcript-meta" style="font-size:.72rem;color:#6b7280;margin-bottom:8px;"></div>
+            <div id="raw-transcript-text" style="font-size:.82rem;color:#374151;line-height:1.6;white-space:pre-wrap;max-height:320px;overflow-y:auto;"></div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Right: live preview -->
@@ -1710,7 +1748,8 @@ const state = {
   lastTranscript: null,
   lastTranscriptMode: 'paste',
   lastChosenTemplate: null,
-  patientProfiles: {},   // keyed by patientKey (normalised name)
+  patientProfiles: {},
+  lastRecordingDuration: 0,  // seconds — wall-clock accurate
 };
 let db = null;
 
@@ -2382,6 +2421,14 @@ function getFields() {
   };
 }
 
+function toggleRawTranscript() {
+  const body = document.getElementById('raw-transcript-body');
+  const icon = document.getElementById('raw-transcript-toggle-icon');
+  const open = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  icon.textContent = open ? '▲' : '▼';
+}
+
 function newNote() {
   state.currentNoteId = null;
   ['e-patient','e-reg-number','e-date-display','e-time-start','e-time-end',
@@ -2400,6 +2447,9 @@ function newNote() {
   livePreview();
   switchTab('generate');
   document.getElementById('transcript-chip').style.display = 'none';
+  document.getElementById('session-stats-card').style.display = 'none';
+  document.getElementById('raw-transcript-section').style.display = 'none';
+  state.lastRecordingDuration = 0;
   toast('Ready for a new note');
 }
 
@@ -4356,7 +4406,7 @@ Your task is identical: return a structured Progress Note as a single JSON objec
 Key differences to handle: extract patient details from the narration, infer mental state from described observations, and treat all content as the doctor's clinical assessment.
 Return ONLY the raw JSON object — no markdown fences, no explanation.`;
 
-let _recorder = null, _recChunks = [], _recTimer = null, _recSeconds = 0, _recStream = null, _recMode = 'conversation';
+let _recorder = null, _recChunks = [], _recTimer = null, _recSeconds = 0, _recStartTime = 0, _recStream = null, _recMode = 'conversation';
 
 function _recFormatTime(s) {
   return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
@@ -4559,9 +4609,32 @@ async function processAudioAndGenerate(blob, mode) {
     const now = new Date();
     document.getElementById('e-date-display').value = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
     livePreview(); updateExportPreview(); updateEmailSubject();
-    switchTab('export');
-    const chip = document.getElementById('transcript-chip');
+
     const wc = transcript.trim().split(/\s+/).length;
+
+    // Populate session stats card
+    const recDur = state.lastRecordingDuration || 0;
+    if (recDur > 0) {
+      const durMins = Math.floor(recDur / 60);
+      const durSecs = recDur % 60;
+      document.getElementById('stat-duration').textContent = durMins > 0 ? `${durMins}m ${durSecs}s` : `${durSecs}s`;
+      document.getElementById('stat-words').textContent = wc.toLocaleString();
+      const wpm = recDur > 0 ? Math.round(wc / (recDur / 60)) : 0;
+      document.getElementById('stat-wpm').textContent = wpm;
+      document.getElementById('session-stats-card').style.display = '';
+    }
+
+    // Populate raw transcript section
+    if (transcript) {
+      document.getElementById('raw-transcript-meta').textContent = `${wc} words · ${mode === 'dictation' ? 'Dictation' : 'Recorded session'}`;
+      document.getElementById('raw-transcript-text').textContent = transcript;
+      document.getElementById('raw-transcript-section').style.display = '';
+      document.getElementById('raw-transcript-body').style.display = 'none';
+      document.getElementById('raw-transcript-toggle-icon').textContent = '▼';
+    }
+
+    switchTab('edit');
+    const chip = document.getElementById('transcript-chip');
     document.getElementById('transcript-chip-text').textContent = `${mode === 'dictation' ? 'Dictation' : 'Recording'}, ${wc} words${chosenTemplate ? ' · ' + chosenTemplate.title : ''}`;
     chip.style.display = 'inline-flex';
 
@@ -4632,13 +4705,13 @@ async function startDictateRecording() {
     _recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     _recMode = 'dictation';
     _showRecordingUI('dictate-state', 'dictate');
-    _recChunks = []; _recSeconds = 0;
+    _recChunks = []; _recSeconds = 0; _recStartTime = Date.now();
     _recorder = new MediaRecorder(_recStream);
     _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
     _recorder.start(1000);
     clearInterval(_recTimer);
     _recTimer = setInterval(() => {
-      _recSeconds++;
+      _recSeconds = Math.floor((Date.now() - _recStartTime) / 1000);
       const el = document.getElementById('dictate-timer');
       if (el) el.textContent = _recFormatTime(_recSeconds);
     }, 1000);
@@ -4799,19 +4872,21 @@ function _showRecordingUI(containerId, prefix) {
     </div>`;
 }
 function _startRecorderForSession(prefix) {
-  _recChunks = []; _recSeconds = 0;
+  _recChunks = []; _recSeconds = 0; _recStartTime = Date.now();
   _recorder = new MediaRecorder(_recStream);
   _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
   _recorder.start(1000);
   clearInterval(_recTimer);
   _recTimer = setInterval(() => {
-    _recSeconds++;
+    _recSeconds = Math.floor((Date.now() - _recStartTime) / 1000);
     const el = document.getElementById(prefix + '-timer');
     if (el) el.textContent = _recFormatTime(_recSeconds);
   }, 1000);
 }
 async function _stopAndProcess(prefix) {
   if (!_recorder) return;
+  const actualDuration = _recStartTime ? Math.floor((Date.now() - _recStartTime) / 1000) : _recSeconds;
+  state.lastRecordingDuration = actualDuration;
   clearInterval(_recTimer);
   _recorder.stop();
   const mode = _recMode;
@@ -5083,6 +5158,18 @@ function init() {
 
 // Deferred scripts (Firebase, jsPDF) execute just before DOMContentLoaded
 document.addEventListener('DOMContentLoaded', init);
+
+// Resync timer display when phone screen unlocks (setInterval pauses during lock)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && _recStartTime && _recTimer) {
+    _recSeconds = Math.floor((Date.now() - _recStartTime) / 1000);
+    const prefixes = ['record', 'dictate'];
+    for (const p of prefixes) {
+      const el = document.getElementById(p + '-timer');
+      if (el) el.textContent = _recFormatTime(_recSeconds);
+    }
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Settings Page
