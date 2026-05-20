@@ -4442,11 +4442,11 @@ function _micErrorToast(e) {
   } else if (e && e.name === 'NotFoundError') {
     toast('No microphone found. Check that your device has a working microphone.', 'error');
   } else {
-    _micErrorToast(e);
+    toast('Microphone access denied. Please allow microphone access and try again.', 'error');
   }
 }
 
-
+function _recFormatTime(s) {
   return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 }
 
