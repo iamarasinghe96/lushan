@@ -318,10 +318,7 @@
         <div class="field-row">
           <label>Groq API Key</label>
           <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" style="font-family:monospace;" />
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-          <input type="checkbox" id="st-groq-remember" style="width:auto;accent-color:var(--blue);cursor:pointer;" />
-          <label for="st-groq-remember" style="margin:0;font-size:.8rem;font-weight:500;color:var(--text2);cursor:pointer;">Remember on this device (saves across sessions)</label>
+          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">Stored securely in your account — available on any device you sign in with.</p>
         </div>
         <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:4px;">Save Key</button>
         <span id="st-groq-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
@@ -615,9 +612,8 @@ function populateSettings() {
   document.getElementById('st-name').value         = p.displayName || '';
   document.getElementById('st-credentials').value  = p.credentials || '';
   document.getElementById('st-email-pretext').value = p.emailPretext || '';
-  // Groq key (stored in localStorage, not Firestore)
-  document.getElementById('st-groq-key').value = sessionStorage.getItem('groq_api_key') || localStorage.getItem('groq_api_key') || '';
-  document.getElementById('st-groq-remember').checked = !!localStorage.getItem('groq_api_key');
+  // Groq key — source of truth is Firestore (profile.groqApiKey), sessionStorage is runtime cache
+  document.getElementById('st-groq-key').value = sessionStorage.getItem('groq_api_key') || p.groqApiKey || '';
   // Transcripts
   const tr = p.transcriptPrivacy || {};
   document.getElementById('st-redact-names').checked = !!tr.redactNames;
@@ -895,14 +891,15 @@ async function stDeleteCustomTemplate(tplId) {
 }
 
 // ── Groq key ──
-function stSaveGroqKey() {
+async function stSaveGroqKey() {
   const key = document.getElementById('st-groq-key').value.trim();
   if (!key) return;
   sessionStorage.setItem('groq_api_key', key);
-  if (document.getElementById('st-groq-remember').checked) {
-    localStorage.setItem('groq_api_key', key);
-  } else {
-    localStorage.removeItem('groq_api_key');
+  localStorage.removeItem('groq_api_key');
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ groqApiKey: key });
+  } catch(e) {
+    console.warn('Failed to save Groq key to Firestore:', e);
   }
   const saved = document.getElementById('st-groq-key-saved');
   saved.style.display = 'inline';

@@ -1686,7 +1686,7 @@ With regards,
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL    = 'llama-3.3-70b-versatile';
 const COLLECTION    = 'progress_notes';
-function getGroqKey() { return (sessionStorage.getItem('groq_api_key') || localStorage.getItem('groq_api_key') || '').trim(); }
+function getGroqKey() { return (sessionStorage.getItem('groq_api_key') || '').trim(); }
 const FREE_EMAIL    = 'lushhetti@gmail.com';
 const ADMIN_EMAIL   = 'iamarasinghe96@gmail.com';
 const WP_THEMES = [
@@ -1876,8 +1876,19 @@ function overlayClick(e) {
 }
 function saveSettings() {
   const groqKey = document.getElementById('s-groq-key').value.trim();
-  if (groqKey) { sessionStorage.setItem('groq_api_key', groqKey); localStorage.removeItem('groq_api_key'); }
-  else         { sessionStorage.removeItem('groq_api_key'); localStorage.removeItem('groq_api_key'); }
+  if (groqKey) {
+    sessionStorage.setItem('groq_api_key', groqKey);
+    localStorage.removeItem('groq_api_key');
+    if (db && currentUser) {
+      db.collection('users').doc(currentUser.uid).update({ groqApiKey: groqKey }).catch(() => {});
+    }
+  } else {
+    sessionStorage.removeItem('groq_api_key');
+    localStorage.removeItem('groq_api_key');
+    if (db && currentUser) {
+      db.collection('users').doc(currentUser.uid).update({ groqApiKey: '' }).catch(() => {});
+    }
+  }
   const fbCfg = document.getElementById('s-firebase-config').value.trim();
   if (fbCfg) {
     try { JSON.parse(fbCfg); localStorage.setItem('firebase_config', fbCfg); }
@@ -3598,6 +3609,10 @@ function startAuthListener() {
       return;
     }
     currentUser = { uid: user.uid, email: user.email, profile };
+    // Restore Groq API key from Firestore into sessionStorage on every sign-in
+    if (profile.groqApiKey && !sessionStorage.getItem('groq_api_key')) {
+      sessionStorage.setItem('groq_api_key', profile.groqApiKey);
+    }
     if (!profile.onboardingComplete) {
       showView('onboarding');
       startOnboarding();
