@@ -18,6 +18,7 @@ LushNotes_templates.md   — template source (markdown, not served directly)
 - **Working branch (push here):** `claude/continue-previous-work-7o43J`
 - All commits must be pushed to `claude/continue-previous-work-7o43J` to go live.
 - There is no `main` or `master` branch.
+- After every push, run `node --check` on the extracted script block to verify no syntax errors before pushing.
 
 ## Firebase Project
 - **Project ID:** `lush-note`
@@ -182,10 +183,59 @@ const state = {
 - `state.lastRecordingDuration` is set in `_stopAndProcess()` before stopping the recorder
 - Supports: Record Session (conversation), Dictate Note, Upload Recording (currently hidden)
 - Upload Recording is hidden (`display:none`) — code preserved, do NOT delete
+- Recording modals (`record-modal`, `dictate-modal`, `upload-modal`) are created dynamically
+  via `document.createElement` and `appendChild` — they are NOT in static HTML, this is intentional.
+
+## Two Settings Contexts — Do NOT Confuse
+There are two separate settings UIs. They are different elements, different functions, different scope.
+
+### 1. Quick Settings Modal (in-app overlay, line ~1220)
+- Element: `#settings-overlay` (`.modal-overlay`, `display:none`)
+- Opens via: user menu → settings icon
+- Functions: `showSettings()`, `closeSettings()` (~line 1875), `saveSettings()` (~line 1881)
+- Contains: Groq API key field (`#s-groq-key`), Firebase config field (`#s-firebase-config`)
+- Purpose: quick key management without leaving the app
+
+### 2. Full Settings Page (embedded view, line ~5662)
+- Element: `#view-settings` (`display:none;position:fixed;inset:0`)
+- Opens via: user menu → "Settings" link
+- Functions: `openSettings(tab)` (~line 5217), `closeSettings()` (~line 5264), `settingsNav(tab)`
+- Contains: Profile, Workplaces, Templates, Transcript Privacy, Personalisation tabs
+- Purpose: full account management
+
+**IMPORTANT**: Both contexts define `closeSettings()` — the one at line ~1875 is for the modal,
+the one at ~5264 is for the full view. They do not conflict because only one is active at a time,
+but do NOT merge or rename them.
+
+## Workplace Management — KNOWN BROKEN
+The full settings page renders workplaces via `renderAccountWorkplaces()`. This function
+generates onclick handlers that call:
+- `asAddWorkplace()`, `asSetActive(wpId)`, `asToggleEdit(wpId)`, `asDeleteWorkplace(wpId)`, `asSaveWpEdit(wpId)`
+
+**These functions are NOT defined in index.html.** Clicking workplace buttons throws
+`ReferenceError`. The equivalent functions (`wpAdd`, `wpToggleEdit`, `wpSave`, `wpDelete`)
+exist in `settings/index.html` but in a different execution context.
+
+**Do NOT silently add stubs.** When implementing workplace management in index.html,
+implement the full CRUD logic matching the settings page behaviour.
+
+## API Status Bar — KNOWN MISSING ELEMENTS
+`updateApiStatusBar()` (~line 1920) references these DOM element IDs that do NOT exist in HTML:
+- `#groq-dot`, `#groq-status-text` — Groq API key status indicator
+- `#fb-dot`, `#fb-status-text` — Firebase connection status indicator
+
+The function has null-checks so it doesn't crash, but the status indicators are invisible.
+If adding a status bar to the UI, use exactly these IDs and the existing function will populate them.
+
+## Dead Code (do not add more of the same)
+- `closeAccountSettings()` (~line 5502) — alias for `closeSettings()`, never called, do NOT use
+- `acctTab()` (~line 5505) — empty stub, never called, do NOT use
+Both exist as scaffolding remnants. Remove when refactoring that section.
 
 ## Safari / iOS Compatibility Rules
 - NO lookbehind regex (`(?<=...)`) — crashes Safari < iOS 16.4. Use `/[.!?]+\s+/` instead.
 - NO `??` nullish coalescing on older Safari — use ternary `(x !== null && x !== undefined ? x : y)`
+- Optional chaining `?.` is acceptable — supported Safari 13.1+ / iOS 13.4+ (2020)
 - Firebase `defer` scripts + `DOMContentLoaded` required to avoid blank page on iPad
 
 ## API Keys
@@ -201,6 +251,14 @@ const state = {
 - `switchTab(name)` auto-scrolls active tab into view with `scrollIntoView({inline:'center'})`
 - Hash mapping: `#generate`, `#edit`, `#export`, `#history`, `#patients`
 
+## Critical Flows (verified working by audit)
+- **Paste & Generate**: `pasteAndGenerate()` → `transcriptConfirmModal()` → `showTemplatePickerModal()` → `callGroq()` → `populateFields()` → `switchTab('edit')`
+- **Record Session**: `openRecordModal()` → `startInPersonRecord()` → `_startRecorderForSession()` → `_stopAndProcess()` → `processAudioAndGenerate()` → `switchTab('edit')`
+- **Dictate**: `openDictateModal()` → `startDictateRecording()` → `_stopAndProcess('dictate')` → `processAudioAndGenerate()` → `switchTab('edit')`
+- **History**: `switchTab('history')` → `loadHistoryData()` → `fbLoadHistory()` → `renderPatients()`
+- **Patient CRUD**: `openAddPatientModal()` → `pmSave()` → `savePatientProfile()`
+- After audio generation: stats card (`#session-stats-card`) and raw transcript (`#raw-transcript-section`) are shown in Edit tab
+
 ## DO NOT rules
 - Do NOT store patient data in localStorage or sessionStorage
 - Do NOT add hardcoded Groq API keys
@@ -213,3 +271,8 @@ const state = {
 - Do NOT add comments to code unless the WHY is non-obvious
 - Do NOT create new files unless explicitly required
 - Do NOT add `console.log` debug statements
+- Do NOT implement defensive code (timeouts, fallbacks, retries) without understanding the real failure mode
+- Do NOT add functions without verifying the element IDs they reference exist in the HTML
+- Do NOT add HTML element IDs without verifying any JS that references them is correct
+- Do NOT make changes to multiple systems at once — one concern per commit
+- ALWAYS run `node --check` on the extracted script after editing JS to catch syntax errors before pushing
