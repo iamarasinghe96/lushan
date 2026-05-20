@@ -5020,7 +5020,6 @@ function validateRegNumber() {
 }
 
 function initApp() {
-  updateApiStatusBar();
   loadPatientIndex();
   applyRegPattern();
   const clinEl = document.getElementById('e-clinician');
@@ -5030,6 +5029,12 @@ function initApp() {
   const startTab = _hashToTab[startHash];
   if (startTab) switchTab(startTab, { updateHash: false });
   else history.replaceState(null, '', '#generate');
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('key') === 'saved') {
+    history.replaceState(null, '', '#generate');
+    setTimeout(() => toast('Groq API key saved — you\'re all set!'), 400);
+  }
+  updateApiStatusBar();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

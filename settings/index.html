@@ -612,7 +612,7 @@ function populateSettings() {
   document.getElementById('st-credentials').value  = p.credentials || '';
   document.getElementById('st-email-pretext').value = p.emailPretext || '';
   // Groq key (stored in localStorage, not Firestore)
-  document.getElementById('st-groq-key').value = localStorage.getItem('groq_api_key') || '';
+  document.getElementById('st-groq-key').value = sessionStorage.getItem('groq_api_key') || localStorage.getItem('groq_api_key') || '';
   // Transcripts
   const tr = p.transcriptPrivacy || {};
   document.getElementById('st-redact-names').checked = !!tr.redactNames;
@@ -892,11 +892,12 @@ async function stDeleteCustomTemplate(tplId) {
 // ── Groq key ──
 function stSaveGroqKey() {
   const key = document.getElementById('st-groq-key').value.trim();
-  if (key) localStorage.setItem('groq_api_key', key);
-  else     localStorage.removeItem('groq_api_key');
+  if (!key) return;
+  sessionStorage.setItem('groq_api_key', key);
+  localStorage.removeItem('groq_api_key');
   const saved = document.getElementById('st-groq-key-saved');
   saved.style.display = 'inline';
-  setTimeout(() => { saved.style.display = 'none'; }, 2500);
+  setTimeout(() => { window.location.href = '../?key=saved#generate'; }, 900);
 }
 
 // ── Transcripts ──
