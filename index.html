@@ -814,6 +814,10 @@
 <div id="auth-loading-overlay" style="display:flex;position:fixed;inset:0;background:#fff;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
   <div style="width:40px;height:40px;border:3px solid #e5e7eb;border-top-color:#1d4ed8;border-radius:50%;animation:spin-global .7s linear infinite;"></div>
   <div style="font-size:.88rem;color:#6b7280;font-weight:600;letter-spacing:.02em;">Setting up your session…</div>
+  <div id="auth-loading-retry" style="display:none;margin-top:6px;text-align:center;">
+    <div style="font-size:.78rem;color:#9ca3af;margin-bottom:8px;">Taking longer than expected…</div>
+    <button onclick="location.reload()" style="padding:8px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:.83rem;font-weight:600;cursor:pointer;font-family:inherit;">Reload page</button>
+  </div>
 </div>
 <style>@keyframes spin-global{to{transform:rotate(360deg)}}</style>
 
@@ -3584,16 +3588,21 @@ function startAuthListener() {
   firebase.auth().onAuthStateChanged(async user => {
     if (!user) { showView('landing'); return; }
     const loadingEl = document.getElementById('auth-loading-overlay');
+    const retryEl  = document.getElementById('auth-loading-retry');
     if (loadingEl) loadingEl.style.display = 'flex';
+    if (retryEl)  retryEl.style.display = 'none';
+    // Show "Reload" button if loading takes more than 12 seconds
+    const retryTimer = setTimeout(() => { if (retryEl) retryEl.style.display = ''; }, 12000);
     // Force token refresh so email_verified claim is current in Firestore
-    try { await user.getIdToken(true); } catch(e) {}
-    // Retry profile load up to 3 times with short delay
+    try { await Promise.race([user.getIdToken(true), new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 8000))]); } catch(e) {}
+    // Retry profile load up to 3 times, 8-second timeout per attempt
     let profile = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) await new Promise(r => setTimeout(r, 1500));
       profile = await loadUserProfile(user.uid);
       if (profile !== null) break;
     }
+    clearTimeout(retryTimer);
     if (loadingEl) loadingEl.style.display = 'none';
     if (!profile) {
       // All retries failed — network issue
@@ -3627,14 +3636,15 @@ function startAuthListener() {
 
 async function loadUserProfile(uid) {
   if (!db) return null;
+  const timeout = new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 8000));
   try {
-    const doc = await db.collection('users').doc(uid).get();
+    const doc = await Promise.race([db.collection('users').doc(uid).get(), timeout]);
     if (doc.exists) return doc.data();
     // Document doesn't exist yet — new user, return sentinel
     return { __missing: true };
   } catch(e) {
-    console.warn('Profile load error:', e.code, e.message);
-    return null; // null = transient error (App Check/network), retry
+    console.warn('Profile load error:', e.code || e.message, e.message);
+    return null; // null = transient error (App Check/network/timeout), retry
   }
 }
 
