@@ -1226,22 +1226,22 @@ With regards,
         <button class="ob-btn ob-btn-secondary" onclick="obBack(3)">Back</button>
       </div>
 
-      <!-- Step 4: Groq API Key -->
+      <!-- Step 4: Gemini API Key -->
       <div id="ob-step-4" class="ob-card" style="display:none;">
         <div class="ob-step-label">Step 4 of 5</div>
-        <h2>Your Groq API Key</h2>
-        <p style="font-size:.84rem;color:var(--gray);margin-bottom:14px;">LushNote uses Groq to transcribe recordings and generate clinical notes. You need a free personal API key to use these features.</p>
+        <h2>Your Gemini API Key</h2>
+        <p style="font-size:.84rem;color:var(--gray);margin-bottom:14px;">LushNote uses Gemini to transcribe recordings and generate clinical notes. You need a free personal API key to use these features.</p>
         <div class="ob-info-box" style="margin-bottom:16px;">
           <strong>Get your free key in 30 seconds:</strong><br>
-          Visit <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a>, sign in, click <strong>Create API key</strong>, and paste it below.
+          Visit <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">aistudio.google.com/api-keys</a>, sign in, click <strong>Create API key</strong>, and paste it below.
         </div>
         <div class="ob-field">
-          <label>Groq API Key <span style="font-weight:400;color:#9ca3af;">(optional — you can add it later)</span></label>
-          <input type="password" id="ob-groq-key" placeholder="gsk_..." autocomplete="off" oninput="document.getElementById('ob-groq-next').textContent=this.value.trim()?'Next':'Skip for now'" />
+          <label>Gemini API Key <span style="font-weight:400;color:#9ca3af;">(optional — you can add it later)</span></label>
+          <input type="password" id="ob-gemini-key" placeholder="AIza..." autocomplete="off" oninput="document.getElementById('ob-gemini-next').textContent=this.value.trim()?'Next':'Skip for now'" />
         </div>
-        <div id="ob-groq-error" style="font-size:.82rem;color:#dc2626;margin-bottom:10px;display:none;"></div>
+        <div id="ob-gemini-error" style="font-size:.82rem;color:#dc2626;margin-bottom:10px;display:none;"></div>
         <p style="font-size:.76rem;color:#9ca3af;margin:0 0 20px;">You can add or update this anytime via the settings icon in the top bar.</p>
-        <button class="ob-btn" id="ob-groq-next" onclick="obNext(4)">Skip for now</button>
+        <button class="ob-btn" id="ob-gemini-next" onclick="obNext(4)">Skip for now</button>
         <button class="ob-btn ob-btn-secondary" onclick="obBack(4)">Back</button>
       </div>
 
@@ -1266,6 +1266,13 @@ With regards,
       <button class="modal-close" onclick="closeSettings()">✕</button>
     </div>
     <div class="modal-body">
+      <div class="field-row">
+        <label>Gemini API Key <span style="font-size:.75rem;font-weight:500;color:#6b7280;">(recommended — audio &amp; note generation)</span></label>
+        <input type="password" id="s-gemini-key" placeholder="AIza..." autocomplete="off" />
+        <div style="font-size:.77rem;color:#6b7280;margin-top:6px;line-height:1.65;">
+          Get a free key at <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">aistudio.google.com/api-keys</a>. No credit card needed.
+        </div>
+      </div>
       <div class="field-row">
         <label>Your Groq API Key <span style="font-size:.75rem;font-weight:500;color:#6b7280;">(required for audio features)</span></label>
         <input type="password" id="s-groq-key" placeholder="gsk_..." autocomplete="off" />
@@ -1737,6 +1744,7 @@ const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL    = 'llama-3.3-70b-versatile';
 const COLLECTION    = 'progress_notes';
 function getGroqKey() { return (sessionStorage.getItem('groq_api_key') || '').trim(); }
+function getGeminiKey() { return (sessionStorage.getItem('gemini_api_key') || '').trim(); }
 const FREE_EMAIL    = 'lushhetti@gmail.com';
 const ADMIN_EMAIL   = 'iamarasinghe96@gmail.com';
 const WP_THEMES = [
@@ -1914,6 +1922,7 @@ function normalisePatientKey(name) {
 // Settings Modal
 // ─────────────────────────────────────────────────────────────────────────────
 function showSettings() {
+  document.getElementById('s-gemini-key').value      = sessionStorage.getItem('gemini_api_key') || '';
   document.getElementById('s-groq-key').value       = sessionStorage.getItem('groq_api_key') || '';
   document.getElementById('s-firebase-config').value = localStorage.getItem('firebase_config') || '';
   document.getElementById('settings-overlay').style.display = 'flex';
@@ -1925,6 +1934,18 @@ function overlayClick(e) {
   if (e.target === document.getElementById('settings-overlay')) closeSettings();
 }
 function saveSettings() {
+  const geminiKey = document.getElementById('s-gemini-key').value.trim();
+  if (geminiKey) {
+    sessionStorage.setItem('gemini_api_key', geminiKey);
+    if (db && currentUser) {
+      db.collection('users').doc(currentUser.uid).update({ geminiApiKey: geminiKey }).catch(() => {});
+    }
+  } else {
+    sessionStorage.removeItem('gemini_api_key');
+    if (db && currentUser) {
+      db.collection('users').doc(currentUser.uid).update({ geminiApiKey: '' }).catch(() => {});
+    }
+  }
   const groqKey = document.getElementById('s-groq-key').value.trim();
   if (groqKey) {
     sessionStorage.setItem('groq_api_key', groqKey);
@@ -3668,6 +3689,9 @@ function startAuthListener() {
     if (profile.groqApiKey && !sessionStorage.getItem('groq_api_key')) {
       sessionStorage.setItem('groq_api_key', profile.groqApiKey);
     }
+    if (profile.geminiApiKey && !sessionStorage.getItem('gemini_api_key')) {
+      sessionStorage.setItem('gemini_api_key', profile.geminiApiKey);
+    }
     if (!profile.onboardingComplete) {
       showView('onboarding');
       startOnboarding();
@@ -3721,6 +3745,7 @@ async function doSignOut() {
   closeUserMenu();
   await firebase.auth().signOut();
   sessionStorage.removeItem('groq_api_key');
+  sessionStorage.removeItem('gemini_api_key');
   currentUser = null;
   state.currentNoteId   = null;
   state.allNotes        = [];
@@ -3912,26 +3937,25 @@ function obNext(currentStep) {
     onboardingData.emailPretext = document.getElementById('ob-tpl-text-' + selIdx).value;
     obShowStep(4);
   } else if (currentStep === 4) {
-    const key = document.getElementById('ob-groq-key').value.trim();
-    const errEl = document.getElementById('ob-groq-error');
-    if (key && !key.startsWith('gsk_')) {
-      errEl.textContent = 'Groq keys start with gsk_ — check your key and try again.';
+    const key = document.getElementById('ob-gemini-key').value.trim();
+    const errEl = document.getElementById('ob-gemini-error');
+    if (key && !key.startsWith('AIza')) {
+      errEl.textContent = 'Gemini keys start with AIza — check your key and try again.';
       errEl.style.display = '';
       return;
     }
     errEl.style.display = 'none';
-    onboardingData.groqKey = key;
-    // Build summary for confirm step
+    onboardingData.geminiKey = key;
     const p = onboardingData;
     const wps = p.workplaces || [];
     const wpSummary = wps.map(w => `${esc(w.name)} <span style="color:#6b7280;font-size:.85em;">(${esc(w.type)})</span>`).join('<br>') || '—';
-    const keyStatus = key ? '<span style="color:#16a34a;font-weight:600;">Set ✓</span>' : '<span style="color:#f59e0b;">Not set — add later in Settings</span>';
+    const keyStatus = key ? '<span style="color:#16a34a;font-weight:600;">Set ✓</span>' : '<span style="color:#f59e0b;">Not set — add later in Settings → API Keys</span>';
     document.getElementById('ob-summary').innerHTML = `
       <div class="ob-summary-row"><span class="ob-summary-label">Name</span><span>${esc(p.displayName)}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Credentials</span><span>${esc(p.credentials || '—')}</span></div>
       <div class="ob-summary-row" style="align-items:flex-start"><span class="ob-summary-label">Workplaces</span><span>${wpSummary}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Email template</span><span>${esc((p.emailPretext || '').slice(0,60))}…</span></div>
-      <div class="ob-summary-row"><span class="ob-summary-label">Groq API key</span>${keyStatus}</div>
+      <div class="ob-summary-row"><span class="ob-summary-label">Gemini API key</span>${keyStatus}</div>
     `;
     obShowStep(5);
   }
@@ -3975,9 +3999,9 @@ async function obComplete() {
       tier: 'free',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     };
-    if (d.groqKey) profileData.groqApiKey = d.groqKey;
+    if (d.geminiKey) profileData.geminiApiKey = d.geminiKey;
     await db.collection('users').doc(currentUser.uid).set(profileData, { merge: true });
-    if (d.groqKey) sessionStorage.setItem('groq_api_key', d.groqKey);
+    if (d.geminiKey) sessionStorage.setItem('gemini_api_key', d.geminiKey);
     currentUser.profile = {
       ...currentUser.profile,
       displayName: d.displayName,
@@ -4447,7 +4471,7 @@ function showTemplatePickerModal(contentHint, opts = {}) {
 function _hasPersonalGroqKey() { return !!getGroqKey(); }
 
 function _checkGroqAudioKey(onProceed) {
-  if (_hasPersonalGroqKey()) { onProceed(); return; }
+  if (getGeminiKey() || _hasPersonalGroqKey()) { onProceed(); return; }
 
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9900;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -4455,13 +4479,13 @@ function _checkGroqAudioKey(onProceed) {
     <div style="background:#fff;border-radius:20px;max-width:480px;width:100%;padding:28px 26px;box-shadow:0 24px 64px rgba(15,23,42,.16);">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
         <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <h3 style="font-size:1rem;font-weight:700;margin:0;">Personal Groq API Key Required</h3>
+        <h3 style="font-size:1rem;font-weight:700;margin:0;">API Key Required</h3>
       </div>
       <p style="font-size:.84rem;color:#475569;margin:10px 0 22px;line-height:1.6;">
-        Audio features use Groq's speech-to-text API. Add your free personal key in Settings to get started.
+        Audio features require an AI API key. Add your free Gemini key in Settings to get started (recommended), or a Groq key if you already have one.
       </p>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <button id="_gk-settings-btn" style="padding:11px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;">Add my Groq key in Settings</button>
+        <button id="_gk-settings-btn" style="padding:11px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;">Add API key in Settings</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
