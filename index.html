@@ -4587,7 +4587,10 @@ async function _geminiErrorMsg(res, rawText) {
   _dbg('_geminiErrorMsg', { status: res.status, msg, raw: (rawText || '').slice(0, 300) });
   if (res.status === 400 && msg.toLowerCase().includes('api key')) return 'Invalid Gemini API key. Please check Settings → API Keys.';
   if (res.status === 401 || res.status === 403) return 'Invalid or expired Gemini API key. Please update it in Settings → API Keys.';
-  if (res.status === 429) return msg.toLowerCase().includes('quota') ? 'Daily Gemini quota reached. Try again tomorrow or upgrade your Google AI Studio plan.' : 'Gemini rate limit reached. Please wait a moment and try again.';
+  if (res.status === 429) {
+    if (msg.includes('limit: 0')) return 'Gemini quota not available (limit: 0). Go to aistudio.google.com/api-keys, delete your key, and create a new one with Create project → Create API key in new project.';
+    return msg.toLowerCase().includes('quota') ? 'Daily Gemini quota reached. Try again tomorrow or upgrade your Google AI Studio plan.' : 'Gemini rate limit reached. Please wait a moment and try again.';
+  }
   if (res.status >= 500) return 'Gemini service error. Please try again in a moment.';
   return msg || ('Gemini error ' + res.status);
 }
