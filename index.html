@@ -1338,6 +1338,15 @@ With regards,
   <!-- ══════════════════════ TAB 1 – GENERATE ══════════════════════ -->
   <div id="tab-generate" class="tab-panel active">
 
+    <div id="interrupted-banner" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px 16px;margin-bottom:18px;display:none;align-items:flex-start;gap:12px;">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="flex:1;min-width:0;">
+        <strong style="font-size:.85rem;color:#92400e;display:block;margin-bottom:2px;">Previous session was interrupted</strong>
+        <p id="interrupted-banner-msg" style="font-size:.81rem;color:#b45309;margin:0;line-height:1.5;"></p>
+      </div>
+      <button onclick="dismissInterruptedBanner()" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#b45309;font-size:1.1rem;line-height:1;padding:2px 4px;">&times;</button>
+    </div>
+
     <div class="input-mode-grid">
       <div class="input-mode-card" onclick="pasteAndGenerate()">
         <div class="imc-icon"><svg fill="none" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -4418,6 +4427,34 @@ Return ONLY the raw JSON object — no markdown fences, no explanation.`;
 
 let _recorder = null, _recChunks = [], _recTimer = null, _recSeconds = 0, _recStartTime = 0, _recStream = null, _recMode = 'conversation';
 
+window.addEventListener('beforeunload', e => {
+  if (_recorder && _recorder.state === 'recording') {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+function _recMarkInterrupted(mode) {
+  localStorage.setItem('_ln_rec_interrupted', JSON.stringify({ ts: new Date().toISOString(), mode, startTime: _recStartTime }));
+}
+function _recClearInterrupted() {
+  localStorage.removeItem('_ln_rec_interrupted');
+}
+function showInterruptedBanner(data) {
+  const banner = document.getElementById('interrupted-banner');
+  const msg = document.getElementById('interrupted-banner-msg');
+  if (!banner || !msg) return;
+  const modeLabel = data.mode === 'dictate' ? 'dictation' : 'recording';
+  const when = data.ts ? new Date(data.ts).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'a previous session';
+  msg.textContent = `The app closed during a ${modeLabel} started at ${when}. The audio could not be recovered — please record again when ready.`;
+  banner.style.display = 'flex';
+}
+function dismissInterruptedBanner() {
+  const banner = document.getElementById('interrupted-banner');
+  if (banner) banner.style.display = 'none';
+  _recClearInterrupted();
+}
+
 // TEMP DEBUG — remove before production (see CLAUDE.md)
 function debugLog(event, data) {
   if (!db || !currentUser) return;
@@ -4757,6 +4794,7 @@ async function startDictateRecording() {
     _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
     _recorder.start(1000);
     clearInterval(_recTimer);
+    _recMarkInterrupted('dictate');
     // TEMP DEBUG — remove before production (see CLAUDE.md)
     const rdD = (currentUser && currentUser.profile && currentUser.profile.recordingDefaults) || {};
     debugLog('rec_start', { mode: 'dictate', autoStop: rdD.autoStop !== false, autoStopMinutes: rdD.autoStopMinutes || 60, mimeType: _recorder.mimeType });
@@ -4764,6 +4802,7 @@ async function startDictateRecording() {
       _recSeconds = Math.floor((Date.now() - _recStartTime) / 1000);
       const el = document.getElementById('dictate-timer');
       if (el) el.textContent = _recFormatTime(_recSeconds);
+      if (_recSeconds > 0 && _recSeconds % 60 === 0) _recMarkInterrupted('dictate');
       // TEMP DEBUG — remove before production (see CLAUDE.md)
       if (_recSeconds > 0 && _recSeconds % 300 === 0) debugLog('rec_heartbeat', { elapsed_secs: _recSeconds, chunks: _recChunks.length, recorder_state: _recorder ? _recorder.state : 'null' });
     }, 1000);
@@ -4929,6 +4968,7 @@ function _startRecorderForSession(prefix) {
   _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
   _recorder.start(1000);
   clearInterval(_recTimer);
+  _recMarkInterrupted(prefix);
   // TEMP DEBUG — remove before production (see CLAUDE.md)
   const rd = (currentUser && currentUser.profile && currentUser.profile.recordingDefaults) || {};
   debugLog('rec_start', { mode: prefix, autoStop: rd.autoStop !== false, autoStopMinutes: rd.autoStopMinutes || 60, mimeType: _recorder.mimeType });
@@ -4936,6 +4976,7 @@ function _startRecorderForSession(prefix) {
     _recSeconds = Math.floor((Date.now() - _recStartTime) / 1000);
     const el = document.getElementById(prefix + '-timer');
     if (el) el.textContent = _recFormatTime(_recSeconds);
+    if (_recSeconds > 0 && _recSeconds % 60 === 0) _recMarkInterrupted(prefix);
     // TEMP DEBUG — remove before production (see CLAUDE.md)
     if (_recSeconds > 0 && _recSeconds % 300 === 0) debugLog('rec_heartbeat', { elapsed_secs: _recSeconds, chunks: _recChunks.length, recorder_state: _recorder ? _recorder.state : 'null' });
   }, 1000);
@@ -4944,6 +4985,7 @@ async function _stopAndProcess(prefix) {
   if (!_recorder) return;
   const actualDuration = _recStartTime ? Math.floor((Date.now() - _recStartTime) / 1000) : _recSeconds;
   state.lastRecordingDuration = actualDuration;
+  _recClearInterrupted();
   // TEMP DEBUG — remove before production (see CLAUDE.md)
   debugLog('rec_stop', { stoppedBy: 'user', durationSecs: actualDuration, chunks: _recChunks.length, blobSizeKb: Math.round(_recChunks.reduce((s, c) => s + c.size, 0) / 1024) });
   clearInterval(_recTimer);
@@ -5193,6 +5235,8 @@ function initApp() {
     setTimeout(() => toast('Groq API key saved — you\'re all set!'), 400);
   }
   updateApiStatusBar();
+  const interrupted = localStorage.getItem('_ln_rec_interrupted');
+  if (interrupted) { try { showInterruptedBanner(JSON.parse(interrupted)); } catch(e) {} }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
