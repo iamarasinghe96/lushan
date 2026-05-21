@@ -4859,6 +4859,7 @@ async function startDictateRecording() {
       if (_recSeconds > 0 && _recSeconds % 60 === 0) _recMarkInterrupted('dictate');
       // TEMP DEBUG — remove before production (see CLAUDE.md)
       if (_recSeconds > 0 && _recSeconds % 300 === 0) debugLog('rec_heartbeat', { elapsed_secs: _recSeconds, chunks: _recChunks.length, recorder_state: _recorder ? _recorder.state : 'null' });
+      if (rdD.autoStop !== false && _recSeconds >= (rdD.autoStopMinutes || 60) * 60) { _stopAndProcess('dictate'); }
     }, 1000);
   } catch(e) {
     _micErrorToast(e);
@@ -5033,6 +5034,7 @@ function _startRecorderForSession(prefix) {
     if (_recSeconds > 0 && _recSeconds % 60 === 0) _recMarkInterrupted(prefix);
     // TEMP DEBUG — remove before production (see CLAUDE.md)
     if (_recSeconds > 0 && _recSeconds % 300 === 0) debugLog('rec_heartbeat', { elapsed_secs: _recSeconds, chunks: _recChunks.length, recorder_state: _recorder ? _recorder.state : 'null' });
+    if (rd.autoStop !== false && _recSeconds >= (rd.autoStopMinutes || 60) * 60) { _stopAndProcess(prefix); }
   }, 1000);
 }
 async function _stopAndProcess(prefix) {
