@@ -2254,7 +2254,7 @@ async function pasteAndGenerate() {
     const endM = String(now.getMinutes()).padStart(2,'0');
 
     const tplPrompt0 = await resolveTemplatePrompt(chosenTemplate);
-    const structured = await callGroq(transcript, groqKey, tplPrompt0);
+    const structured = await callGroqWithMode(transcript, 'paste', tplPrompt0);
     const data = parseJson(structured);
     if (!data) throw new Error('Could not parse AI response as JSON. Try again.');
     if (confirmResult.patient) data.patient = confirmResult.patient;
@@ -2570,13 +2570,8 @@ async function changeTemplate() {
   setLoading(true, 'Regenerating with new template…');
   try {
     let raw;
-    if (state.lastTranscriptMode === 'paste') {
-      const tplPrompt1 = await resolveTemplatePrompt(chosenTemplate);
-      raw = await callGroq(state.lastTranscript, groqKey, tplPrompt1);
-    } else {
-      const tplPrompt2 = await resolveTemplatePrompt(chosenTemplate);
-      raw = await callGroqWithMode(state.lastTranscript, state.lastTranscriptMode, tplPrompt2);
-    }
+    const tplPrompt1 = await resolveTemplatePrompt(chosenTemplate);
+    raw = await callGroqWithMode(state.lastTranscript, state.lastTranscriptMode || 'paste', tplPrompt1);
     const data = parseJson(raw);
     if (!data) throw new Error('Could not parse AI response. Try again.');
     populateFields(data);
