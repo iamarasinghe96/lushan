@@ -4539,6 +4539,11 @@ async function transcribeAudio(blob) {
   const ext = (blob.type||'').includes('ogg') ? 'ogg' : (blob.type||'').includes('mp4') ? 'mp4' : 'webm';
   // TEMP DEBUG — remove before production (see CLAUDE.md)
   debugLog('transcribe_start', { blobSizeKb: Math.round(blob.size / 1024), blobType: blob.type, ext });
+  const MAX_BYTES = 24 * 1024 * 1024;
+  if (blob.size > MAX_BYTES) {
+    const mb = Math.round(blob.size / 1024 / 1024);
+    throw new Error(`Recording is too large to transcribe (${mb} MB). Groq's limit is 25 MB. Please use a shorter recording (under 20 minutes) or reduce your auto-stop time in Settings → Recording Defaults.`);
+  }
   const form = new FormData();
   form.append('file', blob, `recording.${ext}`);
   form.append('model', 'whisper-large-v3-turbo');
@@ -4550,7 +4555,9 @@ async function transcribeAudio(blob) {
   });
   if (!res.ok) {
     const e = await res.json().catch(()=>({}));
-    const errMsg = e.error && e.error.message ? e.error.message : ('Transcription error ' + res.status);
+    const errMsg = res.status === 413
+      ? `Recording too large for Groq (${Math.round(blob.size/1024/1024)} MB — limit is 25 MB). Please record shorter sessions.`
+      : (e.error && e.error.message ? e.error.message : ('Transcription error ' + res.status));
     // TEMP DEBUG — remove before production (see CLAUDE.md)
     debugLog('transcribe_error', { status: res.status, message: errMsg, blobSizeKb: Math.round(blob.size / 1024) });
     throw new Error(errMsg);
@@ -4844,7 +4851,7 @@ async function startDictateRecording() {
     _recMode = 'dictation';
     _showRecordingUI('dictate-state', 'dictate');
     _recChunks = []; _recSeconds = 0; _recStartTime = Date.now();
-    _recorder = new MediaRecorder(_recStream);
+    _recorder = new MediaRecorder(_recStream, { audioBitsPerSecond: 48000 });
     _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
     _recorder.start(1000);
     clearInterval(_recTimer);
@@ -5019,7 +5026,7 @@ function _showRecordingUI(containerId, prefix) {
 }
 function _startRecorderForSession(prefix) {
   _recChunks = []; _recSeconds = 0; _recStartTime = Date.now();
-  _recorder = new MediaRecorder(_recStream);
+  _recorder = new MediaRecorder(_recStream, { audioBitsPerSecond: 48000 });
   _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
   _recorder.start(1000);
   clearInterval(_recTimer);
