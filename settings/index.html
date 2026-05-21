@@ -188,10 +188,9 @@
         <h2 class="st-section-h">Personal Information</h2>
         <div class="field-row" style="margin-bottom:12px;">
           <label>Signed in as</label>
-          <div id="st-signed-in-email" style="font-size:.88rem;color:#374151;padding:8px 10px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;display:flex;align-items:center;gap:8px;">
-            <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.8 19.8 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72 12.8 12.8 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.8 12.8 0 002.81.7A2 2 0 0122 16.92z" stroke="#6b7280" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <svg width="15" height="15" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-            <span id="st-email-display" style="color:#111827;font-weight:500;"></span>
+          <div style="display:inline-flex;align-items:center;gap:7px;font-size:.88rem;color:#111827;font-weight:500;margin-top:2px;">
+            <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            <span id="st-email-display"></span>
           </div>
         </div>
         <div class="two-col">
@@ -1003,7 +1002,7 @@ function openDeleteAccountModal() {
       <div id="da-error" style="font-size:.82rem;color:#dc2626;margin-bottom:12px;display:none;"></div>
       <div style="display:flex;gap:10px;">
         <button id="da-cancel-btn" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-family:inherit;color:#374151;font-weight:500;">Cancel</button>
-        <button id="da-delete-btn" style="flex:2;padding:10px;border:none;border-radius:10px;background:#dc2626;color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;font-family:inherit;">Delete my account permanently</button>
+        <button id="da-delete-btn" style="flex:2;padding:10px;border:none;border-radius:10px;background:#dc2626;color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;font-family:inherit;">Confirm &amp; delete my account</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -1019,32 +1018,28 @@ function openDeleteAccountModal() {
     const btn = overlay.querySelector('#da-delete-btn');
     const errEl = overlay.querySelector('#da-error');
     btn.disabled = true;
-    btn.textContent = 'Sending confirmation…';
+    btn.textContent = 'Opening Google sign-in…';
     errEl.style.display = 'none';
     try {
-      await sendDeletionConfirmEmail(reasons, message);
-      overlay.querySelector('div').innerHTML = `
-        <div style="text-align:center;padding:12px 0;">
-          <svg width="48" height="48" fill="none" viewBox="0 0 24 24" style="color:#2563eb;margin-bottom:16px;"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M2 8l10 6 10-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <h3 style="font-size:1.05rem;font-weight:700;color:#111827;margin:0 0 10px;">Check your email</h3>
-          <p style="font-size:.85rem;color:#6b7280;line-height:1.65;margin:0 0 8px;">We sent a confirmation link to <strong style="color:#111827;">${esc(currentUser.email)}</strong>.</p>
-          <p style="font-size:.82rem;color:#9ca3af;line-height:1.6;margin:0 0 24px;">Click the link to permanently delete your account. It expires in 1 hour. If you change your mind, just ignore it.</p>
-          <button onclick="document.getElementById('da-overlay').remove()" style="padding:10px 24px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-family:inherit;color:#374151;font-weight:500;">Close</button>
-        </div>`;
+      await deleteAccountWithGoogleReauth(reasons, message);
     } catch(e) {
       btn.disabled = false;
       btn.textContent = 'Delete my account permanently';
       errEl.style.display = '';
-      errEl.textContent = e.message || 'Failed to send confirmation email. Please try again.';
+      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+        errEl.textContent = 'Sign-in cancelled. Please try again to confirm deletion.';
+      } else {
+        errEl.textContent = e.message || 'Something went wrong. Please try again.';
+      }
     }
   };
 }
 
-async function sendDeletionConfirmEmail(reasons, message) {
-  const email = currentUser.email;
+async function deleteAccountWithGoogleReauth(reasons, message) {
   const uid = currentUser.uid;
+  const email = currentUser.email;
 
-  // Save feedback now — best-effort before sending link
+  // Save feedback best-effort
   try {
     await db.collection('deletion_feedback').doc(uid).set({
       userId: uid, email, reasons, message,
@@ -1052,13 +1047,33 @@ async function sendDeletionConfirmEmail(reasons, message) {
     });
   } catch(e) {}
 
-  // Store email for the confirm page to use (standard Firebase email link pattern)
-  localStorage.setItem('emailForSignIn', email);
+  // Re-authenticate with Google popup (required by Firebase before account deletion)
+  const provider = new firebase.auth.GoogleAuthProvider();
+  await firebase.auth().currentUser.reauthenticateWithPopup(provider);
 
-  await firebase.auth().sendSignInLinkToEmail(email, {
-    url: 'https://iamarasinghe96.github.io/lushan/account-delete-confirm/',
-    handleCodeInApp: true
-  });
+  // Delete progress notes
+  const notes = await db.collection('progress_notes').where('userId', '==', uid).limit(500).get();
+  if (!notes.empty) {
+    const batch = db.batch();
+    notes.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  }
+
+  // Delete patient profiles
+  const profiles = await db.collection('users').doc(uid).collection('patientProfiles').get();
+  if (!profiles.empty) {
+    const batch2 = db.batch();
+    profiles.docs.forEach(doc => batch2.delete(doc.ref));
+    await batch2.commit();
+  }
+
+  // Delete user document
+  await db.collection('users').doc(uid).delete();
+
+  // Delete auth account
+  await firebase.auth().currentUser.delete();
+
+  window.location.href = '../account-deleted/';
 }
 
 // Handle ?tab= param in URL
