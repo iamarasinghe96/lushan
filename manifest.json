@@ -1,0 +1,17 @@
+{
+  "name": "LushNote",
+  "short_name": "LushNote",
+  "description": "Clinical note builder for psychiatrists",
+  "start_url": "/lushan/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='lgb' cx='42%25' cy='36%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%233da843'/%3E%3Cstop offset='100%25' stop-color='%231e6b22'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='url(%23lgb)'/%3E%3Ctext x='50' y='64' font-family='Arial Black%2CArial%2Csans-serif' font-weight='900' font-size='36' fill='white' text-anchor='middle' letter-spacing='3'%3ELN%3C/text%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

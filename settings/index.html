@@ -404,6 +404,14 @@
         <p style="font-size:.84rem;color:var(--gray);margin:0;">LushNote is in active development. If you have feedback or suggestions, we'd welcome hearing from you.</p>
       </div>
       <div class="st-section">
+        <h2 class="st-section-h">Add to Home Screen</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Install LushNote on your device for quick access without opening a browser.</p>
+        <button class="btn btn-outline" onclick="stAddToHome()">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 2v13M8 7l4-5 4 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add to Home Screen
+        </button>
+      </div>
+      <div class="st-section">
         <h2 class="st-section-h">Share LushNote</h2>
         <p style="font-size:.83rem;color:#6b7280;margin-bottom:16px;">Know a fellow clinician who could benefit? Share LushNote with a colleague.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -1098,6 +1106,48 @@ async function deleteAccountWithGoogleReauth(reasons, message) {
 // Handle ?tab= param in URL
 const urlTab = new URLSearchParams(window.location.search).get('tab');
 if (urlTab) settingsNav(urlTab);
+
+// ── Add to Home Screen ──
+let _stA2hsPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _stA2hsPrompt = e; });
+
+function _stIsIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream; }
+function _stIsStandalone() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+
+function stAddToHome() {
+  if (_stIsStandalone()) { toast('LushNote is already installed on your device.'); return; }
+  if (!_stIsIOS() && _stA2hsPrompt) { _stA2hsPrompt.prompt(); _stA2hsPrompt.userChoice.then(() => { _stA2hsPrompt = null; }); return; }
+  if (!_stIsIOS()) { toast('To install, use your browser menu and look for "Install app" or "Add to Home Screen".'); return; }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9990;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px 20px 0 0;max-width:480px;width:100%;padding:28px 24px 32px;box-shadow:0 -8px 40px rgba(0,0,0,.18);">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="44" height="44" style="border-radius:12px;flex-shrink:0;">
+          <defs><radialGradient id="lgb-st" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
+          <circle cx="50" cy="50" r="50" fill="url(#lgb-st)"/><text x="50" y="64" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+        </svg>
+        <div><div style="font-size:1rem;font-weight:700;color:#111827;">Add to Home Screen</div><div style="font-size:.82rem;color:#6b7280;margin-top:2px;">Quick access from your home screen</div></div>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="margin-left:auto;background:none;border:none;font-size:1.4rem;color:#9ca3af;cursor:pointer;line-height:1;padding:4px;">&times;</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:14px;background:#f9fafb;border-radius:14px;padding:14px 16px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+          <div style="flex:1;"><div style="font-size:.88rem;font-weight:600;color:#111827;margin-bottom:3px;">Tap the Share button</div><div style="font-size:.8rem;color:#6b7280;">In Safari, tap the share icon at the bottom of the screen</div></div>
+          <svg width="32" height="32" viewBox="0 0 44 44" fill="none" style="flex-shrink:0;opacity:.85;"><rect width="44" height="44" rx="10" fill="#e5e7eb"/><path d="M22 6v20M15 13l7-7 7 7" stroke="#374151" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="10" y="26" width="24" height="14" rx="3" stroke="#374151" stroke-width="2" fill="none"/></svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;background:#f9fafb;border-radius:14px;padding:14px 16px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+          <div style="flex:1;"><div style="font-size:.88rem;font-weight:600;color:#111827;margin-bottom:3px;">Tap "Add to Home Screen"</div><div style="font-size:.8rem;color:#6b7280;">Scroll down in the share sheet and tap this option</div></div>
+          <svg width="32" height="32" viewBox="0 0 44 44" fill="none" style="flex-shrink:0;opacity:.85;"><rect width="44" height="44" rx="10" fill="#e5e7eb"/><rect x="8" y="12" width="28" height="20" rx="3" stroke="#374151" stroke-width="2" fill="none"/><path d="M22 17v8M18 21l4 4 4-4" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div style="font-size:.78rem;color:#9ca3af;text-align:center;">Open LushNote in Safari to use this feature</div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
 </script>
 </body>
 </html>
