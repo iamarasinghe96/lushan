@@ -4401,23 +4401,11 @@ function _checkGroqAudioKey(onProceed) {
         <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <h3 style="font-size:1rem;font-weight:700;margin:0;">Personal Groq API Key Required</h3>
       </div>
-      <p style="font-size:.84rem;color:#475569;margin:10px 0 14px;line-height:1.6;">
-        Audio features use Groq's speech-to-text API. You need your own free key, takes 2 minutes:
+      <p style="font-size:.84rem;color:#475569;margin:10px 0 22px;line-height:1.6;">
+        Audio features use Groq's speech-to-text API. Add your free personal key in Settings to get started.
       </p>
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.81rem;color:#374151;line-height:1.9;">
-        <ol style="margin:0;padding-left:18px;">
-          <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a> and sign in with Google</li>
-          <li>Click <strong>Create API key</strong>, give it a name, click <strong>Submit</strong></li>
-          <li>Copy the key (starts with <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">gsk_</code>)</li>
-          <li>Paste it in Settings, then Transcripts, then Groq API Key</li>
-        </ol>
-      </div>
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:.8rem;color:#166534;line-height:1.6;text-align:center;">
-        <strong>Free key</strong>, no credit card needed
-      </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <button id="_gk-settings-btn" style="padding:11px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;">Add my Groq key in Settings</button>
-        <button id="_gk-continue-btn" style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;font-size:.83rem;color:#64748b;cursor:pointer;font-family:inherit;">Continue with shared key (limited, may fail)</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -4425,10 +4413,6 @@ function _checkGroqAudioKey(onProceed) {
   overlay.querySelector('#_gk-settings-btn').onclick = () => {
     overlay.remove();
     window.location.href = 'settings/?tab=api';
-  };
-  overlay.querySelector('#_gk-continue-btn').onclick = () => {
-    overlay.remove();
-    onProceed();
   };
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
