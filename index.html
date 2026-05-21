@@ -1338,14 +1338,6 @@ With regards,
   <!-- ══════════════════════ TAB 1 – GENERATE ══════════════════════ -->
   <div id="tab-generate" class="tab-panel active">
 
-    <div id="api-status-bar">
-      <span id="groq-dot" class="status-dot dot-yellow"></span>
-      <span id="groq-status-text">Groq key required — add in Settings</span>
-      <span class="sep">|</span>
-      <span id="fb-dot" class="status-dot dot-yellow"></span>
-      <span id="fb-status-text">Firebase not connected</span>
-    </div>
-
     <div class="input-mode-grid">
       <div class="input-mode-card" onclick="pasteAndGenerate()">
         <div class="imc-icon"><svg fill="none" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -3682,6 +3674,7 @@ async function doGoogleSignIn() {
 async function doSignOut() {
   closeUserMenu();
   await firebase.auth().signOut();
+  sessionStorage.removeItem('groq_api_key');
   currentUser = null;
   state.currentNoteId   = null;
   state.allNotes        = [];
