@@ -1073,6 +1073,8 @@ async function deleteAccountWithGoogleReauth(reasons, message) {
   // Delete auth account
   await firebase.auth().currentUser.delete();
 
+  sessionStorage.removeItem('groq_api_key');
+  localStorage.removeItem('emailForSignIn');
   window.location.href = '../account-deleted/';
 }
 

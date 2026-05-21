@@ -1095,11 +1095,12 @@
         <div class="step-dot" id="sdot-2"></div>
         <div class="step-dot" id="sdot-3"></div>
         <div class="step-dot" id="sdot-4"></div>
+        <div class="step-dot" id="sdot-5"></div>
       </div>
 
       <!-- Step 1: Your details -->
       <div id="ob-step-1" class="ob-card">
-        <div class="ob-step-label">Step 1 of 4</div>
+        <div class="ob-step-label">Step 1 of 5</div>
         <h2>Your Details</h2>
         <div class="ob-field">
           <label>How would you like your name shown on notes?</label>
@@ -1115,7 +1116,7 @@
 
       <!-- Step 2: Workplaces -->
       <div id="ob-step-2" class="ob-card" style="display:none;">
-        <div class="ob-step-label">Step 2 of 4</div>
+        <div class="ob-step-label">Step 2 of 5</div>
         <h2>Your Workplace(s)</h2>
         <p style="font-size:.84rem;color:var(--gray);margin-bottom:16px;">Add all the places you practise. You can always add, remove, or edit these later in Settings.</p>
 
@@ -1164,7 +1165,7 @@
 
       <!-- Step 3: Email templates -->
       <div id="ob-step-3" class="ob-card" style="display:none;">
-        <div class="ob-step-label">Step 3 of 4</div>
+        <div class="ob-step-label">Step 3 of 5</div>
         <h2>Email Templates</h2>
         <p style="font-size:.85rem;color:var(--gray);margin-bottom:16px;">How should your "Send to Colleague" emails begin? <span style="color:#9ca3af;">You can customise this anytime in Settings.</span></p>
 
@@ -1207,14 +1208,32 @@ With regards,
         <button class="ob-btn ob-btn-secondary" onclick="obBack(3)">Back</button>
       </div>
 
-      <!-- Step 4: Confirm -->
+      <!-- Step 4: Groq API Key -->
       <div id="ob-step-4" class="ob-card" style="display:none;">
-        <div class="ob-step-label">Step 4 of 4</div>
+        <div class="ob-step-label">Step 4 of 5</div>
+        <h2>Your Groq API Key</h2>
+        <p style="font-size:.84rem;color:var(--gray);margin-bottom:14px;">LushNote uses Groq to transcribe recordings and generate clinical notes. You need a free personal API key to use these features.</p>
+        <div class="ob-info-box" style="margin-bottom:16px;">
+          <strong>Get your free key in 30 seconds:</strong><br>
+          Visit <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a>, sign in, click <strong>Create API key</strong>, and paste it below.
+        </div>
+        <div class="ob-field">
+          <label>Groq API Key</label>
+          <input type="password" id="ob-groq-key" placeholder="gsk_..." autocomplete="off" />
+        </div>
+        <p style="font-size:.76rem;color:#9ca3af;margin:0 0 20px;">You can update this anytime via the settings icon in the top bar.</p>
+        <button class="ob-btn" onclick="obNext(4)">Next</button>
+        <button class="ob-btn ob-btn-secondary" onclick="obBack(4)">Back</button>
+      </div>
+
+      <!-- Step 5: Confirm -->
+      <div id="ob-step-5" class="ob-card" style="display:none;">
+        <div class="ob-step-label">Step 5 of 5</div>
         <h2>Confirm &amp; Start</h2>
         <p style="font-size:.78rem;color:#9ca3af;margin:0 0 14px;">Everything here can be changed later in Settings.</p>
         <div id="ob-summary" style="margin-bottom:20px;"></div>
         <button class="ob-btn" onclick="obComplete()">Start Using LushNote</button>
-        <button class="ob-btn ob-btn-secondary" onclick="obBack(4)">Back</button>
+        <button class="ob-btn ob-btn-secondary" onclick="obBack(5)">Back</button>
       </div>
     </div>
   </div>
@@ -3763,14 +3782,14 @@ function startOnboarding() {
 }
 
 function obUpdateDots(step) {
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     const dot = document.getElementById('sdot-' + i);
     dot.className = 'step-dot' + (i === step ? ' active' : (i < step ? ' done' : ''));
   }
 }
 
 function obShowStep(n) {
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     document.getElementById('ob-step-' + i).style.display = i === n ? '' : 'none';
   }
   obUpdateDots(n);
@@ -3873,17 +3892,23 @@ function obNext(currentStep) {
     const selRadio = document.querySelector('input[name="ob-tpl"]:checked');
     const selIdx   = selRadio ? parseInt(selRadio.value) : 0;
     onboardingData.emailPretext = document.getElementById('ob-tpl-text-' + selIdx).value;
-    // Build summary
+    obShowStep(4);
+  } else if (currentStep === 4) {
+    const key = document.getElementById('ob-groq-key').value.trim();
+    onboardingData.groqKey = key;
+    // Build summary for confirm step
     const p = onboardingData;
     const wps = p.workplaces || [];
     const wpSummary = wps.map(w => `${esc(w.name)} <span style="color:#6b7280;font-size:.85em;">(${esc(w.type)})</span>`).join('<br>') || '—';
+    const keyStatus = key ? '<span style="color:#16a34a;font-weight:600;">Set ✓</span>' : '<span style="color:#f59e0b;">Not set — add later in Settings</span>';
     document.getElementById('ob-summary').innerHTML = `
       <div class="ob-summary-row"><span class="ob-summary-label">Name</span><span>${esc(p.displayName)}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Credentials</span><span>${esc(p.credentials || '—')}</span></div>
       <div class="ob-summary-row" style="align-items:flex-start"><span class="ob-summary-label">Workplaces</span><span>${wpSummary}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Email template</span><span>${esc((p.emailPretext || '').slice(0,60))}…</span></div>
+      <div class="ob-summary-row"><span class="ob-summary-label">Groq API key</span>${keyStatus}</div>
     `;
-    obShowStep(4);
+    obShowStep(5);
   }
 }
 
@@ -3913,7 +3938,7 @@ async function obComplete() {
     : [{ id: 'wp_1', name: 'My Practice', type: 'Private Practice', regSystem: 'lushnote', regFormat: 'YYYYMMDDNN' }];
   const activeId = wps[0].id;
   try {
-    await db.collection('users').doc(currentUser.uid).set({
+    const profileData = {
       email: currentUser.email,
       displayName: d.displayName,
       credentials: d.credentials || '',
@@ -3924,7 +3949,10 @@ async function obComplete() {
       status: 'active',
       tier: 'free',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+    };
+    if (d.groqKey) profileData.groqApiKey = d.groqKey;
+    await db.collection('users').doc(currentUser.uid).set(profileData, { merge: true });
+    if (d.groqKey) sessionStorage.setItem('groq_api_key', d.groqKey);
     currentUser.profile = {
       ...currentUser.profile,
       displayName: d.displayName,
