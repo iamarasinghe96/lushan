@@ -274,6 +274,7 @@
     /* Contained two-pane layout for Edit tab — eliminates page scrollbar */
     /* 112px sticky-top + 22px main padding-top = 134px total offset */
     #tab-edit.active { display: flex; flex-direction: column; height: calc(100vh - 134px); overflow: hidden; }
+    body.tab-edit-active { overflow: hidden; }
     #tab-edit .edit-grid { flex: 1; min-height: 0; align-items: stretch; }
     #tab-edit .form-panel { overflow-y: auto; min-height: 0; padding-bottom: 24px; }
     #tab-edit .preview-sticky { position: static; overflow-y: auto; min-height: 0; }
@@ -3536,6 +3537,7 @@ const _tabToHash = { generate: 'generate', edit: 'edit', export: 'export', histo
 function switchTab(name, { updateHash = true } = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  document.body.classList.toggle('tab-edit-active', name === 'edit');
   const activeBtn = document.querySelector('.tab-btn[data-tab="' + name + '"]');
   if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   if (name === 'history') loadHistoryData();
