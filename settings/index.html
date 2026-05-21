@@ -400,7 +400,7 @@
       <p class="st-sub">Your plan and account details</p>
       <div class="st-section" style="background:var(--blue-lt);border-color:var(--blue);padding:28px 24px;">
         <div style="font-size:1rem;font-weight:700;color:var(--blue);margin-bottom:8px;">LushNote is free to use</div>
-        <p style="font-size:.87rem;color:#374151;line-height:1.7;margin:0 0 12px;">LushNote is built to support clinicians, not to generate profit. Access to the platform is free. You bring your own Groq API key — your usage is billed directly to your Groq account at their standard rates, so there are no shared limits, no queues, and no platform costs on our end.</p>
+        <p style="font-size:.87rem;color:#374151;line-height:1.7;margin:0 0 12px;">LushNote is free to use, and we intend to keep it that way for as long as it remains within our capacity. You bring your own Groq API key — your usage is billed directly to your Groq account at their standard rates, so there are no shared limits, no queues, and no platform costs on our end. Use it as much as you need.</p>
         <p style="font-size:.84rem;color:var(--gray);margin:0;">LushNote is in active development. If you have feedback or suggestions, we'd welcome hearing from you.</p>
       </div>
       <div class="st-section">
@@ -437,6 +437,28 @@
 
 <script>
 // ── Config ──
+function friendlyAuthError(e) {
+  const map = {
+    'auth/user-mismatch':                       'The Google account you selected does not match the account you are currently signed in with. Please try again and select the correct account.',
+    'auth/popup-closed-by-user':                'The sign-in window was closed before completing. Please try again.',
+    'auth/cancelled-popup-request':             'The sign-in window was closed before completing. Please try again.',
+    'auth/popup-blocked':                       'Your browser blocked the sign-in window. Please allow pop-ups for this site and try again.',
+    'auth/network-request-failed':              'A network error occurred. Please check your internet connection and try again.',
+    'auth/too-many-requests':                   'Too many attempts in a short time. Please wait a few minutes before trying again.',
+    'auth/requires-recent-login':               'For security, please sign out and sign back in before making this change.',
+    'auth/user-disabled':                       'This account has been disabled. Please contact support.',
+    'auth/user-not-found':                      'No account was found with this email address.',
+    'auth/invalid-email':                       'The email address entered is not valid. Please check and try again.',
+    'auth/invalid-action-code':                 'This link has expired or has already been used. Please request a new one.',
+    'auth/account-exists-with-different-credential': 'An account already exists using a different sign-in method.',
+    'permission-denied':                        'You do not have permission to perform this action. Please try signing out and back in.',
+    'unavailable':                              'The service is temporarily unavailable. Please try again in a moment.',
+  };
+  if (e && e.code && map[e.code]) return map[e.code];
+  if (e && e.message && e.message.includes('quota')) return 'Service quota exceeded. Please try again later.';
+  return 'Something went wrong. Please try again, or contact support if the problem persists.';
+}
+
 const FB_CONFIG = {
   apiKey:            'AIzaSyAEgpB1eCm-zh9Rx-uTMoageFZWEBRXzQo',
   authDomain:        'lush-note.firebaseapp.com',
@@ -609,7 +631,7 @@ firebase.auth().onAuthStateChanged(async user => {
     // Show native share if available
     if (navigator.share) document.getElementById('st-share-native').style.display = '';
   } catch(e) {
-    document.getElementById('auth-gate').innerHTML = `<div style="text-align:center;color:#dc2626;"><p>Error loading settings: ${esc(e.message)}</p><a href="../" style="color:var(--blue);">Back to App</a></div>`;
+    document.getElementById('auth-gate').innerHTML = `<div style="text-align:center;color:#dc2626;"><p>Unable to load settings. ${esc(friendlyAuthError(e))}</p><a href="../" style="color:var(--blue);">Back to App</a></div>`;
   }
 });
 
@@ -659,7 +681,7 @@ async function stSaveProfile() {
     });
     p.displayName = name; p.credentials = creds; p.emailPretext = emailPretext;
     toast('Profile saved');
-  } catch(e) { alert('Error saving: ' + e.message); }
+  } catch(e) { alert(friendlyAuthError(e)); }
 }
 
 async function stSendPasswordReset() {
@@ -670,7 +692,7 @@ async function stSendPasswordReset() {
     msgEl.textContent = `Reset link sent to ${currentUser.email}`;
   } catch(e) {
     msgEl.style.color = 'var(--danger)';
-    msgEl.textContent = e.message;
+    msgEl.textContent = friendlyAuthError(e);
   }
 }
 
@@ -798,7 +820,7 @@ function wpSave(id) {
   db.collection('users').doc(currentUser.uid).update({
     workplaces: currentUser.profile.workplaces,
     activeWorkplaceId: currentUser.profile.activeWorkplaceId || '',
-  }).then(() => toast('Workplace saved')).catch(e => alert(e.message));
+  }).then(() => toast('Workplace saved')).catch(e => toast(friendlyAuthError(e), 'error'));
   renderWorkplaces();
 }
 function detectIdPattern(example) {
@@ -889,14 +911,14 @@ async function stSaveCustomTemplate() {
     ['st-ct-title','st-ct-category','st-ct-desc','st-ct-prompt'].forEach(id => document.getElementById(id).value = '');
     stRenderTemplates();
     toast('Template added');
-  } catch(e) { errEl.textContent = 'Save failed: ' + e.message; }
+  } catch(e) { errEl.textContent = 'Save failed. ' + friendlyAuthError(e); }
 }
 
 async function stDeleteCustomTemplate(tplId) {
   if (!confirm('Delete this custom template?')) return;
   const p = currentUser.profile;
   p.customTemplates = (p.customTemplates || []).filter(t => t.id !== tplId);
-  try { await db.collection('users').doc(currentUser.uid).update({ customTemplates: p.customTemplates }); stRenderTemplates(); toast('Deleted'); } catch(e) { toast('Failed: '+e.message); }
+  try { await db.collection('users').doc(currentUser.uid).update({ customTemplates: p.customTemplates }); stRenderTemplates(); toast('Deleted'); } catch(e) { toast(friendlyAuthError(e), 'error'); }
 }
 
 // ── Groq key ──
@@ -921,7 +943,7 @@ async function stSaveTranscripts() {
   const recordingDefaults = { autoStop: document.getElementById('st-autostop').checked, autoStopMinutes: parseInt(document.getElementById('st-autostop-mins').value)||55 };
   currentUser.profile.transcriptPrivacy = transcriptPrivacy;
   currentUser.profile.recordingDefaults = recordingDefaults;
-  try { await db.collection('users').doc(currentUser.uid).update({ transcriptPrivacy, recordingDefaults }); toast('Transcript settings saved'); } catch(e) { alert(e.message); }
+  try { await db.collection('users').doc(currentUser.uid).update({ transcriptPrivacy, recordingDefaults }); toast('Transcript settings saved'); } catch(e) { toast(friendlyAuthError(e), 'error'); }
 }
 
 // ── Personalisation ──
@@ -935,7 +957,7 @@ async function stSavePersonalisation() {
   const noteLength = document.querySelector('input[name="st-note-length"]:checked')?.value || 'balanced';
   const personalisation = { useClientInfo: document.getElementById('st-use-client-info').checked, noteLength, professionalIdentity: document.getElementById('st-prof-identity').value.trim(), treatmentApproaches: document.getElementById('st-treatment').value.trim(), documentStyle: document.getElementById('st-doc-style').value.trim() };
   currentUser.profile.personalisation = personalisation;
-  try { await db.collection('users').doc(currentUser.uid).update({ personalisation }); toast('Personalisation saved'); } catch(e) { alert(e.message); }
+  try { await db.collection('users').doc(currentUser.uid).update({ personalisation }); toast('Personalisation saved'); } catch(e) { toast(friendlyAuthError(e), 'error'); }
 }
 
 // ── Subscription / Share ──
@@ -1025,11 +1047,7 @@ function openDeleteAccountModal() {
       btn.disabled = false;
       btn.textContent = 'Delete my account permanently';
       errEl.style.display = '';
-      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
-        errEl.textContent = 'Sign-in cancelled. Please try again to confirm deletion.';
-      } else {
-        errEl.textContent = e.message || 'Something went wrong. Please try again.';
-      }
+      errEl.textContent = friendlyAuthError(e);
     }
   };
 }

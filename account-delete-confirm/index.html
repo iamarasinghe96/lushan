@@ -98,7 +98,14 @@ async function runDeletion(user) {
     localStorage.removeItem('emailForSignIn');
     window.location.href = '../account-deleted/';
   } catch(e) {
-    showError('Something went wrong while deleting your account: ' + e.message + '. Please contact support.');
+    const code = e && e.code;
+    if (code === 'permission-denied') {
+      showError('Unable to delete account data — a permissions error occurred. Please contact support.');
+    } else if (code === 'auth/network-request-failed') {
+      showError('A network error occurred while deleting your account. Please check your connection and try again.');
+    } else {
+      showError('Something went wrong while deleting your account. Please contact support if this continues.');
+    }
   }
 }
 
@@ -110,9 +117,8 @@ async function runDeletion(user) {
 
   let email = localStorage.getItem('emailForSignIn');
   if (!email) {
-    // Link opened on a different device — ask for email
     email = window.prompt('Please enter your LushNote email address to confirm deletion:');
-    if (!email) { showError('Email is required to complete account deletion.'); return; }
+    if (!email) { showError('Your email address is required to complete this step. Please try again.'); return; }
   }
 
   try {
@@ -120,11 +126,13 @@ async function runDeletion(user) {
     await runDeletion(result.user);
   } catch(e) {
     if (e.code === 'auth/invalid-action-code') {
-      showError('This link has expired or already been used. Please request a new deletion link from Settings.');
+      showError('This link has expired or has already been used. Please go back to Settings and request a new deletion link.');
     } else if (e.code === 'auth/invalid-email') {
-      showError('The email address did not match. Please try again from Settings.');
+      showError('The email address you entered did not match the account on this link. Please try again from Settings.');
+    } else if (e.code === 'auth/network-request-failed') {
+      showError('A network error occurred. Please check your internet connection and try again.');
     } else {
-      showError(e.message);
+      showError('Something went wrong. Please try again, or contact support if the problem continues.');
     }
   }
 })();
