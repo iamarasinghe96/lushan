@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LushNote – Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%235ad6a7'/%3E%3Ctext x='48' y='70' font-family='FreeSerif%2CGeorgia%2Cserif' font-weight='bold' font-size='56' fill='white' text-anchor='middle' letter-spacing='-9.5'%3ELN%3C%2Ftext%3E%3C%2Fsvg%3E">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <style>
+    :root {
+      --blue:    #2563eb;
+      --blue-dk: #1d4ed8;
+      --blue-lt: #eff6ff;
+      --blue-mid:#bfdbfe;
+      --teal:    #0891b2;
+      --gray:    #64748b;
+      --border:  #e2e8f0;
+      --bg:      #f8fafc;
+      --bg2:     #f1f5f9;
+      --card:    #ffffff;
+      --danger:  #dc2626;
+      --text:    #0f172a;
+      --text2:   #475569;
+      --text3:   #94a3b8;
+      --shadow-sm: 0 1px 3px rgba(15,23,42,.07), 0 1px 2px rgba(15,23,42,.04);
+      --shadow-lg: 0 12px 40px rgba(15,23,42,.13);
+      --r-xs: 6px; --r-sm: 8px; --r: 12px; --r-lg: 16px; --r-xl: 20px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+    /* Top bar */
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 24px; border-bottom:1px solid var(--border); background:#fff; flex-shrink:0; box-shadow:0 1px 3px rgba(15,23,42,.05); }
+    .topbar-back { display:flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--border);border-radius:var(--r-sm);background:none;cursor:pointer;font-size:.84rem;color:var(--text2);font-weight:500;text-decoration:none;transition:all .15s;font-family:inherit; }
+    .topbar-back:hover { border-color:var(--blue);color:var(--blue); }
+    .topbar-title { font-size:.98rem; font-weight:700; color:var(--text); }
+
+    /* Layout */
+    .layout { display:flex; flex:1; overflow:hidden; }
+    .sidebar { width:220px; border-right:1px solid var(--border); background:var(--bg); padding:12px 8px; overflow-y:auto; flex-shrink:0; }
+    .content { flex:1; overflow-y:auto; padding:32px 40px; }
+
+    /* Sidebar nav */
+    .stnav-btn { display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;border-radius:var(--r-sm);border:none;background:none;cursor:pointer;font-size:.85rem;color:var(--text2);text-align:left;margin-bottom:2px;transition:all .15s;font-family:inherit; }
+    .stnav-btn:hover { background:var(--bg2); }
+    .stnav-btn.active { background:var(--blue-lt);color:var(--blue);font-weight:600; }
+
+    /* Panes */
+    .st-pane { display:none; max-width:700px; }
+    .st-pane.active { display:block; }
+    .st-h1 { font-size:1.35rem;font-weight:800;margin:0 0 4px;letter-spacing:-.2px; }
+    .st-sub { font-size:.87rem;color:var(--gray);margin:0 0 24px; }
+    .st-section { background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;margin-bottom:18px;box-shadow:0 1px 3px rgba(15,23,42,.05); }
+    .st-section-h { font-size:.93rem;font-weight:700;margin:0 0 14px; }
+
+    /* Form fields */
+    label { display:block;font-size:.79rem;font-weight:600;margin-bottom:5px;color:var(--text2); }
+    input[type=text], input[type=email], input[type=password], input[type=number], input[type=search], input[type=date], input:not([type]), textarea, select {
+      width:100%;border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 12px;font-size:.86rem;font-family:inherit;color:var(--text);resize:vertical;background:#fff;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none;
+    }
+    input:focus, textarea:focus, select:focus { outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+    .field-row { margin-bottom:14px; }
+    .two-col { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px; }
+
+    /* Buttons */
+    .btn { display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--r-sm);font-size:.84rem;font-weight:600;cursor:pointer;border:none;transition:opacity .15s,transform .1s;font-family:inherit; }
+    .btn:active { transform:scale(.97); }
+    .btn-primary { background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.2); }
+    .btn-outline { background:#fff;color:var(--blue);border:1.5px solid var(--blue); }
+    .btn-gray    { background:var(--bg2);color:var(--text2);border:1px solid var(--border); }
+    .btn:hover { opacity:.9; }
+
+    /* Toggle switch */
+    .st-toggle-row { display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--bg2); }
+    .st-toggle { position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0; }
+    .st-toggle input { opacity:0;width:0;height:0; }
+    .st-toggle-slider { position:absolute;inset:0;background:var(--border);border-radius:24px;cursor:pointer;transition:.2s; }
+    .st-toggle-slider::before { content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s; }
+    .st-toggle input:checked + .st-toggle-slider { background:var(--blue); }
+    .st-toggle input:checked + .st-toggle-slider::before { transform:translateX(20px); }
+
+    /* Radio rows */
+    .st-radio-row { display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;transition:all .15s; }
+    .st-radio-row:has(input:checked) { border-color:var(--blue);background:var(--blue-lt); }
+    .st-radio-row input[type=radio] { margin-top:2px;accent-color:var(--blue);flex-shrink:0; }
+
+    /* Workplace cards */
+    .as-field { margin-bottom:12px; }
+    .as-field label { display:block;font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:3px; }
+    .as-field input,.as-field select,.as-field textarea { width:100%;border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 10px;font-size:.88rem;-webkit-appearance:none;appearance:none;font-family:inherit; }
+    .as-wp-card { border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:10px; }
+    .as-wp-card.as-wp-active { border-color:var(--blue);background:var(--blue-lt); }
+    .as-wp-card-header { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px; }
+    .as-btn-sm { padding:4px 10px;border:1px solid var(--border);border-radius:var(--r-xs);background:#fff;font-size:.78rem;cursor:pointer;font-family:inherit; }
+    .as-btn-sm:hover { background:var(--bg); }
+    .as-btn-danger { border-color:#fca5a5;color:var(--danger); }
+    .as-btn-danger:hover { background:#fef2f2; }
+    .as-btn-primary { padding:7px 16px;border:none;border-radius:var(--r-sm);background:var(--blue);color:#fff;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit; }
+    .as-theme-swatch { width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s;display:inline-block; }
+    .da-chip { display:inline-block;padding:6px 14px;border:1.5px solid #e5e7eb;border-radius:20px;font-size:.8rem;cursor:pointer;background:#fff;color:#6b7280;margin:3px;user-select:none;transition:all .15s; }
+    .da-chip.selected { border-color:#dc2626;background:#fef2f2;color:#dc2626;font-weight:600; }
+    .as-theme-swatch:hover { transform:scale(1.1); }
+    .as-theme-swatch-active { border-color:#0f172a !important;transform:scale(1.15); }
+
+    /* Auth gate */
+    #auth-gate { position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:999; }
+
+    /* Toast */
+    #toast { position:fixed;bottom:22px;right:22px;background:var(--text);color:#fff;padding:11px 18px;border-radius:var(--r);font-size:.83rem;font-weight:600;opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;z-index:999;pointer-events:none;box-shadow:var(--shadow-lg); }
+    #toast.show { opacity:1;transform:translateY(0); }
+
+    @media (max-width:640px) {
+      .layout { flex-direction:column; }
+      .sidebar { width:100%;border-right:none;border-bottom:1px solid var(--border);display:flex;flex-direction:row;overflow-x:auto;padding:8px 6px;gap:2px;flex-shrink:0; }
+      .stnav-btn { white-space:nowrap;padding:7px 10px;font-size:.8rem; }
+      .content { padding:20px 16px; }
+      .two-col { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Auth gate -->
+<div id="auth-gate">
+  <div style="text-align:center;color:#6b7280;">
+    <div style="font-size:1.4rem;margin-bottom:8px;">🔒</div>
+    <p style="font-size:.88rem;">Checking authentication…</p>
+  </div>
+</div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <a href="../" class="topbar-back">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to App
+  </a>
+  <span class="topbar-title">Settings</span>
+</div>
+
+<!-- Main layout -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <button class="stnav-btn active" id="stnav-profile"        onclick="settingsNav('profile')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Profile
+    </button>
+    <button class="stnav-btn" id="stnav-workplaces"     onclick="settingsNav('workplaces')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" stroke="currentColor" stroke-width="2"/></svg>
+      Workplaces
+    </button>
+    <button class="stnav-btn" id="stnav-templates"      onclick="settingsNav('templates')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Templates
+    </button>
+    <button class="stnav-btn" id="stnav-transcripts"    onclick="settingsNav('transcripts')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" stroke="currentColor" stroke-width="2"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Transcripts
+    </button>
+    <button class="stnav-btn" id="stnav-api"            onclick="settingsNav('api')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M10 20l4-16M6 9l-4 4 4 4M18 9l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      API Keys
+    </button>
+    <button class="stnav-btn" id="stnav-personalisation" onclick="settingsNav('personalisation')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Personalisation
+    </button>
+    <button class="stnav-btn" id="stnav-subscription"   onclick="settingsNav('subscription')">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M1 10h22" stroke="currentColor" stroke-width="2"/></svg>
+      Subscription
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Profile -->
+    <div class="st-pane active" id="st-pane-profile">
+      <h1 class="st-h1">Profile Settings</h1>
+      <p class="st-sub">Manage your account information and preferences</p>
+      <div class="st-section">
+        <h2 class="st-section-h">Personal Information</h2>
+        <div class="field-row" style="margin-bottom:12px;">
+          <label>Signed in as</label>
+          <div style="display:inline-flex;align-items:center;gap:7px;font-size:.88rem;color:#111827;font-weight:500;margin-top:2px;">
+            <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            <span id="st-email-display"></span>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="field-row"><label>Display name</label><input type="text" id="st-name" placeholder="e.g. Dr Lushan Vasantha" /></div>
+          <div class="field-row"><label>Credentials</label><input type="text" id="st-credentials" placeholder="e.g. FRANZCP, MBChB" /></div>
+        </div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Email Template</h2>
+        <div class="field-row">
+          <label>Opening line for colleague emails</label>
+          <textarea id="st-email-pretext" rows="4" placeholder="e.g. I reviewed this patient today and wanted to share the following progress note…"></textarea>
+          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">Appears at the top of every "Send to Colleague" email.</p>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+        <button class="btn btn-primary" onclick="stSaveProfile()">Save changes</button>
+      </div>
+      <div class="st-section" style="background:#fef2f2;border-color:#fecaca;">
+        <h2 class="st-section-h" style="color:#dc2626;">Delete Account</h2>
+        <p style="font-size:.84rem;color:#6b7280;margin-bottom:14px;">Permanently delete your account and erase all associated data — progress notes, patient profiles, and personal information. This cannot be undone.</p>
+        <button onclick="openDeleteAccountModal()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:.84rem;font-weight:600;cursor:pointer;font-family:inherit;">Delete my account</button>
+      </div>
+    </div>
+
+    <!-- Workplaces -->
+    <div class="st-pane" id="st-pane-workplaces">
+      <h1 class="st-h1">Workplaces</h1>
+      <p class="st-sub">Manage your clinic or practice locations</p>
+      <div id="st-wp-list"></div>
+      <div id="st-add-wp-area" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Templates -->
+    <div class="st-pane" id="st-pane-templates">
+      <h1 class="st-h1">Templates</h1>
+      <p class="st-sub">Search, favourite, and create your own clinical note templates</p>
+      <div class="st-section">
+        <div style="margin-bottom:14px;">
+          <input id="st-tpl-search" type="search" placeholder="Search templates…" oninput="stRenderTemplates()" />
+        </div>
+        <div id="st-tpl-list" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;"></div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Create Custom Template</h2>
+        <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Custom templates appear in the template picker when generating notes. Write clear AI instructions in the Prompt field. The more specific, the better the output.</p>
+        <div class="field-row"><label>Template title <span style="color:var(--danger)">*</span></label><input id="st-ct-title" placeholder="e.g. My PTSD Review Note" /></div>
+        <div class="two-col">
+          <div class="field-row">
+            <label>Category <span style="color:var(--danger)">*</span></label>
+            <input id="st-ct-category" placeholder="e.g. Progress Notes" list="st-cat-list" />
+            <datalist id="st-cat-list">
+              <option value="Progress Notes"/><option value="Assessments"/><option value="Therapy Notes"/>
+              <option value="Risk & Safety"/><option value="Medication"/><option value="Administrative"/>
+            </datalist>
+          </div>
+          <div class="field-row"><label>Short description <span style="color:var(--danger)">*</span></label><input id="st-ct-desc" placeholder="What is this template for?" /></div>
+        </div>
+        <div class="field-row">
+          <label>AI Prompt Instructions <span style="color:var(--danger)">*</span></label>
+          <textarea id="st-ct-prompt" rows="6" placeholder="Describe exactly what you want the AI to generate. Example:&#10;&#10;Generate a trauma-focused EMDR session note. Include: current phase, target memory, SUDS rating before and after, bilateral stimulation used, patient response, and closure technique."></textarea>
+          <p style="font-size:.75rem;color:#6b7280;margin-top:5px;">This is the instruction sent to the AI when this template is selected. Be specific about sections, clinical focus, and format.</p>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn btn-primary" onclick="stSaveCustomTemplate()">Add Template</button>
+        </div>
+        <div id="st-ct-error" style="font-size:.82rem;color:var(--danger);margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- Transcripts -->
+    <div class="st-pane" id="st-pane-transcripts">
+      <h1 class="st-h1">Transcript Settings</h1>
+      <p class="st-sub">Manage recording preferences and transcript privacy controls</p>
+
+      <div class="st-section">
+        <h2 class="st-section-h">Information Privacy</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:16px;">Redact identifiable information from transcripts before they are sent to the AI.</p>
+        <div class="st-toggle-row">
+          <div><div style="font-weight:600;font-size:.88rem;">People's Names</div><div style="font-size:.78rem;color:#6b7280;">e.g. "Jane Smith" becomes "[NAME]"</div></div>
+          <label class="st-toggle"><input type="checkbox" id="st-redact-names" /><span class="st-toggle-slider"></span></label>
+        </div>
+        <div class="st-toggle-row">
+          <div><div style="font-weight:600;font-size:.88rem;">Dates of Birth</div><div style="font-size:.78rem;color:#6b7280;">e.g. "01/01/1980" becomes "[DOB]"</div></div>
+          <label class="st-toggle"><input type="checkbox" id="st-redact-dob" /><span class="st-toggle-slider"></span></label>
+        </div>
+        <div class="st-toggle-row" style="border-bottom:none;">
+          <div><div style="font-weight:600;font-size:.88rem;">Other identifiable information</div><div style="font-size:.78rem;color:#6b7280;">Email addresses, organisations, addresses, phone numbers</div></div>
+          <label class="st-toggle"><input type="checkbox" id="st-redact-other" /><span class="st-toggle-slider"></span></label>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin-top:14px;font-size:.82rem;color:#4b5563;line-height:1.6;">
+          <span style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;display:block;margin-bottom:5px;">Sample with redaction</span>
+          "Reviewed [NAME], [DOB], presenting from [ADDRESS] with ongoing low mood."
+        </div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Recording Defaults</h2>
+        <div class="st-toggle-row">
+          <div><div style="font-weight:600;font-size:.88rem;">Automatically stop recording after timeout</div><div style="font-size:.78rem;color:#6b7280;">Recording stops after the specified number of minutes</div></div>
+          <label class="st-toggle"><input type="checkbox" id="st-autostop" checked onchange="document.getElementById('st-autostop-row').style.display=this.checked?'':'none'" /><span class="st-toggle-slider"></span></label>
+        </div>
+        <div id="st-autostop-row" style="margin-top:12px;">
+          <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Auto-stop timeout (minutes)</label>
+          <input type="number" id="st-autostop-mins" value="55" min="1" max="150" style="width:100px;" />
+          <p style="font-size:.75rem;color:#9ca3af;margin-top:4px;">Maximum value is 150 minutes</p>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="stSaveTranscripts()">Save changes</button>
+      </div>
+    </div>
+
+    <!-- API Keys -->
+    <div class="st-pane" id="st-pane-api">
+      <h1 class="st-h1">API Keys</h1>
+      <p class="st-sub">Connect external AI services used by LushNote</p>
+
+      <div class="st-section">
+        <h2 class="st-section-h">Gemini API Key <span style="font-size:.72rem;font-weight:500;color:#059669;background:#f0fdf4;border:1px solid #bbf7d0;padding:2px 8px;border-radius:20px;margin-left:6px;">Recommended</span></h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Used for audio transcription and note generation. Handles recordings of any length. Free to set up — no credit card needed.</p>
+
+        <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:10px;">How to get your free API key</div>
+          <ol style="margin:0;padding-left:18px;font-size:.83rem;color:#374151;line-height:2;">
+            <li>Go to <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">aistudio.google.com/api-keys</a> and sign in with your Google account</li>
+            <li>Click <strong>Create API key</strong></li>
+            <li>Click <strong>Create project</strong>, give it any name (e.g. <em>LushNote</em>), then click <strong>Create API key in new project</strong></li>
+            <li>Copy the key shown. It starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">AIza</code></li>
+            <li>Paste it in the field below and click <strong>Save Key</strong></li>
+          </ol>
+        </div>
+
+        <div class="field-row">
+          <label>Gemini API Key</label>
+          <input type="password" id="st-gemini-key" placeholder="AIza..." autocomplete="off" style="font-family:monospace;" />
+          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">Stored securely in your account — available on any device you sign in with.</p>
+        </div>
+        <button class="btn btn-primary" onclick="stSaveGeminiKey()" style="margin-top:4px;">Save Key</button>
+        <span id="st-gemini-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
+      </div>
+
+      <div class="st-section">
+        <h2 class="st-section-h">Groq API Key</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Required for audio features: Record Session, Dictate Note, and Upload Recording. Free to set up, no credit card needed.</p>
+
+        <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:10px;">How to get your free API key</div>
+          <ol style="margin:0;padding-left:18px;font-size:.83rem;color:#374151;line-height:2;">
+            <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a> and sign in with your Google account</li>
+            <li>Click <strong>Create API key</strong></li>
+            <li>Give it a name (e.g. <em>LushNote</em>), then click <strong>Submit</strong></li>
+            <li>Copy the key shown. It starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">gsk_</code></li>
+            <li>Paste it in the field below and click <strong>Save Key</strong></li>
+          </ol>
+        </div>
+
+        <div class="field-row">
+          <label>Groq API Key</label>
+          <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" style="font-family:monospace;" />
+          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">Stored securely in your account — available on any device you sign in with.</p>
+        </div>
+        <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:4px;">Save Key</button>
+        <span id="st-groq-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
+      </div>
+    </div>
+
+    <!-- Personalisation -->
+    <div class="st-pane" id="st-pane-personalisation">
+      <h1 class="st-h1">Personalisation</h1>
+      <p class="st-sub">Customise how LushNote understands your preferences and generates notes</p>
+      <div class="st-section">
+        <h2 class="st-section-h">General</h2>
+        <div class="st-toggle-row" style="border-bottom:none;">
+          <div><div style="font-weight:600;font-size:.88rem;">Use patient information</div><div style="font-size:.78rem;color:#6b7280;">Use the patient's name, age, and gender to produce more personalised notes</div></div>
+          <label class="st-toggle"><input type="checkbox" id="st-use-client-info" checked /><span class="st-toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Length of Notes and Documents</h2>
+        <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Set the standard length and detail of generated notes.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label class="st-radio-row">
+            <input type="radio" name="st-note-length" value="brief" id="st-len-brief" />
+            <div><div style="font-weight:600;font-size:.88rem;">Brief</div><div style="font-size:.78rem;color:#6b7280;">Dot points and short phrases. Most important information only.</div></div>
+          </label>
+          <label class="st-radio-row">
+            <input type="radio" name="st-note-length" value="balanced" id="st-len-balanced" checked />
+            <div><div style="font-weight:600;font-size:.88rem;">Balanced <span style="font-size:.72rem;font-weight:400;color:#9ca3af;">(default)</span></div><div style="font-size:.78rem;color:#6b7280;">Full sentences with appropriate clinical detail.</div></div>
+          </label>
+          <label class="st-radio-row">
+            <input type="radio" name="st-note-length" value="detailed" id="st-len-detailed" />
+            <div><div style="font-weight:600;font-size:.88rem;">Detailed</div><div style="font-size:.78rem;color:#6b7280;">Comprehensive and thorough. Uses quotes and includes explanations.</div></div>
+          </label>
+        </div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Professional Identity</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label>What would you like LushNote to know about you?</label>
+          <button onclick="(function(){const n=document.getElementById('st-name')?.value||'';const c=document.getElementById('st-credentials')?.value||'';document.getElementById('st-prof-identity').value='My name is '+(n||'your name')+(c?', '+c:'')+'.';})()" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Fill from profile</button>
+        </div>
+        <textarea id="st-prof-identity" rows="4" placeholder="e.g. My name is Dr Lushan Vasantha. I am a Psychiatrist practising in New South Wales and Victoria, Australia." oninput="stUpdateChars()"></textarea>
+        <div id="st-pi-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Treatment Approaches</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label>What treatment modalities should LushNote consider?</label>
+          <button onclick="document.getElementById('st-treatment').value='';stUpdateChars();" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Clear</button>
+        </div>
+        <textarea id="st-treatment" rows="4" placeholder="e.g. I use a trauma-informed, CBT-based approach. I integrate ACT and DBT skills where appropriate." oninput="stUpdateChars()"></textarea>
+        <div id="st-tr-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Document Style</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label>What writing style and formatting should LushNote apply?</label>
+          <button onclick="document.getElementById('st-doc-style').value='Use English standards consistent with Australia.\nUse professional language consistent with Psychiatry.\nRefer to the person receiving the service as a \"patient\".';stUpdateChars();" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Reset to default</button>
+        </div>
+        <textarea id="st-doc-style" rows="4" placeholder="e.g. Use English standards consistent with Australia. Use professional language. Refer to the person as 'patient'." oninput="stUpdateChars()"></textarea>
+        <div id="st-ds-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Add to Home Screen</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Install LushNote on your device for quick access without opening a browser.</p>
+        <button class="btn btn-outline" onclick="stAddToHome()">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 2v13M8 7l4-5 4 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add to Home Screen
+        </button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="stSavePersonalisation()">Save changes</button>
+      </div>
+    </div>
+
+    <!-- Subscription -->
+    <div class="st-pane" id="st-pane-subscription">
+      <h1 class="st-h1">Subscription</h1>
+      <p class="st-sub">Your plan and account details</p>
+      <div class="st-section" style="background:var(--blue-lt);border-color:var(--blue);padding:28px 24px;">
+        <div style="font-size:1rem;font-weight:700;color:var(--blue);margin-bottom:8px;">LushNote is free to use</div>
+        <p style="font-size:.87rem;color:#374151;line-height:1.7;margin:0 0 12px;">LushNote is free to use, and we intend to keep it that way for as long as it remains within our capacity. You bring your own Groq API key — your usage is billed directly to your Groq account at their standard rates, so there are no shared limits, no queues, and no platform costs on our end. Use it as much as you need.</p>
+        <p style="font-size:.84rem;color:var(--gray);margin:0;">LushNote is in active development. If you have feedback or suggestions, we'd welcome hearing from you.</p>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Share LushNote</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:16px;">Know a fellow clinician who could benefit? Share LushNote with a colleague.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="stShareEmail()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="2"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2"/></svg>
+            Share via Email
+          </button>
+          <button class="btn btn-outline" onclick="stShareLink()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Copy App Link
+          </button>
+          <button class="btn btn-gray" onclick="stShareNative()" id="st-share-native" style="display:none;">Share</button>
+        </div>
+        <div id="st-share-msg" style="font-size:.8rem;color:#059669;margin-top:10px;display:none;"></div>
+      </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Send Feedback</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Your feedback directly shapes the development of LushNote. Tell us what's working, what isn't, and what you'd like to see.</p>
+        <textarea id="st-feedback-text" rows="4" placeholder="Share your thoughts, feature requests, or any issues…"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+          <button class="btn btn-primary" onclick="stSendFeedback()">Send Feedback</button>
+        </div>
+        <div id="st-feedback-msg" style="font-size:.8rem;margin-top:8px;"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /layout -->
+
+<div id="toast"></div>
+
+<script>
+// ── Config ──
+function friendlyAuthError(e) {
+  const map = {
+    'auth/user-mismatch':                       'The Google account you selected does not match the account you are currently signed in with. Please try again and select the correct account.',
+    'auth/popup-closed-by-user':                'The sign-in window was closed before completing. Please try again.',
+    'auth/cancelled-popup-request':             'The sign-in window was closed before completing. Please try again.',
+    'auth/popup-blocked':                       'Your browser blocked the sign-in window. Please allow pop-ups for this site and try again.',
+    'auth/network-request-failed':              'A network error occurred. Please check your internet connection and try again.',
+    'auth/too-many-requests':                   'Too many attempts in a short time. Please wait a few minutes before trying again.',
+    'auth/requires-recent-login':               'For security, please sign out and sign back in before making this change.',
+    'auth/user-disabled':                       'This account has been disabled. Please contact support.',
+    'auth/user-not-found':                      'No account was found with this email address.',
+    'auth/invalid-email':                       'The email address entered is not valid. Please check and try again.',
+    'auth/invalid-action-code':                 'This link has expired or has already been used. Please request a new one.',
+    'auth/account-exists-with-different-credential': 'An account already exists using a different sign-in method.',
+    'permission-denied':                        'You do not have permission to perform this action. Please try signing out and back in.',
+    'unavailable':                              'The service is temporarily unavailable. Please try again in a moment.',
+  };
+  if (e && e.code && map[e.code]) return map[e.code];
+  if (e && e.message && e.message.includes('quota')) return 'Service quota exceeded. Please try again later.';
+  return 'Something went wrong. Please try again, or contact support if the problem persists.';
+}
+
+const FB_CONFIG = {
+  apiKey:            'AIzaSyAEgpB1eCm-zh9Rx-uTMoageFZWEBRXzQo',
+  authDomain:        'lush-note.firebaseapp.com',
+  projectId:         'lush-note',
+  storageBucket:     'lush-note.firebasestorage.app',
+  messagingSenderId: '557843066844',
+  appId:             '1:557843066844:web:4f120d8d9adee5fc716919',
+};
+const FREE_EMAIL  = 'lushhetti@gmail.com';
+const ADMIN_EMAIL = 'iamarasinghe96@gmail.com';
+const WP_THEMES = [
+  { primary: '#1a56db', dk: '#1347b8', lt: '#ebf0ff' },
+  { primary: '#7c3aed', dk: '#6d28d9', lt: '#ede9fe' },
+  { primary: '#0e9f6e', dk: '#0a7d57', lt: '#e3f9ee' },
+];
+const CLINICAL_TEMPLATES = [
+  { id: 1, title: `Comprehensive Psychology Note`, category: `Progress Notes`, tplType: `session`, description: `This note template covers many aspects of client presentation, using the following titles: Current Presentation, Past Medical & Psychiatric History,`, prompt: `` },
+  { id: 2, title: `Acceptance and Commitment Therapy (ACT)`, category: `Progress Notes`, tplType: `session`, description: `This template focuses on the six core processes of Acceptance and Commitment Therapy (ACT). For sessions conducted using the ACT framework, this`, prompt: `` },
+  { id: 3, title: `ADHD / Autism Diagnostic Report`, category: `Progress Notes`, tplType: `document`, description: `A report that details the findings of a comprehensive ADHD and/or autism assessment. This report template is the perfect accompaniment for clinicians`, prompt: `` },
+  { id: 4, title: `ADHD Clinical Interview for Adult Diagnosis`, category: `Progress Notes`, tplType: `session`, description: `For clinicians who interview an adult to assess for Attention Deficit Hyperactivity Disorder (ADHD), this template provides a concise summary of`, prompt: `` },
+  { id: 5, title: `ADHD Clinical Interview With Parent / Carer`, category: `Progress Notes`, tplType: `session`, description: `For clinicians who interview a parent or carer of a child suspected of having attention deficit hyperactivity disorder (ADHD), this template provides`, prompt: `` },
+  { id: 6, title: `ADOS-2 Module 1 Assessment Summary`, category: `Progress Notes`, tplType: `session`, description: `A comprehensive observational summary template for the Autism Diagnostic Observation Schedule, Second Edition (ADOS-2) Module 1. This module is`, prompt: `` },
+  { id: 7, title: `ADOS-2 Module 2 Assessment Summary`, category: `Progress Notes`, tplType: `session`, description: `A comprehensive observational summary template for the Autism Diagnostic Observation Schedule, Second Edition (ADOS-2) Module 2. This module is`, prompt: `` },
+  { id: 8, title: `ADOS-2 Module 3 Assessment Summary`, category: `Progress Notes`, tplType: `session`, description: `A comprehensive observational summary template for the Autism Diagnostic Observation Schedule, Second Edition (ADOS-2) Module 3. This module is`, prompt: `` },
+  { id: 9, title: `ADOS-2 Module 4 Assessment Summary`, category: `Progress Notes`, tplType: `session`, description: `A comprehensive observational summary template for the Autism Diagnostic Observation Schedule, Second Edition (ADOS-2) Module 4. This module is`, prompt: `` },
+  { id: 10, title: `Adult Cognitive Assessment Report`, category: `Progress Notes`, tplType: `document`, description: `Provides a draft adult cognitive assessment report. It is recommended that clinicians add files of any relevant assessment results (e.g., WAIS,`, prompt: `` },
+  { id: 11, title: `Applied Behaviour Analysis (ABA) Session Note`, category: `Progress Notes`, tplType: `session`, description: `For therapists using Applied Behaviour Analysis (ABA) with clients who have autism spectrum disorder, intellectual disabilities, or other`, prompt: `` },
+  { id: 12, title: `Autism Clinical Interview for Adult Diagnosis`, category: `Progress Notes`, tplType: `session`, description: `For clinicians who interview an adult to determine a diagnosis of autism spectrum disorder (ASD), this template provides a concise summary of`, prompt: `` },
+  { id: 13, title: `Autism Clinical Interview With Parent / Carer`, category: `Progress Notes`, tplType: `session`, description: `For clinicians who interview a parent or carer of a child suspected of having autism spectrum disorder (ASD), this template provides a concise`, prompt: `` },
+  { id: 14, title: `BIRP (Behaviour, Intervention, Response, and Plan)`, category: `Progress Notes`, tplType: `session`, description: `Designed to summarise a session between a mental health clinician and a client using the BIRP (Behaviour, Intervention, Response, and Plan) note`, prompt: `` },
+  { id: 15, title: `Child Assessment Summary for Parent/Teacher`, category: `Progress Notes`, tplType: `document`, description: `For educational and developmental psychologists administering cognitive, academic, or developmental assessments to children. This template generates`, prompt: `` },
+  { id: 16, title: `Child Cognitive Assessment Report`, category: `Progress Notes`, tplType: `document`, description: `Provides a draft report of a cognitive assessment for a child. This template is useful for clinicians who have used the “Developmental History`, prompt: `` },
+  { id: 17, title: `Child Therapy Session Note - Brief`, category: `Progress Notes`, tplType: `session`, description: `When working with a child client, this template has been designed to briefly summarise the session. It reflects a similar format to the “Therapy`, prompt: `` },
+  { id: 18, title: `Child Therapy Session Note - Comprehensive`, category: `Progress Notes`, tplType: `session`, description: `When working with a child client, this template has been designed to summarise the session covering a broad range of modalities. It reflects a`, prompt: `` },
+  { id: 19, title: `Client Safety Plan`, category: `Progress Notes`, tplType: `document`, description: `The document created from this template can be given or sent to a client at risk after their therapy session. It is a copy of a safety plan made with`, prompt: `` },
+  { id: 20, title: `Client Session Summary and Homework Activities`, category: `Progress Notes`, tplType: `document`, description: `To be given to a client or patient after their therapy session, this template allows the clinician to easily produce a document that provides a`, prompt: `` },
+  { id: 21, title: `Client Session Summary and Homework Activities - KIDS`, category: `Progress Notes`, tplType: `document`, description: `To be given to a child client or patient after their therapy session, this template allows the clinician to easily produce a document that provides a`, prompt: `` },
+  { id: 22, title: `Client Session Summary FOR PARENTS AND CAREGIVERS`, category: `Progress Notes`, tplType: `document`, description: `To be given to a PARENT OR CAREGIVER after a therapy session between a clinician and a child client, this template allows the clinician to easily`, prompt: `` },
+  { id: 23, title: `Clinical Case Review / Meeting Summary`, category: `Progress Notes`, tplType: `session`, description: `For meetings with stakeholders in relation to a client / patient, this template is designed to create formal minutes for use in clinical records.`, prompt: `` },
+  { id: 24, title: `Cognitive Behaviour Therapy (CBT)`, category: `Progress Notes`, tplType: `session`, description: `For sessions using a CBT framework, this template provides a four part CBT model formulation, a summary of a session with a structure consistent with`, prompt: `` },
+  { id: 25, title: `Cognitive Behavioural Therapy for Insomnia (CBT-I)`, category: `Progress Notes`, tplType: `session`, description: `For use by a clinician using a cognitive behavioural therapy for insomnia (CBT-I) framework, this template provides a detailed summary of a session`, prompt: `` },
+  { id: 26, title: `Compassion Focused Therapy (CFT)`, category: `Progress Notes`, tplType: `session`, description: `For clinicians working within a CFT framework, this template provides a summary of a session with a client with a structure consistent with`, prompt: `` },
+  { id: 27, title: `Comprehensive Psychological Evaluation Report`, category: `Progress Notes`, tplType: `document`, description: `A report that details the findings of a comprehensive psychological assessment. When contextual information is provided by the clinician, combined`, prompt: `` },
+  { id: 28, title: `Cosmetic Readiness Assessment`, category: `Progress Notes`, tplType: `session`, description: `For a psychological assessment session before a cosmetic procedure is conducted.`, prompt: `` },
+  { id: 29, title: `Couples Therapy`, category: `Progress Notes`, tplType: `session`, description: `Focusing on common relationship counselling approaches such as the Gottman Method, Emotionally Focused Therapy (EFT) and Behavioural Couple Therapy`, prompt: `` },
+  { id: 30, title: `Couples Therapy Intake Assessment Session`, category: `Progress Notes`, tplType: `session`, description: `Capturing the initial intake/assessment session for couples therapy, this template is designed for use with individuals or couples attending their`, prompt: `` },
+  { id: 31, title: `Couples Therapy Session Summary and Homework Activities`, category: `Progress Notes`, tplType: `document`, description: `A client-facing summary document to be provided to the couple (or individual attending partner) following a couples therapy session. The document`, prompt: `` },
+  { id: 32, title: `DAP (Data, Assessment, and Plan)`, category: `Progress Notes`, tplType: `session`, description: `Designed to summarise a session between a mental health clinician and a client using the DAP (Data, Assessment, and Plan) note format.`, prompt: `` },
+  { id: 33, title: `DARP (Data, Assessment, Response, and Plan)`, category: `Progress Notes`, tplType: `session`, description: `Designed to summarise a session between a mental health clinician and a client using the DARP (Data, Assessment, Response, and Plan) note format.`, prompt: `` },
+  { id: 34, title: `DART (Data, Action, Response, and Treatment)`, category: `Progress Notes`, tplType: `session`, description: `Designed to summarise a session between a mental health clinician and a client using the DART (Data, Action, Response, and Treatment) note format.`, prompt: `` },
+  { id: 35, title: `Developmental History Interview - Child Cognitive Assessment`, category: `Progress Notes`, tplType: `session`, description: `For clinicians conducting an interview (with a parent, caregiver, or teacher, for example) to obtain a developmental history before completing a`, prompt: `` },
+  { id: 36, title: `Diagnosis Confirmation Letter`, category: `Progress Notes`, tplType: `document`, description: `A letter from a mental health clinician confirming a client or patient's diagnosis, functional impairment, and treatment. This letter is written in`, prompt: `` },
+  { id: 37, title: `Dialectical Behaviour Therapy (DBT)`, category: `Progress Notes`, tplType: `session`, description: `For use by a clinician using a dialectical behaviour therapy (DBT) framework, this template provides a detailed summary of a session with a client.`, prompt: `` },
+  { id: 38, title: `DIR / Floortime Session Note`, category: `Progress Notes`, tplType: `session`, description: `This template is designed for therapists working within the DIR/Floortime (Developmental, Individual-differences, Relationship-based) framework. It`, prompt: `` },
+  { id: 39, title: `Disability Support Pension (DSP) Letter`, category: `Progress Notes`, tplType: `document`, description: `A letter from a psychologist or psychiatrist supporting a client's application for the Disability Support Pension (DSP) on the basis of mental health`, prompt: `` },
+  { id: 40, title: `Discharge Summary - Letter to Referrer`, category: `Progress Notes`, tplType: `document`, description: `A discharge letter providing an overview of a client / patient’s complete treatment. It is appropriate to use if a clinician has finished their`, prompt: `` },
+  { id: 41, title: `DIVA-5 Assessment for ADHD – With Clinical Interview`, category: `Progress Notes`, tplType: `session`, description: `The DIVA-5 assessment for ADHD is a comprehensive tool that aligns with DSM-5-TR diagnostic criteria. Whether you are using the DIVA-5, DIVA-5 ID, or`, prompt: `` },
+  { id: 42, title: `Drug and Alcohol Initial Assessment`, category: `Progress Notes`, tplType: `session`, description: `For use by a clinician working in a drug and alcohol counselling environment, this template provides a detailed summary of a first session / initial`, prompt: `` },
+  { id: 43, title: `Eating Disorder Session (Adult)`, category: `Progress Notes`, tplType: `session`, description: `For clinicians providing eating disorder treatment to adults in individual therapy, this template provides a structured summary of a session based on`, prompt: `` },
+  { id: 44, title: `EMDR Therapy`, category: `Progress Notes`, tplType: `session`, description: `This Eye Movement Desensitisation and Reprocessing structured template is for standardised documentation of EMDR sessions, aligned with the 8-phase`, prompt: `` },
+  { id: 45, title: `Emotion Focused Therapy (EFT)`, category: `Progress Notes`, tplType: `session`, description: `For clinicians practising Emotion Focused Therapy (EFT) to document client sessions, this template incorporates EFT's principles of emotional`, prompt: `` },
+  { id: 46, title: `Family Therapy`, category: `Progress Notes`, tplType: `session`, description: `Designed for family therapy approaches including structural, strategic, narrative, CBT-informed and solution-focused family therapy. This template`, prompt: `` },
+  { id: 47, title: `First Session`, category: `Progress Notes`, tplType: `session`, description: `This initial session template is designed for use when conducting a thorough assessment appointment with general mental health clients. It covers a`, prompt: `` },
+  { id: 48, title: `GIRP (Goals, Intervention, Response, and Plan)`, category: `Progress Notes`, tplType: `session`, description: `Designed to summarise a session between a mental health clinician and a client using the GIRP (Goals, Intervention, Response, and Plan) note format.`, prompt: `` },
+  { id: 49, title: `GP Letter - Brief - After First Session(s)`, category: `Progress Notes`, tplType: `document`, description: `This letter provides a brief summary of a first session, and a treatment plan, to a GP or other referrer. This template may also be appropriate if`, prompt: `` },
+  { id: 50, title: `GP Letter - Progress Update or Mental Health Treatment Plan Reporting`, category: `Progress Notes`, tplType: `document`, description: `Generate a GP letter after psychological treatment (for example, on completion of a course of treatment for a client referred under a Mental Health`, prompt: `` },
+  { id: 51, title: `Grief Counselling`, category: `Progress Notes`, tplType: `session`, description: `For clinicians providing grief counselling to clients experiencing various forms of loss. This template helps clinicians document sessions using`, prompt: `` },
+  { id: 52, title: `Group Therapy`, category: `Progress Notes`, tplType: `session`, description: `Summarises group therapy sessions where multiple clients/patients and facilitators are present. The template produces a progress note for various`, prompt: `` },
+  { id: 53, title: `Internal Family Systems (IFS)`, category: `Progress Notes`, tplType: `session`, description: `For therapists working within an IFS framework, this template provides a summary of a session with a client using a structure and language consistent`, prompt: `` },
+  { id: 54, title: `Interpersonal Therapy (IPT) Session Note`, category: `Progress Notes`, tplType: `session`, description: `For therapists using an Interpersonal Therapy (IPT) framework, this template will summarise a session with a client. It focuses on the connection`, prompt: `` },
+  { id: 55, title: `Letter to Paediatrician`, category: `Progress Notes`, tplType: `document`, description: `A concise professional letter from a mental health clinician to a paediatrician providing updates on a shared patient (child / adolescent). The`, prompt: `` },
+  { id: 56, title: `Letter to Psychiatrist`, category: `Progress Notes`, tplType: `document`, description: `A concise letter to a psychiatrist providing updates on a shared patient. The letter summarises relevant clinical information including current`, prompt: `` },
+  { id: 57, title: `Letter to Referrer under Eating Disorder Treatment and Management Plan (EDP) - Progress Update or EDP Review`, category: `Progress Notes`, tplType: `document`, description: `Generate a letter to a referring medical practitioner (GP, psychiatrist or paediatrician) within the context of psychological treatment provided`, prompt: `` },
+  { id: 58, title: `Mental Status Examination (MSE)`, category: `Progress Notes`, tplType: `session`, description: `For use by a wide variety of clinicians, this template provides a mental status examination (MSE) on a client or patient after their session. Even`, prompt: `` },
+  { id: 59, title: `Mentalization Based Treatment (MBT) – DVA End of Cycle Report`, category: `Progress Notes`, tplType: `both`, description: `For use by a DVA clinician using an MBT framework, this template provides a draft End of Cycle Report. It may be useful in instances where the`, prompt: `` },
+  { id: 60, title: `Mentalization Based Treatment (MBT) Session Note`, category: `Progress Notes`, tplType: `session`, description: `For use by a clinician using an MBT framework, this template provides a detailed summary of a session with a client.`, prompt: `` },
+  { id: 61, title: `MIGDAS-2 Autism Assessment – Adults With Verbal Fluency`, category: `Progress Notes`, tplType: `session`, description: `A detailed summary of an autism assessment conducted using the Diagnostic Interview for Adults With Verbal Fluency, as part of the Monteiro Interview`, prompt: `` },
+  { id: 62, title: `MIGDAS-2 Autism Assessment – Children and Adolescents With Verbal Fluency`, category: `Progress Notes`, tplType: `session`, description: `A detailed summary of an autism assessment conducted using the Diagnostic Interview for Children and Adolescents With Verbal Fluency, as part of the`, prompt: `` },
+  { id: 63, title: `MIGDAS-2 Autism Assessment – Individuals With Limited to No Verbal Fluency`, category: `Progress Notes`, tplType: `session`, description: `A detailed summary of an autism assessment conducted using the Diagnostic Interview for Individuals With Limited to No Verbal Fluency Protocol, as`, prompt: `` },
+  { id: 64, title: `MIGDAS-2 Autism Assessment – Parent / Caregiver or Teacher Questionnaire`, category: `Progress Notes`, tplType: `session`, description: `A detailed summary of a parent / caregiver or teacher questionnaire as part of an autism assessment conducted using the Monteiro Interview Guidelines`, prompt: `` },
+  { id: 65, title: `Narrative Therapy Session Note`, category: `Progress Notes`, tplType: `session`, description: `For sessions using a Narrative Therapy framework, this template provides a comprehensive summary structured around the core practices and principles`, prompt: `` },
+  { id: 66, title: `NDIS Report - Brief`, category: `Progress Notes`, tplType: `document`, description: `For use by a clinician working with participants in the Australian National Disability Insurance Scheme (NDIS), this template provides information`, prompt: `` },
+  { id: 67, title: `NDIS Report - Comprehensive`, category: `Progress Notes`, tplType: `document`, description: `For use by a clinician working with participants in the Australian National Disability Insurance Scheme (NDIS), this template provides information`, prompt: `` },
+  { id: 68, title: `Neuropsychological Assessment Report`, category: `Progress Notes`, tplType: `document`, description: `A report providing a comprehensive overview of a neuropsychological evaluation.    When used with the “Create Document” feature, this template can`, prompt: `` },
+  { id: 69, title: `Neuropsychological Assessment Session`, category: `Progress Notes`, tplType: `session`, description: `Provides a summary of a neuropsychological assessment session, organising information about the client’s presentation during testing, mental status,`, prompt: `` },
+  { id: 70, title: `Neuropsychology Feedback Session`, category: `Progress Notes`, tplType: `session`, description: `For neuropsychologists providing feedback to a client following a comprehensive neuropsychological assessment. The template is designed to organise a`, prompt: `` },
+  { id: 71, title: `Neuropsychology Pre-Assessment Interview`, category: `Progress Notes`, tplType: `session`, description: `For neuropsychologists interviewing a client as a part of a comprehensive neuropsychological assessment. The template is designed to organise`, prompt: `` },
+  { id: 72, title: `NSW SIRA (WorkCover) Allied Health Treatment Request (AHTR) Form`, category: `Progress Notes`, tplType: `both`, description: `Allied health clinicians working in the New South Wales workers compensation system in Australia are required to complete and submit an Allied Health`, prompt: `` },
+  { id: 73, title: `NZ ACC Completion Report (8544)`, category: `Progress Notes`, tplType: `document`, description: `Once treatment under the ACC (NZ) has concluded, a Completion Report is completed by clinicians in collaboration with the kiritaki (client). It`, prompt: `` },
+  { id: 74, title: `NZ ACC Progress Report (8542)`, category: `Progress Notes`, tplType: `document`, description: `A Progress Report is completed by the Lead Service Provider in collaboration with the kiritaki (client) when reporting on progress since the Cover`, prompt: `` },
+  { id: 75, title: `NZ ACC Specialist Cover Assessment - Adult (8536)`, category: `Progress Notes`, tplType: `document`, description: `Within New Zealand's ACC Sensitive Claims Service, mental health practitioners may be engaged to complete a Specialist Cover Assessment (ACC8536) to`, prompt: `` },
+  { id: 76, title: `NZ ACC Wellbeing Plan (8541)`, category: `Progress Notes`, tplType: `document`, description: `A Wellbeing Plan (ACC8541) is completed by clinicians in collaboration with the kiritaki (client) when planning their recovery from a covered mental`, prompt: `` },
+  { id: 77, title: `Occupational Therapy (OT) Functional Capacity Assessment Interview`, category: `Risk & Safety`, tplType: `session`, description: `A detailed summary of a session(s) between an occupational therapist and a client where the aim is to produce a functional capacity assessment. This`, prompt: `` },
+  { id: 78, title: `Occupational Therapy (OT) SOAP Session / Progress Note`, category: `Risk & Safety`, tplType: `session`, description: `A detailed summary of a session between an occupational therapist and a client. This template follows the traditional SOAP layout: Subjective,`, prompt: `` },
+  { id: 79, title: `Peer Supervision`, category: `Progress Notes`, tplType: `session`, description: `When two or more clinicians of roughly equal experience engage in a peer supervision meeting, this template provides a detailed summary of the cases`, prompt: `` },
+  { id: 80, title: `Play Therapy`, category: `Progress Notes`, tplType: `session`, description: `This template is for working with children using a play therapy framework. It provides the therapist with a detailed yet concise summary of a play`, prompt: `` },
+  { id: 81, title: `Positive Psychology`, category: `Progress Notes`, tplType: `session`, description: `For use by a clinician using a positive psychology framework, this template provides a detailed summary of a session with a client.`, prompt: `` },
+  { id: 82, title: `Professional Development`, category: `Progress Notes`, tplType: `session`, description: `This template can be used to convert the content of a professional development session, such as a workshop or webinar, into comprehensive notes. TIP:`, prompt: `` },
+  { id: 83, title: `Psychiatric / Mental Health Nurse Progress Note`, category: `Assessments`, tplType: `session`, description: `Summarises an interaction between a psychiatric nurse and a patient, with sections specifically targeted to the requirements of psychiatric nurses.`, prompt: `` },
+  { id: 84, title: `Psychiatric Clinical Interview and Assessment`, category: `Assessments`, tplType: `session`, description: `For use by a psychiatrist seeing a patient for the first time, this template gives a detailed summary of a clinical interview and assessment,`, prompt: `` },
+  { id: 85, title: `Psychiatric General Review`, category: `Assessments`, tplType: `session`, description: `For use by a psychiatrist seeing a previously known patient for a general review appointment, this template includes information such as patient`, prompt: `` },
+  { id: 86, title: `Psychiatric Medication Review`, category: `Assessments`, tplType: `session`, description: `For use by a psychiatrist seeing a previously known patient for a medication review appointment, this template provides focused information on the`, prompt: `` },
+  { id: 87, title: `Psychiatrist Letter to Referrer - General Review Appointments`, category: `Assessments`, tplType: `both`, description: `For use by a psychiatrist seeing a known patient for a follow-up or general review appointment, this template provides a structure for a formal`, prompt: `` },
+  { id: 88, title: `Psychiatrist Letter to Referrer - Medication Review Appointments`, category: `Assessments`, tplType: `both`, description: `For use by a psychiatrist seeing a known patient for a follow-up medication review appointment, this template provides a structure for a detailed`, prompt: `` },
+  { id: 89, title: `Psychiatrist Letter to Referrer – Clinical Interview / First Appointments`, category: `Progress Notes`, tplType: `both`, description: `For use by a psychiatrist seeing a patient for the first time or for a longer appointment, this template provides a structure for a detailed formal`, prompt: `` },
+  { id: 90, title: `Psychodynamic Psychotherapy`, category: `Progress Notes`, tplType: `session`, description: `For clinicians providing a psychodynamic psychotherapy approach, this template is designed to capture key themes, unconscious processes, and`, prompt: `` },
+  { id: 91, title: `ReturnToWorkSA Treating Psychologist Comprehensive Report`, category: `Progress Notes`, tplType: `document`, description: `Psychologists working within the South Australian workers compensation scheme, also known as WorkCover or ReturntoWorkSA, may be requested by the`, prompt: `` },
+  { id: 92, title: `ReturnToWorkSA Treating Psychologist Summary Report`, category: `Progress Notes`, tplType: `document`, description: `Psychologists working within the South Australian workers compensation scheme, also known as WorkCover or ReturntoWorkSA, may be requested by the`, prompt: `` },
+  { id: 93, title: `Risk Assessment`, category: `Progress Notes`, tplType: `session`, description: `For use by a wide variety of clinicians, this template provides a risk assessment summary statement based on information from a session with a client`, prompt: `` },
+  { id: 94, title: `Schema Therapy`, category: `Progress Notes`, tplType: `session`, description: `Structured around the schema therapy framework, this session summary includes key schema therapy concepts such as maladaptive schemas, modes and`, prompt: `` },
+  { id: 95, title: `School Recommendations Report`, category: `Progress Notes`, tplType: `document`, description: `Designed for school counsellors and psychologists working with students experiencing behavioural, academic, or social-emotional challenges at school.`, prompt: `` },
+  { id: 96, title: `Schools - Case Conference/Parent Meeting`, category: `Progress Notes`, tplType: `session`, description: `For mental health professionals working in schools or other educational settings to document meetings, case conferences and other communications with`, prompt: `` },
+  { id: 97, title: `Schools - Observations`, category: `Progress Notes`, tplType: `session`, description: `For mental health professionals to dictate observations of students made in schools and other educational settings. This template is designed to`, prompt: `` },
+  { id: 98, title: `Schools - Therapy Session`, category: `Progress Notes`, tplType: `session`, description: `Documents therapy sessions for mental health professionals working with students in schools and other educational settings.`, prompt: `` },
+  { id: 99, title: `Sex Therapy`, category: `Progress Notes`, tplType: `session`, description: `Designed for clinicians providing sex therapy using approaches such as Sensate Focus, Cognitive Behavioural Sex Therapy, Mindfulness-Based Sex`, prompt: `` },
+  { id: 100, title: `SMART Goals for Clients`, category: `Progress Notes`, tplType: `document`, description: `Document SMART goals and provide them to clients. This template focuses on helping the clinician and client record SMART goals i.e., goals that are`, prompt: `` },
+  { id: 101, title: `SOAP - Subjective Objective Assessment Plan`, category: `Progress Notes`, tplType: `session`, description: `Assessment note using the following titles: Subjective information, Past History, Objective information,  Assessment Plan`, prompt: `` },
+  { id: 102, title: `Social Worker Session Note`, category: `Therapy Notes`, tplType: `session`, description: `Social workers work with a wide variety of clients in different settings. Some social workers prefer using a particular type of case note format,`, prompt: `` },
+  { id: 103, title: `Solution-Focused Therapy (SFT) Session Note`, category: `Progress Notes`, tplType: `session`, description: `For therapists working within a Solution-Focused Therapy (also known as Solution-Focused Brief Therapy or SFBT) framework, this template summarises a`, prompt: `` },
+  { id: 104, title: `Summary of Conversation`, category: `Progress Notes`, tplType: `session`, description: `This template can be used to summarise work meetings or professional conversations.`, prompt: `` },
+  { id: 105, title: `Supervision`, category: `Progress Notes`, tplType: `session`, description: `Summarises a supervision session, where an experienced clinician (supervisor) is providing guidance and support to a less experienced clinician`, prompt: `` },
+  { id: 106, title: `Supervision (For use by supervisee)`, category: `Progress Notes`, tplType: `session`, description: `Designed for use by a supervisee receiving clinical supervision. A supervision session, where an experienced clinician (supervisor) is providing`, prompt: `` },
+  { id: 107, title: `Supervision (Group)`, category: `Progress Notes`, tplType: `session`, description: `Summarises a group supervision session, where an experienced clinician (supervisor) is providing guidance and support to a group of clinicians`, prompt: `` },
+  { id: 108, title: `Therapeutic Letter for Client`, category: `Progress Notes`, tplType: `document`, description: `This template creates a warm, affirming summary of a therapy session to give to a client. It can be used after each session to reinforce insights,`, prompt: `` },
+  { id: 109, title: `Therapy Progress Note - Brief`, category: `Progress Notes`, tplType: `session`, description: `This template is for ongoing psychological therapy or counselling, and aims to be a concise summary of a therapy session.`, prompt: `` },
+  { id: 110, title: `Trauma-Focused CBT`, category: `Progress Notes`, tplType: `session`, description: `For clinicians working with victims of trauma, this template provides a summary of a therapy session conducted using a trauma-focused CBT framework.`, prompt: `` },
+  { id: 111, title: `Treatment Summary Report - Third Party Request`, category: `Progress Notes`, tplType: `document`, description: `A concise report providing an overview of a client/patient’s treatment, intended for use with ongoing or past clients/patients, where a report has`, prompt: `` },
+  { id: 112, title: `WorkCover Queensland Comprehensive Treatment Report`, category: `Progress Notes`, tplType: `document`, description: `Mental health practitioners working in the Queensland workers' compensation system may be requested by the insurer to provide a Comprehensive`, prompt: `` },
+  { id: 113, title: `WorkCover Queensland Provider Management Plan (PMP) – Form 032`, category: `Progress Notes`, tplType: `both`, description: `Mental health practitioners working in the Queensland workers' compensation system, also known as WorkSafe, are required to complete and submit a`, prompt: `` },
+  { id: 114, title: `WorkCover Queensland Psychological Treatment Progress Report`, category: `Progress Notes`, tplType: `document`, description: `Mental health practitioners working in the Queensland workers' compensation system may be requested by the insurer to provide a Psychological`, prompt: `` },
+  { id: 115, title: `WorkSafe Victoria – Psychology Treatment Planning Form (PS604)`, category: `Progress Notes`, tplType: `both`, description: `Psychologists working in the workers compensation system in Victoria (WorkSafe / WorkCover), Australia, are required to complete a Psychology`, prompt: `` },
+  { id: 116, title: `WorkSafe Victoria – Psychology Treatment Review Form (PS109)`, category: `Progress Notes`, tplType: `both`, description: `Psychologists working in the WorkSafe (WorkCover) Victoria workers compensation system in Australia are advised to complete a Psychology Treatment`, prompt: `` }
+];
+
+// ── State ──
+let db = null, currentUser = null;
+
+// ── Helpers ──
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+function settingsNav(tab) {
+  ['profile','workplaces','templates','transcripts','api','personalisation','subscription'].forEach(t => {
+    document.getElementById('stnav-' + t).classList.toggle('active', t === tab);
+    document.getElementById('st-pane-' + t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'workplaces') renderWorkplaces();
+  if (tab === 'templates')  stRenderTemplates();
+}
+
+// ── Firebase init + auth ──
+firebase.initializeApp(FB_CONFIG);
+db = firebase.firestore();
+
+firebase.auth().onAuthStateChanged(async user => {
+  if (!user) { window.location.href = '../'; return; }
+  try {
+    const doc = await db.collection('users').doc(user.uid).get();
+    if (!doc.exists) { window.location.href = '../'; return; }
+    const profile = doc.data();
+    if (!profile || profile.status !== 'active') { window.location.href = '../'; return; }
+    currentUser = { uid: user.uid, email: user.email, profile };
+    document.getElementById('auth-gate').style.display = 'none';
+    populateSettings();
+    // Show native share if available
+    if (navigator.share) document.getElementById('st-share-native').style.display = '';
+  } catch(e) {
+    document.getElementById('auth-gate').innerHTML = `<div style="text-align:center;color:#dc2626;"><p>Unable to load settings. ${esc(friendlyAuthError(e))}</p><a href="../" style="color:var(--blue);">Back to App</a></div>`;
+  }
+});
+
+function populateSettings() {
+  const p = currentUser.profile;
+  // Profile
+  const emailEl = document.getElementById('st-email-display');
+  if (emailEl) emailEl.textContent = currentUser.email || '';
+  document.getElementById('st-name').value         = p.displayName || '';
+  document.getElementById('st-credentials').value  = p.credentials || '';
+  document.getElementById('st-email-pretext').value = p.emailPretext || '';
+  // Groq key — source of truth is Firestore (profile.groqApiKey), sessionStorage is runtime cache
+  document.getElementById('st-groq-key').value = sessionStorage.getItem('groq_api_key') || p.groqApiKey || '';
+  document.getElementById('st-gemini-key').value = sessionStorage.getItem('gemini_api_key') || p.geminiApiKey || '';
+  // Transcripts
+  const tr = p.transcriptPrivacy || {};
+  document.getElementById('st-redact-names').checked = !!tr.redactNames;
+  document.getElementById('st-redact-dob').checked   = !!tr.redactDOB;
+  document.getElementById('st-redact-other').checked = !!tr.redactOther;
+  const rd = p.recordingDefaults || {};
+  const autoStopOn = rd.autoStop !== false;
+  document.getElementById('st-autostop').checked     = autoStopOn;
+  document.getElementById('st-autostop-mins').value  = rd.autoStopMinutes || 55;
+  document.getElementById('st-autostop-row').style.display = autoStopOn ? '' : 'none';
+  // Personalisation
+  const ps = p.personalisation || {};
+  document.getElementById('st-use-client-info').checked = ps.useClientInfo !== false;
+  const len = ps.noteLength || 'balanced';
+  document.getElementById('st-len-brief').checked    = len === 'brief';
+  document.getElementById('st-len-balanced').checked = len === 'balanced';
+  document.getElementById('st-len-detailed').checked = len === 'detailed';
+  document.getElementById('st-prof-identity').value  = ps.professionalIdentity || '';
+  document.getElementById('st-treatment').value      = ps.treatmentApproaches  || '';
+  document.getElementById('st-doc-style').value      = ps.documentStyle        || '';
+  stUpdateChars();
+}
+
+// ── Profile ──
+async function stSaveProfile() {
+  const p = currentUser.profile;
+  const name         = document.getElementById('st-name').value.trim();
+  const creds        = document.getElementById('st-credentials').value.trim();
+  const emailPretext = document.getElementById('st-email-pretext').value.trim();
+  try {
+    await db.collection('users').doc(currentUser.uid).update({
+      displayName: name, credentials: creds, emailPretext,
+      workplaces: p.workplaces || [], activeWorkplaceId: p.activeWorkplaceId || '',
+    });
+    p.displayName = name; p.credentials = creds; p.emailPretext = emailPretext;
+    toast('Profile saved');
+  } catch(e) { alert(friendlyAuthError(e)); }
+}
+
+async function stSendPasswordReset() {
+  const msgEl = document.getElementById('st-pw-msg');
+  try {
+    await firebase.auth().sendPasswordResetEmail(currentUser.email);
+    msgEl.style.color = '#059669';
+    msgEl.textContent = `Reset link sent to ${currentUser.email}`;
+  } catch(e) {
+    msgEl.style.color = 'var(--danger)';
+    msgEl.textContent = friendlyAuthError(e);
+  }
+}
+
+// ── Workplaces ──
+function isAdminUser() { return currentUser?.profile?.tier === 'admin'; }
+function canAddWorkplace() {
+  if (isAdminUser()) return true;
+  return (currentUser?.profile?.workplaces || []).length < 1;
+}
+
+function renderWorkplaces() {
+  if (!currentUser) return;
+  const p = currentUser.profile;
+  const wps = p.workplaces || [];
+  const activeId = p.activeWorkplaceId || (wps[0]?.id);
+  const listEl = document.getElementById('st-wp-list');
+  const addEl  = document.getElementById('st-add-wp-area');
+  if (!listEl) return;
+
+  addEl.innerHTML = canAddWorkplace()
+    ? `<button class="as-btn-primary" onclick="wpAdd()">+ Add Workplace</button>`
+    : `<p style="font-size:.82rem;color:#6b7280;">Free plan includes 1 workplace.</p>`;
+
+  listEl.innerHTML = wps.map(wp => `
+    <div class="as-wp-card ${wp.id === activeId ? 'as-wp-active' : ''}" id="as-wp-card-${wp.id}">
+      <div class="as-wp-card-header">
+        <div>
+          <strong style="font-size:.9rem;">${esc(wp.name || 'Unnamed')}</strong>
+          <span style="font-size:.76rem;color:#6b7280;margin-left:8px;">${esc(wp.type || '')}</span>
+          ${wp.id === activeId ? '<span style="font-size:.7rem;background:var(--blue-lt);color:var(--blue);padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:600;">Active</span>' : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${wp.id !== activeId ? `<button class="as-btn-sm" onclick="wpSetActive('${wp.id}')">Set active</button>` : ''}
+          <button class="as-btn-sm" onclick="wpToggleEdit('${wp.id}')">Edit</button>
+          ${wps.length > 1 ? `<button class="as-btn-sm as-btn-danger" onclick="wpDelete('${wp.id}')">Delete</button>` : ''}
+        </div>
+      </div>
+      <div id="as-wp-edit-${wp.id}" style="display:none;margin-top:10px;">
+        <div class="as-field"><label>Workplace name</label><input id="as-wp-name-${wp.id}" value="${esc(wp.name || '')}" /></div>
+        <div class="as-field"><label>Type</label>
+          <select id="as-wp-type-${wp.id}">
+            ${['Private Practice','Hospital','Community Mental Health','Telehealth','Other'].map(t=>`<option ${wp.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="as-field"><label>Registration system</label>
+          <select id="as-wp-regsys-${wp.id}" onchange="wpRegSysChange('${wp.id}',this.value)">
+            <option value="none" ${(!wp.regSystem||wp.regSystem==='none')?'selected':''}>No patient ID system</option>
+            <option value="existing" ${wp.regSystem==='existing'?'selected':''}>Existing ID system</option>
+          </select>
+        </div>
+        <div id="as-wp-regformat-wrap-${wp.id}" style="${wp.regSystem==='existing'?'':'display:none'}">
+          <div class="as-field"><label>Paste example patient ID</label>
+            <input id="as-wp-regformat-${wp.id}" value="${esc(wp.regFormat && wp.regSystem==='existing' ? wp.regFormat : '')}" oninput="wpPreviewFormat('${wp.id}',this.value)" placeholder="e.g. Reg-12823-1292" />
+            <div id="as-wp-regpreview-${wp.id}" style="font-size:.75rem;color:#6b7280;margin-top:3px;"></div>
+          </div>
+        </div>
+        <div class="as-field"><label>Window colour theme</label>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            ${WP_THEMES.map((th,i)=>`<div class="as-theme-swatch ${wp.themeIndex===i?'as-theme-swatch-active':''}" style="background:${th.primary}" onclick="wpSetTheme('${wp.id}',${i})" title="Theme ${i+1}"></div>`).join('')}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="as-btn-primary" onclick="wpSave('${wp.id}')">Save</button>
+          <button class="as-btn-sm" onclick="document.getElementById('as-wp-edit-${wp.id}').style.display='none'">Cancel</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function wpToggleEdit(id) {
+  const el = document.getElementById('as-wp-edit-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+function wpRegSysChange(id, val) {
+  const el = document.getElementById('as-wp-regformat-wrap-' + id);
+  if (el) el.style.display = val === 'existing' ? '' : 'none';
+}
+function wpPreviewFormat(id, val) {
+  const el = document.getElementById('as-wp-regpreview-' + id);
+  if (!el) return;
+  if (!val.trim()) { el.innerHTML = ''; return; }
+  const p = detectIdPattern(val.trim());
+  el.innerHTML = p ? `Detected: <strong>${esc(p.description)}</strong>, <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">${esc(p.template)}</code>` : '';
+}
+function wpSetTheme(id, idx) {
+  const wp = (currentUser.profile.workplaces||[]).find(w => w.id === id);
+  if (wp) { wp.themeIndex = idx; renderWorkplaces(); }
+}
+function wpSetActive(id) {
+  currentUser.profile.activeWorkplaceId = id;
+  renderWorkplaces();
+}
+function wpDelete(id) {
+  if (!confirm('Remove this workplace?')) return;
+  const wps = currentUser.profile.workplaces || [];
+  currentUser.profile.workplaces = wps.filter(w => w.id !== id);
+  if (currentUser.profile.activeWorkplaceId === id)
+    currentUser.profile.activeWorkplaceId = (currentUser.profile.workplaces[0]||{}).id || '';
+  renderWorkplaces();
+}
+function wpAdd() {
+  if (!canAddWorkplace()) { alert('Free plan includes 1 workplace.'); return; }
+  const wps = currentUser.profile.workplaces || [];
+  const newId = 'wp_' + Date.now();
+  wps.push({ id:newId, name:'New Workplace', type:'Private Practice', regSystem:'none', themeIndex: wps.length % WP_THEMES.length });
+  currentUser.profile.workplaces = wps;
+  renderWorkplaces();
+  setTimeout(() => wpToggleEdit(newId), 50);
+}
+function wpSave(id) {
+  const wps = currentUser.profile.workplaces || [];
+  const wp = wps.find(w => w.id === id);
+  if (!wp) return;
+  wp.name      = document.getElementById('as-wp-name-' + id).value.trim() || wp.name;
+  wp.type      = document.getElementById('as-wp-type-' + id).value;
+  wp.regSystem = document.getElementById('as-wp-regsys-' + id).value;
+  if (wp.regSystem === 'existing') {
+    const raw = document.getElementById('as-wp-regformat-' + id).value.trim();
+    const det = detectIdPattern(raw);
+    wp.regFormat = raw; wp.regPattern = det?.regex || null; wp.regTemplate = det?.template || null;
+  } else {
+    wp.regFormat = ''; wp.regPattern = null; wp.regTemplate = null;
+  }
+  // Save to Firestore
+  db.collection('users').doc(currentUser.uid).update({
+    workplaces: currentUser.profile.workplaces,
+    activeWorkplaceId: currentUser.profile.activeWorkplaceId || '',
+  }).then(() => toast('Workplace saved')).catch(e => toast(friendlyAuthError(e), 'error'));
+  renderWorkplaces();
+}
+function detectIdPattern(example) {
+  if (!example || !example.trim()) return null;
+  example = example.trim();
+  const tokens = [];
+  let i = 0;
+  while (i < example.length) {
+    if (/[A-Za-z]/.test(example[i])) {
+      let j = i; while (j < example.length && /[A-Za-z]/.test(example[j])) j++;
+      tokens.push({ type:'alpha', value: example.slice(i,j) }); i = j;
+    } else if (/\d/.test(example[i])) {
+      let j = i; while (j < example.length && /\d/.test(example[j])) j++;
+      tokens.push({ type:'digit', value: example.slice(i,j) }); i = j;
+    } else {
+      tokens.push({ type:'sep', value: example[i] }); i++;
+    }
+  }
+  const regexParts = [], templateParts = [], descParts = [];
+  for (const tok of tokens) {
+    if (tok.type === 'alpha') {
+      regexParts.push(`[A-Za-z]{${tok.value.length}}`);
+      templateParts.push('A'.repeat(tok.value.length));
+      descParts.push(`${tok.value.length} letter${tok.value.length > 1 ? 's' : ''}`);
+    } else if (tok.type === 'digit') {
+      regexParts.push(`\\d{${tok.value.length}}`);
+      templateParts.push('#'.repeat(tok.value.length));
+      descParts.push(`${tok.value.length} digit${tok.value.length > 1 ? 's' : ''}`);
+    } else {
+      regexParts.push(tok.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      templateParts.push(tok.value);
+    }
+  }
+  return { regex:`^${regexParts.join('')}$`, template:templateParts.join(''), description:descParts.join(' + ') };
+}
+
+// ── Templates ──
+function stRenderTemplates() {
+  const q = (document.getElementById('st-tpl-search')?.value || '').toLowerCase();
+  const p = currentUser?.profile || {};
+  const favIds = new Set(p.favoriteTemplateIds || []);
+  const custom = (p.customTemplates || []).map(t => ({...t, custom:true}));
+  const all = [...CLINICAL_TEMPLATES.map(t => ({...t, custom:false})), ...custom];
+  const filtered = q ? all.filter(t => t.title.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)) : all;
+  filtered.sort((a,b) => (favIds.has(b.id)?1:0) - (favIds.has(a.id)?1:0));
+  const list = document.getElementById('st-tpl-list');
+  if (!list) return;
+  list.innerHTML = filtered.map(t => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${t.custom?'#e0d4ff':'var(--border)'};border-radius:9px;background:${t.custom?'#faf8ff':'#fff'};">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.86rem;font-weight:600;">${esc(t.title)}${t.custom?'<span style="font-size:.7rem;background:#ede9fe;color:#7c3aed;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600;">Custom</span>':''}</div>
+        <div style="font-size:.76rem;color:#9ca3af;margin-top:1px;">${esc(t.category)} · ${esc(t.description)}</div>
+      </div>
+      <button onclick="stToggleFav(${JSON.stringify(t.id)})" title="${favIds.has(t.id)?'Remove from favourites':'Add to favourites'}"
+        style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:4px;opacity:${favIds.has(t.id)?'1':'.35'};transition:opacity .15s;"
+        onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='${favIds.has(t.id)?'1':'.35'}'">
+        ${favIds.has(t.id) ? '★' : '☆'}
+      </button>
+      ${t.custom ? `<button onclick="stDeleteCustomTemplate(${JSON.stringify(t.id)})" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:#dc2626;padding:4px;">✕</button>` : ''}
+    </div>`).join('');
+}
+
+async function stToggleFav(tplId) {
+  const p = currentUser.profile;
+  let ids = [...(p.favoriteTemplateIds || [])];
+  ids = ids.includes(tplId) ? ids.filter(x => x !== tplId) : [tplId, ...ids];
+  p.favoriteTemplateIds = ids;
+  try { await db.collection('users').doc(currentUser.uid).update({ favoriteTemplateIds: ids }); } catch(e) {}
+  stRenderTemplates();
+}
+
+async function stSaveCustomTemplate() {
+  const title  = document.getElementById('st-ct-title').value.trim();
+  const cat    = document.getElementById('st-ct-category').value.trim();
+  const desc   = document.getElementById('st-ct-desc').value.trim();
+  const prompt = document.getElementById('st-ct-prompt').value.trim();
+  const errEl  = document.getElementById('st-ct-error');
+  errEl.textContent = '';
+  if (!title)  { errEl.textContent = 'Title is required.'; return; }
+  if (!cat)    { errEl.textContent = 'Category is required.'; return; }
+  if (!desc)   { errEl.textContent = 'Description is required.'; return; }
+  if (!prompt) { errEl.textContent = 'AI Prompt instructions are required.'; return; }
+  const p = currentUser.profile;
+  const customs = [...(p.customTemplates || []), { id:'custom_'+Date.now(), title, category:cat, description:desc, prompt, custom:true }];
+  p.customTemplates = customs;
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ customTemplates: customs });
+    ['st-ct-title','st-ct-category','st-ct-desc','st-ct-prompt'].forEach(id => document.getElementById(id).value = '');
+    stRenderTemplates();
+    toast('Template added');
+  } catch(e) { errEl.textContent = 'Save failed. ' + friendlyAuthError(e); }
+}
+
+async function stDeleteCustomTemplate(tplId) {
+  if (!confirm('Delete this custom template?')) return;
+  const p = currentUser.profile;
+  p.customTemplates = (p.customTemplates || []).filter(t => t.id !== tplId);
+  try { await db.collection('users').doc(currentUser.uid).update({ customTemplates: p.customTemplates }); stRenderTemplates(); toast('Deleted'); } catch(e) { toast(friendlyAuthError(e), 'error'); }
+}
+
+// ── Groq key ──
+async function stSaveGroqKey() {
+  const key = document.getElementById('st-groq-key').value.trim();
+  if (!key) return;
+  sessionStorage.setItem('groq_api_key', key);
+  localStorage.removeItem('groq_api_key');
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ groqApiKey: key });
+  } catch(e) {
+    console.warn('Failed to save Groq key to Firestore:', e);
+  }
+  const saved = document.getElementById('st-groq-key-saved');
+  saved.style.display = 'inline';
+  setTimeout(() => { window.location.href = '../?key=saved#generate'; }, 900);
+}
+
+// ── Gemini key ──
+async function stSaveGeminiKey() {
+  const key = document.getElementById('st-gemini-key').value.trim();
+  sessionStorage.setItem('gemini_api_key', key);
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ geminiApiKey: key });
+  } catch(e) {
+    console.warn('Failed to save Gemini key to Firestore:', e);
+  }
+  const saved = document.getElementById('st-gemini-key-saved');
+  if (saved) { saved.style.display = ''; setTimeout(() => { saved.style.display = 'none'; }, 2500); }
+}
+
+// ── Transcripts ──
+async function stSaveTranscripts() {
+  const transcriptPrivacy = { redactNames: document.getElementById('st-redact-names').checked, redactDOB: document.getElementById('st-redact-dob').checked, redactOther: document.getElementById('st-redact-other').checked };
+  const recordingDefaults = { autoStop: document.getElementById('st-autostop').checked, autoStopMinutes: parseInt(document.getElementById('st-autostop-mins').value)||55 };
+  currentUser.profile.transcriptPrivacy = transcriptPrivacy;
+  currentUser.profile.recordingDefaults = recordingDefaults;
+  try { await db.collection('users').doc(currentUser.uid).update({ transcriptPrivacy, recordingDefaults }); toast('Transcript settings saved'); } catch(e) { toast(friendlyAuthError(e), 'error'); }
+}
+
+// ── Personalisation ──
+function stUpdateChars() {
+  [['st-prof-identity','st-pi-count',936],['st-treatment','st-tr-count',1000],['st-doc-style','st-ds-count',1000]].forEach(([inp,out,max]) => {
+    const el = document.getElementById(inp), co = document.getElementById(out);
+    if (el && co) co.textContent = `${el.value.length} / ${max} characters`;
+  });
+}
+async function stSavePersonalisation() {
+  const noteLength = document.querySelector('input[name="st-note-length"]:checked')?.value || 'balanced';
+  const personalisation = { useClientInfo: document.getElementById('st-use-client-info').checked, noteLength, professionalIdentity: document.getElementById('st-prof-identity').value.trim(), treatmentApproaches: document.getElementById('st-treatment').value.trim(), documentStyle: document.getElementById('st-doc-style').value.trim() };
+  currentUser.profile.personalisation = personalisation;
+  try { await db.collection('users').doc(currentUser.uid).update({ personalisation }); toast('Personalisation saved'); } catch(e) { toast(friendlyAuthError(e), 'error'); }
+}
+
+// ── Subscription / Share ──
+function stShareEmail() {
+  const subj = encodeURIComponent('LushNote – Clinical Note Builder for Psychiatrists');
+  const body = encodeURIComponent(`Hi,\n\nI've been using LushNote, a clinical note builder that uses AI to generate psychiatric progress notes from transcripts and recordings. It's currently free.\n\nTry it here: https://iamarasinghe96.github.io/lushan\n\nBest wishes`);
+  window.open(`mailto:?subject=${subj}&body=${body}`);
+}
+function stShareLink() {
+  const url = 'https://iamarasinghe96.github.io/lushan';
+  navigator.clipboard.writeText(url).then(() => {
+    const msg = document.getElementById('st-share-msg');
+    msg.textContent = 'Link copied!'; msg.style.display = '';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+  }).catch(() => prompt('Copy this link:', url));
+}
+async function stShareNative() {
+  try { await navigator.share({ title:'LushNote', text:'Clinical Note Builder for Psychiatrists', url:'https://iamarasinghe96.github.io/lushan' }); } catch(e) {}
+}
+async function stSendFeedback() {
+  const text = document.getElementById('st-feedback-text').value.trim();
+  const msgEl = document.getElementById('st-feedback-msg');
+  if (!text) { msgEl.style.color='var(--danger)'; msgEl.textContent='Please write something first.'; return; }
+  const name = currentUser?.profile?.displayName || currentUser?.email || 'User';
+  const subj = encodeURIComponent('LushNote Feedback');
+  const body = encodeURIComponent(`From: ${name}\nEmail: ${currentUser.email}\n\n${text}`);
+  window.open(`mailto:iamarasinghe96@gmail.com?subject=${subj}&body=${body}`);
+  msgEl.style.color='#059669'; msgEl.textContent='Thank you. Your email client should have opened.';
+  document.getElementById('st-feedback-text').value='';
+}
+
+// ── Delete Account ──
+const DA_REASONS = [
+  'Security Concerns',
+  'Privacy Concerns',
+  'App Crashed / Bugs',
+  'Difficult to Use',
+  'Templates Not Working',
+  'Unsatisfied with AI Output',
+  'Missing Features',
+  'Too Complex',
+  'Switching to Another Tool',
+  'No Longer Need the App',
+  'Other'
+];
+
+function openDeleteAccountModal() {
+  const overlay = document.createElement('div');
+  overlay.id = 'da-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9900;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px;max-width:520px;width:100%;padding:28px 26px;box-shadow:0 24px 64px rgba(15,23,42,.18);">
+      <h3 style="font-size:1.05rem;font-weight:700;color:#111827;margin:0 0 8px;">Before you go…</h3>
+      <p style="font-size:.85rem;color:#6b7280;margin:0 0 18px;line-height:1.6;">We're sorry to see you leave. Could you tell us why? Your feedback helps us improve LushNote.</p>
+      <p style="font-size:.78rem;font-weight:600;color:#374151;margin-bottom:8px;">Select all that apply:</p>
+      <div id="da-chips" style="margin-bottom:18px;">
+        ${DA_REASONS.map(r => `<span class="da-chip" data-reason="${esc(r)}">${esc(r)}</span>`).join('')}
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Anything else? <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+        <textarea id="da-message" rows="3" placeholder="Your feedback helps us improve…" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:.84rem;font-family:inherit;resize:none;box-sizing:border-box;outline:none;"></textarea>
+      </div>
+      <div id="da-error" style="font-size:.82rem;color:#dc2626;margin-bottom:12px;display:none;"></div>
+      <div style="display:flex;gap:10px;">
+        <button id="da-cancel-btn" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-family:inherit;color:#374151;font-weight:500;">Cancel</button>
+        <button id="da-delete-btn" style="flex:2;padding:10px;border:none;border-radius:10px;background:#dc2626;color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;font-family:inherit;">Confirm &amp; delete my account</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  overlay.querySelectorAll('.da-chip').forEach(chip => {
+    chip.onclick = () => chip.classList.toggle('selected');
+  });
+
+  overlay.querySelector('#da-cancel-btn').onclick = () => overlay.remove();
+  overlay.querySelector('#da-delete-btn').onclick = async () => {
+    const reasons = Array.from(overlay.querySelectorAll('.da-chip.selected')).map(c => c.dataset.reason);
+    const message = overlay.querySelector('#da-message').value.trim();
+    const btn = overlay.querySelector('#da-delete-btn');
+    const errEl = overlay.querySelector('#da-error');
+    btn.disabled = true;
+    btn.textContent = 'Opening Google sign-in…';
+    errEl.style.display = 'none';
+    try {
+      await deleteAccountWithGoogleReauth(reasons, message);
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = 'Delete my account permanently';
+      errEl.style.display = '';
+      errEl.textContent = friendlyAuthError(e);
+    }
+  };
+}
+
+async function deleteAccountWithGoogleReauth(reasons, message) {
+  const uid = currentUser.uid;
+  const email = currentUser.email;
+
+  // Save feedback best-effort
+  try {
+    await db.collection('deletion_feedback').doc(uid).set({
+      userId: uid, email, reasons, message,
+      deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e) {}
+
+  // Re-authenticate with Google popup (required by Firebase before account deletion)
+  const provider = new firebase.auth.GoogleAuthProvider();
+  await firebase.auth().currentUser.reauthenticateWithPopup(provider);
+
+  // Delete progress notes
+  const notes = await db.collection('progress_notes').where('userId', '==', uid).limit(500).get();
+  if (!notes.empty) {
+    const batch = db.batch();
+    notes.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  }
+
+  // Delete patient profiles
+  const profiles = await db.collection('users').doc(uid).collection('patientProfiles').get();
+  if (!profiles.empty) {
+    const batch2 = db.batch();
+    profiles.docs.forEach(doc => batch2.delete(doc.ref));
+    await batch2.commit();
+  }
+
+  // Delete user document
+  await db.collection('users').doc(uid).delete();
+
+  // Delete auth account
+  await firebase.auth().currentUser.delete();
+
+  sessionStorage.removeItem('groq_api_key');
+  sessionStorage.removeItem('gemini_api_key');
+  localStorage.removeItem('emailForSignIn');
+  window.location.href = '../account-deleted/';
+}
+
+// Handle ?tab= param in URL
+const urlTab = new URLSearchParams(window.location.search).get('tab');
+if (urlTab) settingsNav(urlTab);
+
+// ── Add to Home Screen ──
+let _stA2hsPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _stA2hsPrompt = e; });
+
+function _stIsIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream; }
+function _stIsStandalone() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+
+function stAddToHome() {
+  if (_stIsStandalone()) { toast('LushNote is already installed on your device.'); return; }
+  if (!_stIsIOS() && _stA2hsPrompt) { _stA2hsPrompt.prompt(); _stA2hsPrompt.userChoice.then(() => { _stA2hsPrompt = null; }); return; }
+  if (!_stIsIOS()) { toast('To install, use your browser menu and look for "Install app" or "Add to Home Screen".'); return; }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9990;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px 20px 0 0;max-width:480px;width:100%;padding:28px 24px 32px;box-shadow:0 -8px 40px rgba(0,0,0,.18);">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="44" height="44" style="border-radius:12px;flex-shrink:0;">
+          <circle cx="50" cy="50" r="50" fill="#5ad6a7"/><text x="48" y="70" font-family="FreeSerif,Georgia,serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="-9.5">LN</text>
+        </svg>
+        <div><div style="font-size:1rem;font-weight:700;color:#111827;">Add to Home Screen</div><div style="font-size:.82rem;color:#6b7280;margin-top:2px;">Quick access from your home screen</div></div>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="margin-left:auto;background:none;border:none;font-size:1.4rem;color:#9ca3af;cursor:pointer;line-height:1;padding:4px;">&times;</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:14px;background:#f9fafb;border-radius:14px;padding:14px 16px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+          <div style="flex:1;"><div style="font-size:.88rem;font-weight:600;color:#111827;margin-bottom:3px;">Tap the Share button</div><div style="font-size:.8rem;color:#6b7280;">In Safari, tap the share icon at the bottom of the screen</div></div>
+          <svg width="32" height="32" viewBox="0 0 44 44" fill="none" style="flex-shrink:0;opacity:.85;"><rect width="44" height="44" rx="10" fill="#e5e7eb"/><path d="M22 6v20M15 13l7-7 7 7" stroke="#374151" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="10" y="26" width="24" height="14" rx="3" stroke="#374151" stroke-width="2" fill="none"/></svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;background:#f9fafb;border-radius:14px;padding:14px 16px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+          <div style="flex:1;"><div style="font-size:.88rem;font-weight:600;color:#111827;margin-bottom:3px;">Tap "Add to Home Screen"</div><div style="font-size:.8rem;color:#6b7280;">Scroll down in the share sheet and tap this option</div></div>
+          <svg width="32" height="32" viewBox="0 0 44 44" fill="none" style="flex-shrink:0;opacity:.85;"><rect width="44" height="44" rx="10" fill="#e5e7eb"/><rect x="8" y="12" width="28" height="20" rx="3" stroke="#374151" stroke-width="2" fill="none"/><path d="M22 17v8M18 21l4 4 4-4" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div style="font-size:.78rem;color:#9ca3af;text-align:center;">Open LushNote in Safari to use this feature</div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+</script>
+</body>
+</html>
