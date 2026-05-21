@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Confirm Account Deletion — LushNote</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='lgb' cx='42%25' cy='36%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%233da843'/%3E%3Cstop offset='100%25' stop-color='%231e6b22'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='url(%23lgb)'/%3E%3Ctext x='50' y='64' font-family='Arial Black%2CArial%2Csans-serif' font-weight='900' font-size='36' fill='white' text-anchor='middle' letter-spacing='3'%3ELN%3C/text%3E%3C/svg%3E">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f9fafb; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 20px; max-width: 460px; width: 100%; padding: 40px 36px; box-shadow: 0 4px 24px rgba(15,23,42,.08); text-align: center; }
+    .logo-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 32px; }
+    .logo-name { font-size: 1.1rem; font-weight: 700; color: #111827; }
+    h1 { font-size: 1.15rem; font-weight: 700; color: #111827; margin-bottom: 10px; }
+    p { font-size: .88rem; color: #6b7280; line-height: 1.7; margin-bottom: 14px; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn { display: inline-block; padding: 10px 24px; background: #2563eb; color: #fff; border-radius: 10px; text-decoration: none; font-size: .88rem; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }
+    .btn-outline { background: #fff; color: #374151; border: 1px solid #e5e7eb; margin-top: 10px; }
+    .error-icon { color: #dc2626; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="logo-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="38" height="38">
+        <defs><radialGradient id="lgb" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
+        <circle cx="50" cy="50" r="50" fill="url(#lgb)"/>
+        <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+      </svg>
+      <span class="logo-name">LushNote</span>
+    </div>
+    <div class="spinner"></div>
+    <h1>Confirming your request…</h1>
+    <p>Please wait while we verify your identity and delete your account.</p>
+  </div>
+
+<script>
+const FB_CONFIG = {
+  apiKey:            'AIzaSyAEgpB1eCm-zh9Rx-uTMoageFZWEBRXzQo',
+  authDomain:        'lush-note.firebaseapp.com',
+  projectId:         'lush-note',
+  storageBucket:     'lush-note.firebasestorage.app',
+  messagingSenderId: '557843066844',
+  appId:             '1:557843066844:web:4f120d8d9adee5fc716919',
+};
+
+firebase.initializeApp(FB_CONFIG);
+const db = firebase.firestore();
+
+function showError(msg) {
+  document.getElementById('card').innerHTML = `
+    <div class="logo-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="38" height="38">
+        <defs><radialGradient id="lgb2" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
+        <circle cx="50" cy="50" r="50" fill="url(#lgb2)"/>
+        <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+      </svg>
+      <span class="logo-name">LushNote</span>
+    </div>
+    <div class="error-icon"><svg width="44" height="44" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <h1>Link invalid or expired</h1>
+    <p>${msg}</p>
+    <a href="../settings/?tab=profile" class="btn">Back to Settings</a>
+  `;
+}
+
+async function runDeletion(user) {
+  const uid = user.uid;
+  try {
+    // Delete progress notes
+    const notes = await db.collection('progress_notes').where('userId', '==', uid).limit(500).get();
+    if (!notes.empty) {
+      const batch = db.batch();
+      notes.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    }
+
+    // Delete patient profiles subcollection
+    const profiles = await db.collection('users').doc(uid).collection('patientProfiles').get();
+    if (!profiles.empty) {
+      const batch2 = db.batch();
+      profiles.docs.forEach(doc => batch2.delete(doc.ref));
+      await batch2.commit();
+    }
+
+    // Delete user document
+    await db.collection('users').doc(uid).delete();
+
+    // Delete Auth account (fresh sign-in means no re-auth error)
+    await user.delete();
+
+    localStorage.removeItem('emailForSignIn');
+    window.location.href = '../account-deleted/';
+  } catch(e) {
+    showError('Something went wrong while deleting your account: ' + e.message + '. Please contact support.');
+  }
+}
+
+(async () => {
+  if (!firebase.auth().isSignInWithEmailLink(window.location.href)) {
+    showError('This link is not a valid account deletion link. Please request a new one from Settings.');
+    return;
+  }
+
+  let email = localStorage.getItem('emailForSignIn');
+  if (!email) {
+    // Link opened on a different device — ask for email
+    email = window.prompt('Please enter your LushNote email address to confirm deletion:');
+    if (!email) { showError('Email is required to complete account deletion.'); return; }
+  }
+
+  try {
+    const result = await firebase.auth().signInWithEmailLink(email, window.location.href);
+    await runDeletion(result.user);
+  } catch(e) {
+    if (e.code === 'auth/invalid-action-code') {
+      showError('This link has expired or already been used. Please request a new deletion link from Settings.');
+    } else if (e.code === 'auth/invalid-email') {
+      showError('The email address did not match. Please try again from Settings.');
+    } else {
+      showError(e.message);
+    }
+  }
+})();
+</script>
+</body>
+</html>
