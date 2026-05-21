@@ -309,6 +309,29 @@
       <p class="st-sub">Connect external AI services used by LushNote</p>
 
       <div class="st-section">
+        <h2 class="st-section-h">Gemini API Key <span style="font-size:.72rem;font-weight:500;color:#059669;background:#f0fdf4;border:1px solid #bbf7d0;padding:2px 8px;border-radius:20px;margin-left:6px;">Recommended</span></h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Used for audio transcription and note generation. Handles recordings of any length. Free to set up — no credit card needed.</p>
+
+        <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:10px;">How to get your free API key</div>
+          <ol style="margin:0;padding-left:18px;font-size:.83rem;color:#374151;line-height:2;">
+            <li>Go to <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">aistudio.google.com/api-keys</a> and sign in with your Google account</li>
+            <li>Click <strong>Create API key</strong></li>
+            <li>Copy the key shown. It starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">AIza</code></li>
+            <li>Paste it in the field below and click <strong>Save Key</strong></li>
+          </ol>
+        </div>
+
+        <div class="field-row">
+          <label>Gemini API Key</label>
+          <input type="password" id="st-gemini-key" placeholder="AIza..." autocomplete="off" style="font-family:monospace;" />
+          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">Stored securely in your account — available on any device you sign in with.</p>
+        </div>
+        <button class="btn btn-primary" onclick="stSaveGeminiKey()" style="margin-top:4px;">Save Key</button>
+        <span id="st-gemini-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
+      </div>
+
+      <div class="st-section">
         <h2 class="st-section-h">Groq API Key</h2>
         <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Required for audio features: Record Session, Dictate Note, and Upload Recording. Free to set up, no credit card needed.</p>
 
@@ -653,6 +676,7 @@ function populateSettings() {
   document.getElementById('st-email-pretext').value = p.emailPretext || '';
   // Groq key — source of truth is Firestore (profile.groqApiKey), sessionStorage is runtime cache
   document.getElementById('st-groq-key').value = sessionStorage.getItem('groq_api_key') || p.groqApiKey || '';
+  document.getElementById('st-gemini-key').value = sessionStorage.getItem('gemini_api_key') || p.geminiApiKey || '';
   // Transcripts
   const tr = p.transcriptPrivacy || {};
   document.getElementById('st-redact-names').checked = !!tr.redactNames;
@@ -945,6 +969,19 @@ async function stSaveGroqKey() {
   setTimeout(() => { window.location.href = '../?key=saved#generate'; }, 900);
 }
 
+// ── Gemini key ──
+async function stSaveGeminiKey() {
+  const key = document.getElementById('st-gemini-key').value.trim();
+  sessionStorage.setItem('gemini_api_key', key);
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ geminiApiKey: key });
+  } catch(e) {
+    console.warn('Failed to save Gemini key to Firestore:', e);
+  }
+  const saved = document.getElementById('st-gemini-key-saved');
+  if (saved) { saved.style.display = ''; setTimeout(() => { saved.style.display = 'none'; }, 2500); }
+}
+
 // ── Transcripts ──
 async function stSaveTranscripts() {
   const transcriptPrivacy = { redactNames: document.getElementById('st-redact-names').checked, redactDOB: document.getElementById('st-redact-dob').checked, redactOther: document.getElementById('st-redact-other').checked };
@@ -1099,6 +1136,7 @@ async function deleteAccountWithGoogleReauth(reasons, message) {
   await firebase.auth().currentUser.delete();
 
   sessionStorage.removeItem('groq_api_key');
+  sessionStorage.removeItem('gemini_api_key');
   localStorage.removeItem('emailForSignIn');
   window.location.href = '../account-deleted/';
 }

@@ -2208,7 +2208,7 @@ function showTranscriptRejection(message) {
 
 async function pasteAndGenerate() {
   const groqKey = getGroqKey();
-  if (!groqKey) { _checkGroqAudioKey(() => pasteAndGenerate()); return; }
+  if (!groqKey && !getGeminiKey()) { _checkGroqAudioKey(() => pasteAndGenerate()); return; }
 
   let transcript;
   try {
@@ -4559,10 +4559,67 @@ function _recFormatTime(s) {
   return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 }
 
+async function _geminiErrorMsg(res) {
+  const body = await res.json().catch(() => ({}));
+  const msg = (body.error && body.error.message) ? body.error.message : '';
+  if (res.status === 400 && msg.toLowerCase().includes('api key')) return 'Invalid Gemini API key. Please check Settings → API Keys.';
+  if (res.status === 401 || res.status === 403) return 'Invalid or expired Gemini API key. Please update it in Settings → API Keys.';
+  if (res.status === 429) return msg.toLowerCase().includes('quota') ? 'Daily Gemini quota reached. Try again tomorrow or upgrade your Google AI Studio plan.' : 'Gemini rate limit reached. Please wait a moment and try again.';
+  if (res.status >= 500) return 'Gemini service error. Please try again in a moment.';
+  return msg || ('Gemini error ' + res.status);
+}
+
+async function geminiUploadAudio(blob) {
+  const key = getGeminiKey();
+  const mimeType = blob.type || 'audio/mp4';
+  const boundary = 'GeminiBoundary' + Date.now();
+  const meta = JSON.stringify({ file: { display_name: 'recording' } });
+  const encoder = new TextEncoder();
+  const head = encoder.encode('--' + boundary + '\r\nContent-Type: application/json; charset=utf-8\r\n\r\n' + meta + '\r\n--' + boundary + '\r\nContent-Type: ' + mimeType + '\r\n\r\n');
+  const tail = encoder.encode('\r\n--' + boundary + '--');
+  const audioBuf = await blob.arrayBuffer();
+  const body = new Uint8Array(head.length + audioBuf.byteLength + tail.length);
+  body.set(head, 0);
+  body.set(new Uint8Array(audioBuf), head.length);
+  body.set(tail, head.length + audioBuf.byteLength);
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/upload/v1beta/files?key=' + encodeURIComponent(key),
+    { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary, 'X-Goog-Upload-Protocol': 'multipart' }, body }
+  );
+  if (!res.ok) throw new Error(await _geminiErrorMsg(res));
+  const d = await res.json();
+  return d.file;
+}
+
+async function _geminiGenerate(contents, systemText) {
+  const key = getGeminiKey();
+  const reqBody = { contents };
+  if (systemText) reqBody.system_instruction = { parts: [{ text: systemText }] };
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key),
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) }
+  );
+  if (!res.ok) throw new Error(await _geminiErrorMsg(res));
+  const d = await res.json();
+  return (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) ? d.candidates[0].content.parts[0].text : '';
+}
+
 async function transcribeAudio(blob) {
   const ext = (blob.type||'').includes('ogg') ? 'ogg' : (blob.type||'').includes('mp4') ? 'mp4' : 'webm';
   // TEMP DEBUG — remove before production (see CLAUDE.md)
   debugLog('transcribe_start', { blobSizeKb: Math.round(blob.size / 1024), blobType: blob.type, ext });
+  if (getGeminiKey()) {
+    setLoading(true, 'Uploading audio…');
+    const file = await geminiUploadAudio(blob);
+    setLoading(true, 'Transcribing audio…');
+    const transcript = await _geminiGenerate([{ parts: [
+      { file_data: { mime_type: file.mimeType || blob.type || 'audio/mp4', file_uri: file.uri } },
+      { text: 'Transcribe this audio recording verbatim. Return only the transcript text with no labels, headings, or commentary.' }
+    ]}]);
+    // TEMP DEBUG — remove before production (see CLAUDE.md)
+    debugLog('transcribe_done', { wordCount: transcript.trim().split(/\s+/).length });
+    return transcript.trim();
+  }
   const MAX_BYTES = 24 * 1024 * 1024;
   if (blob.size > MAX_BYTES) {
     const mb = Math.round(blob.size / 1024 / 1024);
@@ -4602,6 +4659,17 @@ async function transcribeAudio(blob) {
 }
 
 async function callGroqWithMode(transcript, mode, templatePrompt = null) {
+  if (getGeminiKey()) {
+    const redacted = applyTranscriptRedactions(transcript);
+    const personalPrefix = getPersonalisationPrefix();
+    const basePrompt = mode === 'dictation' ? DICTATE_PROMPT : SYSTEM_PROMPT;
+    const clinician2 = currentClinicianLabel() || 'the clinician';
+    const systemPrompt = (templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : (personalPrefix + basePrompt)).replace(/\{CLINICIAN\}/g, clinician2);
+    const userMsg = mode === 'dictation'
+      ? 'Structure this dictated clinical note:\n\n' + redacted
+      : 'Structure this consultation transcript into a clinical note:\n\n' + redacted;
+    return await _geminiGenerate([{ parts: [{ text: userMsg }] }], systemPrompt);
+  }
   const redacted = applyTranscriptRedactions(transcript);
   const personalPrefix = getPersonalisationPrefix();
   const basePrompt = mode === 'dictation' ? DICTATE_PROMPT : SYSTEM_PROMPT;
