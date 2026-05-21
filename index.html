@@ -1218,11 +1218,12 @@ With regards,
           Visit <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a>, sign in, click <strong>Create API key</strong>, and paste it below.
         </div>
         <div class="ob-field">
-          <label>Groq API Key</label>
-          <input type="password" id="ob-groq-key" placeholder="gsk_..." autocomplete="off" />
+          <label>Groq API Key <span style="font-weight:400;color:#9ca3af;">(optional — you can add it later)</span></label>
+          <input type="password" id="ob-groq-key" placeholder="gsk_..." autocomplete="off" oninput="document.getElementById('ob-groq-next').textContent=this.value.trim()?'Next':'Skip for now'" />
         </div>
-        <p style="font-size:.76rem;color:#9ca3af;margin:0 0 20px;">You can update this anytime via the settings icon in the top bar.</p>
-        <button class="ob-btn" onclick="obNext(4)">Next</button>
+        <div id="ob-groq-error" style="font-size:.82rem;color:#dc2626;margin-bottom:10px;display:none;"></div>
+        <p style="font-size:.76rem;color:#9ca3af;margin:0 0 20px;">You can add or update this anytime via the settings icon in the top bar.</p>
+        <button class="ob-btn" id="ob-groq-next" onclick="obNext(4)">Skip for now</button>
         <button class="ob-btn ob-btn-secondary" onclick="obBack(4)">Back</button>
       </div>
 
@@ -3895,6 +3896,13 @@ function obNext(currentStep) {
     obShowStep(4);
   } else if (currentStep === 4) {
     const key = document.getElementById('ob-groq-key').value.trim();
+    const errEl = document.getElementById('ob-groq-error');
+    if (key && !key.startsWith('gsk_')) {
+      errEl.textContent = 'Groq keys start with gsk_ — check your key and try again.';
+      errEl.style.display = '';
+      return;
+    }
+    errEl.style.display = 'none';
     onboardingData.groqKey = key;
     // Build summary for confirm step
     const p = onboardingData;
