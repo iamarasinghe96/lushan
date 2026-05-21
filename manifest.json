@@ -8,10 +8,22 @@
   "theme_color": "#2563eb",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%235ad6a7'/%3E%3Ctext x='50' y='64' font-family='Helvetica Neue%2CHelvetica%2CArial%2Csans-serif' font-weight='300' font-size='36' fill='white' text-anchor='middle' letter-spacing='4' style='filter%3Adrop-shadow(0 1.5px 2px rgba(0%2C0%2C0%2C.2))'%3ELN%3C/text%3E%3C/svg%3E",
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
