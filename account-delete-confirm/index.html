@@ -6,7 +6,7 @@
   <title>Confirm Account Deletion — LushNote</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='lgb' cx='42%25' cy='36%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%233da843'/%3E%3Cstop offset='100%25' stop-color='%231e6b22'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='url(%23lgb)'/%3E%3Ctext x='50' y='64' font-family='Arial Black%2CArial%2Csans-serif' font-weight='900' font-size='36' fill='white' text-anchor='middle' letter-spacing='3'%3ELN%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%235ad6a7'/%3E%3Ctext x='48' y='70' font-family='FreeSerif%2CGeorgia%2Cserif' font-weight='bold' font-size='56' fill='white' text-anchor='middle' letter-spacing='-9.5'%3ELN%3C%2Ftext%3E%3C%2Fsvg%3E">
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -29,9 +29,8 @@
   <div class="card" id="card">
     <div class="logo-wrap">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="38" height="38">
-        <defs><radialGradient id="lgb" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
-        <circle cx="50" cy="50" r="50" fill="url(#lgb)"/>
-        <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+        <circle cx="50" cy="50" r="50" fill="#5ad6a7"/>
+        <text x="48" y="70" font-family="FreeSerif,Georgia,serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="-9.5">LN</text>
       </svg>
       <span class="logo-name">LushNote</span>
     </div>
@@ -57,9 +56,8 @@ function showError(msg) {
   document.getElementById('card').innerHTML = `
     <div class="logo-wrap">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="38" height="38">
-        <defs><radialGradient id="lgb2" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
-        <circle cx="50" cy="50" r="50" fill="url(#lgb2)"/>
-        <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+        <circle cx="50" cy="50" r="50" fill="#5ad6a7"/>
+        <text x="48" y="70" font-family="FreeSerif,Georgia,serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="-9.5">LN</text>
       </svg>
       <span class="logo-name">LushNote</span>
     </div>
@@ -98,7 +96,14 @@ async function runDeletion(user) {
     localStorage.removeItem('emailForSignIn');
     window.location.href = '../account-deleted/';
   } catch(e) {
-    showError('Something went wrong while deleting your account: ' + e.message + '. Please contact support.');
+    const code = e && e.code;
+    if (code === 'permission-denied') {
+      showError('Unable to delete account data — a permissions error occurred. Please contact support.');
+    } else if (code === 'auth/network-request-failed') {
+      showError('A network error occurred while deleting your account. Please check your connection and try again.');
+    } else {
+      showError('Something went wrong while deleting your account. Please contact support if this continues.');
+    }
   }
 }
 
@@ -110,9 +115,8 @@ async function runDeletion(user) {
 
   let email = localStorage.getItem('emailForSignIn');
   if (!email) {
-    // Link opened on a different device — ask for email
     email = window.prompt('Please enter your LushNote email address to confirm deletion:');
-    if (!email) { showError('Email is required to complete account deletion.'); return; }
+    if (!email) { showError('Your email address is required to complete this step. Please try again.'); return; }
   }
 
   try {
@@ -120,11 +124,13 @@ async function runDeletion(user) {
     await runDeletion(result.user);
   } catch(e) {
     if (e.code === 'auth/invalid-action-code') {
-      showError('This link has expired or already been used. Please request a new deletion link from Settings.');
+      showError('This link has expired or has already been used. Please go back to Settings and request a new deletion link.');
     } else if (e.code === 'auth/invalid-email') {
-      showError('The email address did not match. Please try again from Settings.');
+      showError('The email address you entered did not match the account on this link. Please try again from Settings.');
+    } else if (e.code === 'auth/network-request-failed') {
+      showError('A network error occurred. Please check your internet connection and try again.');
     } else {
-      showError(e.message);
+      showError('Something went wrong. Please try again, or contact support if the problem continues.');
     }
   }
 })();

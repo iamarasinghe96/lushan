@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='lgb' cx='42%25' cy='36%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%233da843'/%3E%3Cstop offset='100%25' stop-color='%231e6b22'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='url(%23lgb)'/%3E%3Ctext x='50' y='64' font-family='Arial Black%2CArial%2Csans-serif' font-weight='900' font-size='36' fill='white' text-anchor='middle' letter-spacing='3'%3ELN%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%235ad6a7'/%3E%3Ctext x='48' y='70' font-family='FreeSerif%2CGeorgia%2Cserif' font-weight='bold' font-size='56' fill='white' text-anchor='middle' letter-spacing='-9.5'%3ELN%3C%2Ftext%3E%3C%2Fsvg%3E">
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -188,10 +188,9 @@
         <h2 class="st-section-h">Personal Information</h2>
         <div class="field-row" style="margin-bottom:12px;">
           <label>Signed in as</label>
-          <div id="st-signed-in-email" style="font-size:.88rem;color:#374151;padding:8px 10px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;display:flex;align-items:center;gap:8px;">
-            <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.8 19.8 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72 12.8 12.8 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.8 12.8 0 002.81.7A2 2 0 0122 16.92z" stroke="#6b7280" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <svg width="15" height="15" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-            <span id="st-email-display" style="color:#111827;font-weight:500;"></span>
+          <div style="display:inline-flex;align-items:center;gap:7px;font-size:.88rem;color:#111827;font-weight:500;margin-top:2px;">
+            <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            <span id="st-email-display"></span>
           </div>
         </div>
         <div class="two-col">
@@ -310,6 +309,30 @@
       <p class="st-sub">Connect external AI services used by LushNote</p>
 
       <div class="st-section">
+        <h2 class="st-section-h">Gemini API Key <span style="font-size:.72rem;font-weight:500;color:#059669;background:#f0fdf4;border:1px solid #bbf7d0;padding:2px 8px;border-radius:20px;margin-left:6px;">Recommended</span></h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Used for audio transcription and note generation. Handles recordings of any length. Free to set up — no credit card needed.</p>
+
+        <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:10px;">How to get your free API key</div>
+          <ol style="margin:0;padding-left:18px;font-size:.83rem;color:#374151;line-height:2;">
+            <li>Go to <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">aistudio.google.com/api-keys</a> and sign in with your Google account</li>
+            <li>Click <strong>Create API key</strong></li>
+            <li>Click <strong>Create project</strong>, give it any name (e.g. <em>LushNote</em>), then click <strong>Create API key in new project</strong></li>
+            <li>Copy the key shown. It starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">AIza</code></li>
+            <li>Paste it in the field below and click <strong>Save Key</strong></li>
+          </ol>
+        </div>
+
+        <div class="field-row">
+          <label>Gemini API Key</label>
+          <input type="password" id="st-gemini-key" placeholder="AIza..." autocomplete="off" style="font-family:monospace;" />
+          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">Stored securely in your account — available on any device you sign in with.</p>
+        </div>
+        <button class="btn btn-primary" onclick="stSaveGeminiKey()" style="margin-top:4px;">Save Key</button>
+        <span id="st-gemini-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
+      </div>
+
+      <div class="st-section">
         <h2 class="st-section-h">Groq API Key</h2>
         <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Required for audio features: Record Session, Dictate Note, and Upload Recording. Free to set up, no credit card needed.</p>
 
@@ -390,6 +413,14 @@
         <textarea id="st-doc-style" rows="4" placeholder="e.g. Use English standards consistent with Australia. Use professional language. Refer to the person as 'patient'." oninput="stUpdateChars()"></textarea>
         <div id="st-ds-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
       </div>
+      <div class="st-section">
+        <h2 class="st-section-h">Add to Home Screen</h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Install LushNote on your device for quick access without opening a browser.</p>
+        <button class="btn btn-outline" onclick="stAddToHome()">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 2v13M8 7l4-5 4 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add to Home Screen
+        </button>
+      </div>
       <div style="display:flex;justify-content:flex-end;">
         <button class="btn btn-primary" onclick="stSavePersonalisation()">Save changes</button>
       </div>
@@ -399,11 +430,10 @@
     <div class="st-pane" id="st-pane-subscription">
       <h1 class="st-h1">Subscription</h1>
       <p class="st-sub">Your plan and account details</p>
-      <div class="st-section" style="background:var(--blue-lt);border-color:var(--blue);text-align:center;padding:32px 24px;">
-        <div style="font-size:2rem;margin-bottom:10px;">🎉</div>
-        <div style="font-size:1.1rem;font-weight:800;color:var(--blue);margin-bottom:6px;">LushNote is currently free</div>
-        <p style="font-size:.88rem;color:#374151;line-height:1.65;max-width:420px;margin:0 auto 18px;">LushNote is in active development. During this early stage, access is completely free. We're learning alongside our early users and improving constantly. Thank you for being part of the journey.</p>
-        <div style="font-size:.82rem;color:var(--gray);">Have thoughts or suggestions? We'd love to hear from you.</div>
+      <div class="st-section" style="background:var(--blue-lt);border-color:var(--blue);padding:28px 24px;">
+        <div style="font-size:1rem;font-weight:700;color:var(--blue);margin-bottom:8px;">LushNote is free to use</div>
+        <p style="font-size:.87rem;color:#374151;line-height:1.7;margin:0 0 12px;">LushNote is free to use, and we intend to keep it that way for as long as it remains within our capacity. You bring your own Groq API key — your usage is billed directly to your Groq account at their standard rates, so there are no shared limits, no queues, and no platform costs on our end. Use it as much as you need.</p>
+        <p style="font-size:.84rem;color:var(--gray);margin:0;">LushNote is in active development. If you have feedback or suggestions, we'd welcome hearing from you.</p>
       </div>
       <div class="st-section">
         <h2 class="st-section-h">Share LushNote</h2>
@@ -439,6 +469,28 @@
 
 <script>
 // ── Config ──
+function friendlyAuthError(e) {
+  const map = {
+    'auth/user-mismatch':                       'The Google account you selected does not match the account you are currently signed in with. Please try again and select the correct account.',
+    'auth/popup-closed-by-user':                'The sign-in window was closed before completing. Please try again.',
+    'auth/cancelled-popup-request':             'The sign-in window was closed before completing. Please try again.',
+    'auth/popup-blocked':                       'Your browser blocked the sign-in window. Please allow pop-ups for this site and try again.',
+    'auth/network-request-failed':              'A network error occurred. Please check your internet connection and try again.',
+    'auth/too-many-requests':                   'Too many attempts in a short time. Please wait a few minutes before trying again.',
+    'auth/requires-recent-login':               'For security, please sign out and sign back in before making this change.',
+    'auth/user-disabled':                       'This account has been disabled. Please contact support.',
+    'auth/user-not-found':                      'No account was found with this email address.',
+    'auth/invalid-email':                       'The email address entered is not valid. Please check and try again.',
+    'auth/invalid-action-code':                 'This link has expired or has already been used. Please request a new one.',
+    'auth/account-exists-with-different-credential': 'An account already exists using a different sign-in method.',
+    'permission-denied':                        'You do not have permission to perform this action. Please try signing out and back in.',
+    'unavailable':                              'The service is temporarily unavailable. Please try again in a moment.',
+  };
+  if (e && e.code && map[e.code]) return map[e.code];
+  if (e && e.message && e.message.includes('quota')) return 'Service quota exceeded. Please try again later.';
+  return 'Something went wrong. Please try again, or contact support if the problem persists.';
+}
+
 const FB_CONFIG = {
   apiKey:            'AIzaSyAEgpB1eCm-zh9Rx-uTMoageFZWEBRXzQo',
   authDomain:        'lush-note.firebaseapp.com',
@@ -611,7 +663,7 @@ firebase.auth().onAuthStateChanged(async user => {
     // Show native share if available
     if (navigator.share) document.getElementById('st-share-native').style.display = '';
   } catch(e) {
-    document.getElementById('auth-gate').innerHTML = `<div style="text-align:center;color:#dc2626;"><p>Error loading settings: ${esc(e.message)}</p><a href="../" style="color:var(--blue);">Back to App</a></div>`;
+    document.getElementById('auth-gate').innerHTML = `<div style="text-align:center;color:#dc2626;"><p>Unable to load settings. ${esc(friendlyAuthError(e))}</p><a href="../" style="color:var(--blue);">Back to App</a></div>`;
   }
 });
 
@@ -625,6 +677,7 @@ function populateSettings() {
   document.getElementById('st-email-pretext').value = p.emailPretext || '';
   // Groq key — source of truth is Firestore (profile.groqApiKey), sessionStorage is runtime cache
   document.getElementById('st-groq-key').value = sessionStorage.getItem('groq_api_key') || p.groqApiKey || '';
+  document.getElementById('st-gemini-key').value = sessionStorage.getItem('gemini_api_key') || p.geminiApiKey || '';
   // Transcripts
   const tr = p.transcriptPrivacy || {};
   document.getElementById('st-redact-names').checked = !!tr.redactNames;
@@ -661,7 +714,7 @@ async function stSaveProfile() {
     });
     p.displayName = name; p.credentials = creds; p.emailPretext = emailPretext;
     toast('Profile saved');
-  } catch(e) { alert('Error saving: ' + e.message); }
+  } catch(e) { alert(friendlyAuthError(e)); }
 }
 
 async function stSendPasswordReset() {
@@ -672,7 +725,7 @@ async function stSendPasswordReset() {
     msgEl.textContent = `Reset link sent to ${currentUser.email}`;
   } catch(e) {
     msgEl.style.color = 'var(--danger)';
-    msgEl.textContent = e.message;
+    msgEl.textContent = friendlyAuthError(e);
   }
 }
 
@@ -800,7 +853,7 @@ function wpSave(id) {
   db.collection('users').doc(currentUser.uid).update({
     workplaces: currentUser.profile.workplaces,
     activeWorkplaceId: currentUser.profile.activeWorkplaceId || '',
-  }).then(() => toast('Workplace saved')).catch(e => alert(e.message));
+  }).then(() => toast('Workplace saved')).catch(e => toast(friendlyAuthError(e), 'error'));
   renderWorkplaces();
 }
 function detectIdPattern(example) {
@@ -891,14 +944,14 @@ async function stSaveCustomTemplate() {
     ['st-ct-title','st-ct-category','st-ct-desc','st-ct-prompt'].forEach(id => document.getElementById(id).value = '');
     stRenderTemplates();
     toast('Template added');
-  } catch(e) { errEl.textContent = 'Save failed: ' + e.message; }
+  } catch(e) { errEl.textContent = 'Save failed. ' + friendlyAuthError(e); }
 }
 
 async function stDeleteCustomTemplate(tplId) {
   if (!confirm('Delete this custom template?')) return;
   const p = currentUser.profile;
   p.customTemplates = (p.customTemplates || []).filter(t => t.id !== tplId);
-  try { await db.collection('users').doc(currentUser.uid).update({ customTemplates: p.customTemplates }); stRenderTemplates(); toast('Deleted'); } catch(e) { toast('Failed: '+e.message); }
+  try { await db.collection('users').doc(currentUser.uid).update({ customTemplates: p.customTemplates }); stRenderTemplates(); toast('Deleted'); } catch(e) { toast(friendlyAuthError(e), 'error'); }
 }
 
 // ── Groq key ──
@@ -917,13 +970,26 @@ async function stSaveGroqKey() {
   setTimeout(() => { window.location.href = '../?key=saved#generate'; }, 900);
 }
 
+// ── Gemini key ──
+async function stSaveGeminiKey() {
+  const key = document.getElementById('st-gemini-key').value.trim();
+  sessionStorage.setItem('gemini_api_key', key);
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ geminiApiKey: key });
+  } catch(e) {
+    console.warn('Failed to save Gemini key to Firestore:', e);
+  }
+  const saved = document.getElementById('st-gemini-key-saved');
+  if (saved) { saved.style.display = ''; setTimeout(() => { saved.style.display = 'none'; }, 2500); }
+}
+
 // ── Transcripts ──
 async function stSaveTranscripts() {
   const transcriptPrivacy = { redactNames: document.getElementById('st-redact-names').checked, redactDOB: document.getElementById('st-redact-dob').checked, redactOther: document.getElementById('st-redact-other').checked };
   const recordingDefaults = { autoStop: document.getElementById('st-autostop').checked, autoStopMinutes: parseInt(document.getElementById('st-autostop-mins').value)||55 };
   currentUser.profile.transcriptPrivacy = transcriptPrivacy;
   currentUser.profile.recordingDefaults = recordingDefaults;
-  try { await db.collection('users').doc(currentUser.uid).update({ transcriptPrivacy, recordingDefaults }); toast('Transcript settings saved'); } catch(e) { alert(e.message); }
+  try { await db.collection('users').doc(currentUser.uid).update({ transcriptPrivacy, recordingDefaults }); toast('Transcript settings saved'); } catch(e) { toast(friendlyAuthError(e), 'error'); }
 }
 
 // ── Personalisation ──
@@ -937,7 +1003,7 @@ async function stSavePersonalisation() {
   const noteLength = document.querySelector('input[name="st-note-length"]:checked')?.value || 'balanced';
   const personalisation = { useClientInfo: document.getElementById('st-use-client-info').checked, noteLength, professionalIdentity: document.getElementById('st-prof-identity').value.trim(), treatmentApproaches: document.getElementById('st-treatment').value.trim(), documentStyle: document.getElementById('st-doc-style').value.trim() };
   currentUser.profile.personalisation = personalisation;
-  try { await db.collection('users').doc(currentUser.uid).update({ personalisation }); toast('Personalisation saved'); } catch(e) { alert(e.message); }
+  try { await db.collection('users').doc(currentUser.uid).update({ personalisation }); toast('Personalisation saved'); } catch(e) { toast(friendlyAuthError(e), 'error'); }
 }
 
 // ── Subscription / Share ──
@@ -1003,7 +1069,7 @@ function openDeleteAccountModal() {
       <div id="da-error" style="font-size:.82rem;color:#dc2626;margin-bottom:12px;display:none;"></div>
       <div style="display:flex;gap:10px;">
         <button id="da-cancel-btn" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-family:inherit;color:#374151;font-weight:500;">Cancel</button>
-        <button id="da-delete-btn" style="flex:2;padding:10px;border:none;border-radius:10px;background:#dc2626;color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;font-family:inherit;">Delete my account permanently</button>
+        <button id="da-delete-btn" style="flex:2;padding:10px;border:none;border-radius:10px;background:#dc2626;color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;font-family:inherit;">Confirm &amp; delete my account</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -1019,32 +1085,24 @@ function openDeleteAccountModal() {
     const btn = overlay.querySelector('#da-delete-btn');
     const errEl = overlay.querySelector('#da-error');
     btn.disabled = true;
-    btn.textContent = 'Sending confirmation…';
+    btn.textContent = 'Opening Google sign-in…';
     errEl.style.display = 'none';
     try {
-      await sendDeletionConfirmEmail(reasons, message);
-      overlay.querySelector('div').innerHTML = `
-        <div style="text-align:center;padding:12px 0;">
-          <svg width="48" height="48" fill="none" viewBox="0 0 24 24" style="color:#2563eb;margin-bottom:16px;"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M2 8l10 6 10-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <h3 style="font-size:1.05rem;font-weight:700;color:#111827;margin:0 0 10px;">Check your email</h3>
-          <p style="font-size:.85rem;color:#6b7280;line-height:1.65;margin:0 0 8px;">We sent a confirmation link to <strong style="color:#111827;">${esc(currentUser.email)}</strong>.</p>
-          <p style="font-size:.82rem;color:#9ca3af;line-height:1.6;margin:0 0 24px;">Click the link to permanently delete your account. It expires in 1 hour. If you change your mind, just ignore it.</p>
-          <button onclick="document.getElementById('da-overlay').remove()" style="padding:10px 24px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-family:inherit;color:#374151;font-weight:500;">Close</button>
-        </div>`;
+      await deleteAccountWithGoogleReauth(reasons, message);
     } catch(e) {
       btn.disabled = false;
       btn.textContent = 'Delete my account permanently';
       errEl.style.display = '';
-      errEl.textContent = e.message || 'Failed to send confirmation email. Please try again.';
+      errEl.textContent = friendlyAuthError(e);
     }
   };
 }
 
-async function sendDeletionConfirmEmail(reasons, message) {
-  const email = currentUser.email;
+async function deleteAccountWithGoogleReauth(reasons, message) {
   const uid = currentUser.uid;
+  const email = currentUser.email;
 
-  // Save feedback now — best-effort before sending link
+  // Save feedback best-effort
   try {
     await db.collection('deletion_feedback').doc(uid).set({
       userId: uid, email, reasons, message,
@@ -1052,18 +1110,82 @@ async function sendDeletionConfirmEmail(reasons, message) {
     });
   } catch(e) {}
 
-  // Store email for the confirm page to use (standard Firebase email link pattern)
-  localStorage.setItem('emailForSignIn', email);
+  // Re-authenticate with Google popup (required by Firebase before account deletion)
+  const provider = new firebase.auth.GoogleAuthProvider();
+  await firebase.auth().currentUser.reauthenticateWithPopup(provider);
 
-  await firebase.auth().sendSignInLinkToEmail(email, {
-    url: 'https://iamarasinghe96.github.io/lushan/account-delete-confirm/',
-    handleCodeInApp: true
-  });
+  // Delete progress notes
+  const notes = await db.collection('progress_notes').where('userId', '==', uid).limit(500).get();
+  if (!notes.empty) {
+    const batch = db.batch();
+    notes.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  }
+
+  // Delete patient profiles
+  const profiles = await db.collection('users').doc(uid).collection('patientProfiles').get();
+  if (!profiles.empty) {
+    const batch2 = db.batch();
+    profiles.docs.forEach(doc => batch2.delete(doc.ref));
+    await batch2.commit();
+  }
+
+  // Delete user document
+  await db.collection('users').doc(uid).delete();
+
+  // Delete auth account
+  await firebase.auth().currentUser.delete();
+
+  sessionStorage.removeItem('groq_api_key');
+  sessionStorage.removeItem('gemini_api_key');
+  localStorage.removeItem('emailForSignIn');
+  window.location.href = '../account-deleted/';
 }
 
 // Handle ?tab= param in URL
 const urlTab = new URLSearchParams(window.location.search).get('tab');
 if (urlTab) settingsNav(urlTab);
+
+// ── Add to Home Screen ──
+let _stA2hsPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _stA2hsPrompt = e; });
+
+function _stIsIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream; }
+function _stIsStandalone() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+
+function stAddToHome() {
+  if (_stIsStandalone()) { toast('LushNote is already installed on your device.'); return; }
+  if (!_stIsIOS() && _stA2hsPrompt) { _stA2hsPrompt.prompt(); _stA2hsPrompt.userChoice.then(() => { _stA2hsPrompt = null; }); return; }
+  if (!_stIsIOS()) { toast('To install, use your browser menu and look for "Install app" or "Add to Home Screen".'); return; }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9990;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px 20px 0 0;max-width:480px;width:100%;padding:28px 24px 32px;box-shadow:0 -8px 40px rgba(0,0,0,.18);">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="44" height="44" style="border-radius:12px;flex-shrink:0;">
+          <circle cx="50" cy="50" r="50" fill="#5ad6a7"/><text x="48" y="70" font-family="FreeSerif,Georgia,serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="-9.5">LN</text>
+        </svg>
+        <div><div style="font-size:1rem;font-weight:700;color:#111827;">Add to Home Screen</div><div style="font-size:.82rem;color:#6b7280;margin-top:2px;">Quick access from your home screen</div></div>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="margin-left:auto;background:none;border:none;font-size:1.4rem;color:#9ca3af;cursor:pointer;line-height:1;padding:4px;">&times;</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:14px;background:#f9fafb;border-radius:14px;padding:14px 16px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+          <div style="flex:1;"><div style="font-size:.88rem;font-weight:600;color:#111827;margin-bottom:3px;">Tap the Share button</div><div style="font-size:.8rem;color:#6b7280;">In Safari, tap the share icon at the bottom of the screen</div></div>
+          <svg width="32" height="32" viewBox="0 0 44 44" fill="none" style="flex-shrink:0;opacity:.85;"><rect width="44" height="44" rx="10" fill="#e5e7eb"/><path d="M22 6v20M15 13l7-7 7 7" stroke="#374151" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="10" y="26" width="24" height="14" rx="3" stroke="#374151" stroke-width="2" fill="none"/></svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;background:#f9fafb;border-radius:14px;padding:14px 16px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+          <div style="flex:1;"><div style="font-size:.88rem;font-weight:600;color:#111827;margin-bottom:3px;">Tap "Add to Home Screen"</div><div style="font-size:.8rem;color:#6b7280;">Scroll down in the share sheet and tap this option</div></div>
+          <svg width="32" height="32" viewBox="0 0 44 44" fill="none" style="flex-shrink:0;opacity:.85;"><rect width="44" height="44" rx="10" fill="#e5e7eb"/><rect x="8" y="12" width="28" height="20" rx="3" stroke="#374151" stroke-width="2" fill="none"/><path d="M22 17v8M18 21l4 4 4-4" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div style="font-size:.78rem;color:#9ca3af;text-align:center;">Open LushNote in Safari to use this feature</div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
 </script>
 </body>
 </html>

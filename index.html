@@ -7,7 +7,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='lgb' cx='42%25' cy='36%25' r='65%25'%3E%3Cstop offset='0%25' stop-color='%233da843'/%3E%3Cstop offset='100%25' stop-color='%231e6b22'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='50' fill='url(%23lgb)'/%3E%3Ctext x='50' y='64' font-family='Arial Black%2CArial%2Csans-serif' font-weight='900' font-size='36' fill='white' text-anchor='middle' letter-spacing='3'%3ELN%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%235ad6a7'/%3E%3Ctext x='48' y='70' font-family='FreeSerif%2CGeorgia%2Cserif' font-weight='bold' font-size='56' fill='white' text-anchor='middle' letter-spacing='-9.5'%3ELN%3C%2Ftext%3E%3C%2Fsvg%3E">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LushNote">
+  <meta name="theme-color" content="#2563eb">
   <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -265,6 +271,15 @@
     .form-panel .card { margin-bottom: 0; }
     .preview-sticky { position: sticky; top: 112px; }
 
+    /* Contained two-pane layout for Edit tab — eliminates page scrollbar */
+    /* 112px sticky-top + 22px main padding-top = 134px total offset */
+    #tab-edit.active { display: flex; flex-direction: column; height: calc(100vh - 134px); overflow: hidden; }
+    body.tab-edit-active { overflow: hidden; }
+    #tab-edit .edit-grid { flex: 1; min-height: 0; align-items: stretch; }
+    #tab-edit .form-panel { overflow-y: auto; min-height: 0; padding-bottom: 24px; }
+    #tab-edit .preview-sticky { position: static; overflow-y: auto; min-height: 0; }
+    #preview-pane { max-height: none; }
+
     /* ── Current note bar ── */
     #current-note-bar {
       display: flex; align-items: center; justify-content: space-between;
@@ -477,6 +492,10 @@
       .preview-sticky { position: static; }
       .two-col, .three-col { grid-template-columns: 1fr; }
       #preview-pane { max-height: 60vh; overflow-y: auto; }
+      /* Revert contained layout on mobile — single column uses normal page scroll */
+      #tab-edit.active { height: auto; overflow: visible; display: block; }
+      #tab-edit .form-panel { overflow-y: visible; }
+      #tab-edit .preview-sticky { overflow-y: visible; }
     }
 
     @media print {
@@ -729,6 +748,10 @@
       .edit-grid { grid-template-columns: 1fr; }
       .preview-sticky { position: static; }
       .input-mode-grid { grid-template-columns: repeat(3,1fr); }
+      #tab-edit.active { height: auto; overflow: visible; display: block; }
+      #tab-edit .form-panel { overflow-y: visible; }
+      #tab-edit .preview-sticky { overflow-y: visible; }
+      #preview-pane { max-height: 60vh; overflow-y: auto; }
     }
 
     /* ── Responsive: Mobile ── */
@@ -904,9 +927,8 @@
   <nav class="ln-nav">
     <div class="ln-nav-logo">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="34" height="34">
-        <defs><radialGradient id="lgbL" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
-        <circle cx="50" cy="50" r="50" fill="url(#lgbL)"/>
-        <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+        <circle cx="50" cy="50" r="50" fill="#5ad6a7"/>
+        <text x="48" y="70" font-family="FreeSerif,Georgia,serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="-9.5">LN</text>
       </svg>
       <span>LushNote</span>
     </div>
@@ -1040,9 +1062,8 @@
     <div class="auth-box">
       <div class="auth-logo-area">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="56" height="56">
-          <defs><radialGradient id="lgb2" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
-          <circle cx="50" cy="50" r="50" fill="url(#lgb2)"/>
-          <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+          <circle cx="50" cy="50" r="50" fill="#5ad6a7"/>
+          <text x="48" y="70" font-family="FreeSerif,Georgia,serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="-9.5">LN</text>
         </svg>
         <h1>LushNote</h1>
         <p>Clinical Note Builder for Psychiatrists</p>
@@ -1063,9 +1084,8 @@
   <div class="view-pending-page">
     <div class="pending-box">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="56" height="56">
-        <defs><radialGradient id="lgb3" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
-        <circle cx="50" cy="50" r="50" fill="url(#lgb3)"/>
-        <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+        <circle cx="50" cy="50" r="50" fill="#5ad6a7"/>
+        <text x="48" y="70" font-family="FreeSerif,Georgia,serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="-9.5">LN</text>
       </svg>
       <h2>Connection Issue</h2>
       <p>We couldn't load your account data. This is usually a temporary network or security token issue. Please try again.</p>
@@ -1082,9 +1102,8 @@
     <div class="onboarding-wrap">
       <div class="ob-logo">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="48" height="48">
-          <defs><radialGradient id="lgb4" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
-          <circle cx="50" cy="50" r="50" fill="url(#lgb4)"/>
-          <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+          <circle cx="50" cy="50" r="50" fill="#5ad6a7"/>
+          <text x="48" y="70" font-family="FreeSerif,Georgia,serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="-9.5">LN</text>
         </svg>
         <h1>LushNote</h1>
         <p>Set up takes about 2 minutes</p>
@@ -1095,11 +1114,12 @@
         <div class="step-dot" id="sdot-2"></div>
         <div class="step-dot" id="sdot-3"></div>
         <div class="step-dot" id="sdot-4"></div>
+        <div class="step-dot" id="sdot-5"></div>
       </div>
 
       <!-- Step 1: Your details -->
       <div id="ob-step-1" class="ob-card">
-        <div class="ob-step-label">Step 1 of 4</div>
+        <div class="ob-step-label">Step 1 of 5</div>
         <h2>Your Details</h2>
         <div class="ob-field">
           <label>How would you like your name shown on notes?</label>
@@ -1115,7 +1135,7 @@
 
       <!-- Step 2: Workplaces -->
       <div id="ob-step-2" class="ob-card" style="display:none;">
-        <div class="ob-step-label">Step 2 of 4</div>
+        <div class="ob-step-label">Step 2 of 5</div>
         <h2>Your Workplace(s)</h2>
         <p style="font-size:.84rem;color:var(--gray);margin-bottom:16px;">Add all the places you practise. You can always add, remove, or edit these later in Settings.</p>
 
@@ -1164,7 +1184,7 @@
 
       <!-- Step 3: Email templates -->
       <div id="ob-step-3" class="ob-card" style="display:none;">
-        <div class="ob-step-label">Step 3 of 4</div>
+        <div class="ob-step-label">Step 3 of 5</div>
         <h2>Email Templates</h2>
         <p style="font-size:.85rem;color:var(--gray);margin-bottom:16px;">How should your "Send to Colleague" emails begin? <span style="color:#9ca3af;">You can customise this anytime in Settings.</span></p>
 
@@ -1207,14 +1227,33 @@ With regards,
         <button class="ob-btn ob-btn-secondary" onclick="obBack(3)">Back</button>
       </div>
 
-      <!-- Step 4: Confirm -->
+      <!-- Step 4: Gemini API Key -->
       <div id="ob-step-4" class="ob-card" style="display:none;">
-        <div class="ob-step-label">Step 4 of 4</div>
+        <div class="ob-step-label">Step 4 of 5</div>
+        <h2>Your Gemini API Key</h2>
+        <p style="font-size:.84rem;color:var(--gray);margin-bottom:14px;">LushNote uses Gemini to transcribe recordings and generate clinical notes. You need a free personal API key to use these features.</p>
+        <div class="ob-info-box" style="margin-bottom:16px;">
+          <strong>Get your free key in 30 seconds:</strong><br>
+          Visit <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">aistudio.google.com/api-keys</a>, sign in, click <strong>Create API key</strong>, then <strong>Create project</strong> (name it anything, e.g. <em>LushNote</em>), then <strong>Create API key in new project</strong>. Paste the key below.
+        </div>
+        <div class="ob-field">
+          <label>Gemini API Key <span style="font-weight:400;color:#9ca3af;">(optional — you can add it later)</span></label>
+          <input type="password" id="ob-gemini-key" placeholder="AIza..." autocomplete="off" oninput="document.getElementById('ob-gemini-next').textContent=this.value.trim()?'Next':'Skip for now'" />
+        </div>
+        <div id="ob-gemini-error" style="font-size:.82rem;color:#dc2626;margin-bottom:10px;display:none;"></div>
+        <p style="font-size:.76rem;color:#9ca3af;margin:0 0 20px;">You can add or update this anytime via the settings icon in the top bar.</p>
+        <button class="ob-btn" id="ob-gemini-next" onclick="obNext(4)">Skip for now</button>
+        <button class="ob-btn ob-btn-secondary" onclick="obBack(4)">Back</button>
+      </div>
+
+      <!-- Step 5: Confirm -->
+      <div id="ob-step-5" class="ob-card" style="display:none;">
+        <div class="ob-step-label">Step 5 of 5</div>
         <h2>Confirm &amp; Start</h2>
         <p style="font-size:.78rem;color:#9ca3af;margin:0 0 14px;">Everything here can be changed later in Settings.</p>
         <div id="ob-summary" style="margin-bottom:20px;"></div>
         <button class="ob-btn" onclick="obComplete()">Start Using LushNote</button>
-        <button class="ob-btn ob-btn-secondary" onclick="obBack(4)">Back</button>
+        <button class="ob-btn ob-btn-secondary" onclick="obBack(5)">Back</button>
       </div>
     </div>
   </div>
@@ -1228,6 +1267,13 @@ With regards,
       <button class="modal-close" onclick="closeSettings()">✕</button>
     </div>
     <div class="modal-body">
+      <div class="field-row">
+        <label>Gemini API Key <span style="font-size:.75rem;font-weight:500;color:#6b7280;">(recommended — audio &amp; note generation)</span></label>
+        <input type="password" id="s-gemini-key" placeholder="AIza..." autocomplete="off" />
+        <div style="font-size:.77rem;color:#6b7280;margin-top:6px;line-height:1.65;">
+          Get a free key at <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">aistudio.google.com/api-keys</a> — sign in, click <strong>Create API key</strong>, then <strong>Create project</strong>, then <strong>Create API key in new project</strong>. No credit card needed.
+        </div>
+      </div>
       <div class="field-row">
         <label>Your Groq API Key <span style="font-size:.75rem;font-weight:500;color:#6b7280;">(required for audio features)</span></label>
         <input type="password" id="s-groq-key" placeholder="gsk_..." autocomplete="off" />
@@ -1269,9 +1315,8 @@ With regards,
 <header>
   <div class="header-left">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="36" height="36">
-      <defs><radialGradient id="lgb" cx="42%" cy="36%" r="65%"><stop offset="0%" stop-color="#3da843"/><stop offset="100%" stop-color="#1e6b22"/></radialGradient></defs>
-      <circle cx="50" cy="50" r="50" fill="url(#lgb)"/>
-      <text x="50" y="64" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="white" text-anchor="middle" letter-spacing="3">LN</text>
+      <circle cx="50" cy="50" r="50" fill="#5ad6a7"/>
+      <text x="48" y="70" font-family="FreeSerif,Georgia,serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="-9.5">LN</text>
     </svg>
     <div>
       <h1 id="header-doctor-name">Dr Lushan Vasantha</h1>
@@ -1700,6 +1745,7 @@ const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL    = 'llama-3.3-70b-versatile';
 const COLLECTION    = 'progress_notes';
 function getGroqKey() { return (sessionStorage.getItem('groq_api_key') || '').trim(); }
+function getGeminiKey() { return (sessionStorage.getItem('gemini_api_key') || '').trim(); }
 const FREE_EMAIL    = 'lushhetti@gmail.com';
 const ADMIN_EMAIL   = 'iamarasinghe96@gmail.com';
 const WP_THEMES = [
@@ -1877,6 +1923,7 @@ function normalisePatientKey(name) {
 // Settings Modal
 // ─────────────────────────────────────────────────────────────────────────────
 function showSettings() {
+  document.getElementById('s-gemini-key').value      = sessionStorage.getItem('gemini_api_key') || '';
   document.getElementById('s-groq-key').value       = sessionStorage.getItem('groq_api_key') || '';
   document.getElementById('s-firebase-config').value = localStorage.getItem('firebase_config') || '';
   document.getElementById('settings-overlay').style.display = 'flex';
@@ -1888,6 +1935,18 @@ function overlayClick(e) {
   if (e.target === document.getElementById('settings-overlay')) closeSettings();
 }
 function saveSettings() {
+  const geminiKey = document.getElementById('s-gemini-key').value.trim();
+  if (geminiKey) {
+    sessionStorage.setItem('gemini_api_key', geminiKey);
+    if (db && currentUser) {
+      db.collection('users').doc(currentUser.uid).update({ geminiApiKey: geminiKey }).catch(() => {});
+    }
+  } else {
+    sessionStorage.removeItem('gemini_api_key');
+    if (db && currentUser) {
+      db.collection('users').doc(currentUser.uid).update({ geminiApiKey: '' }).catch(() => {});
+    }
+  }
   const groqKey = document.getElementById('s-groq-key').value.trim();
   if (groqKey) {
     sessionStorage.setItem('groq_api_key', groqKey);
@@ -2150,7 +2209,7 @@ function showTranscriptRejection(message) {
 
 async function pasteAndGenerate() {
   const groqKey = getGroqKey();
-  if (!groqKey) { _checkGroqAudioKey(() => pasteAndGenerate()); return; }
+  if (!groqKey && !getGeminiKey()) { _checkGroqAudioKey(() => pasteAndGenerate()); return; }
 
   let transcript;
   try {
@@ -2195,7 +2254,7 @@ async function pasteAndGenerate() {
     const endM = String(now.getMinutes()).padStart(2,'0');
 
     const tplPrompt0 = await resolveTemplatePrompt(chosenTemplate);
-    const structured = await callGroq(transcript, groqKey, tplPrompt0);
+    const structured = await callGroqWithMode(transcript, 'paste', tplPrompt0);
     const data = parseJson(structured);
     if (!data) throw new Error('Could not parse AI response as JSON. Try again.');
     if (confirmResult.patient) data.patient = confirmResult.patient;
@@ -2511,13 +2570,8 @@ async function changeTemplate() {
   setLoading(true, 'Regenerating with new template…');
   try {
     let raw;
-    if (state.lastTranscriptMode === 'paste') {
-      const tplPrompt1 = await resolveTemplatePrompt(chosenTemplate);
-      raw = await callGroq(state.lastTranscript, groqKey, tplPrompt1);
-    } else {
-      const tplPrompt2 = await resolveTemplatePrompt(chosenTemplate);
-      raw = await callGroqWithMode(state.lastTranscript, state.lastTranscriptMode, tplPrompt2);
-    }
+    const tplPrompt1 = await resolveTemplatePrompt(chosenTemplate);
+    raw = await callGroqWithMode(state.lastTranscript, state.lastTranscriptMode || 'paste', tplPrompt1);
     const data = parseJson(raw);
     if (!data) throw new Error('Could not parse AI response. Try again.');
     populateFields(data);
@@ -3478,6 +3532,7 @@ const _tabToHash = { generate: 'generate', edit: 'edit', export: 'export', histo
 function switchTab(name, { updateHash = true } = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  document.body.classList.toggle('tab-edit-active', name === 'edit');
   const activeBtn = document.querySelector('.tab-btn[data-tab="' + name + '"]');
   if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   if (name === 'history') loadHistoryData();
@@ -3631,6 +3686,9 @@ function startAuthListener() {
     if (profile.groqApiKey && !sessionStorage.getItem('groq_api_key')) {
       sessionStorage.setItem('groq_api_key', profile.groqApiKey);
     }
+    if (profile.geminiApiKey && !sessionStorage.getItem('gemini_api_key')) {
+      sessionStorage.setItem('gemini_api_key', profile.geminiApiKey);
+    }
     if (!profile.onboardingComplete) {
       showView('onboarding');
       startOnboarding();
@@ -3684,6 +3742,7 @@ async function doSignOut() {
   closeUserMenu();
   await firebase.auth().signOut();
   sessionStorage.removeItem('groq_api_key');
+  sessionStorage.removeItem('gemini_api_key');
   currentUser = null;
   state.currentNoteId   = null;
   state.allNotes        = [];
@@ -3763,14 +3822,14 @@ function startOnboarding() {
 }
 
 function obUpdateDots(step) {
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     const dot = document.getElementById('sdot-' + i);
     dot.className = 'step-dot' + (i === step ? ' active' : (i < step ? ' done' : ''));
   }
 }
 
 function obShowStep(n) {
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     document.getElementById('ob-step-' + i).style.display = i === n ? '' : 'none';
   }
   obUpdateDots(n);
@@ -3873,17 +3932,29 @@ function obNext(currentStep) {
     const selRadio = document.querySelector('input[name="ob-tpl"]:checked');
     const selIdx   = selRadio ? parseInt(selRadio.value) : 0;
     onboardingData.emailPretext = document.getElementById('ob-tpl-text-' + selIdx).value;
-    // Build summary
+    obShowStep(4);
+  } else if (currentStep === 4) {
+    const key = document.getElementById('ob-gemini-key').value.trim();
+    const errEl = document.getElementById('ob-gemini-error');
+    if (key && !key.startsWith('AIza')) {
+      errEl.textContent = 'Gemini keys start with AIza — check your key and try again.';
+      errEl.style.display = '';
+      return;
+    }
+    errEl.style.display = 'none';
+    onboardingData.geminiKey = key;
     const p = onboardingData;
     const wps = p.workplaces || [];
     const wpSummary = wps.map(w => `${esc(w.name)} <span style="color:#6b7280;font-size:.85em;">(${esc(w.type)})</span>`).join('<br>') || '—';
+    const keyStatus = key ? '<span style="color:#16a34a;font-weight:600;">Set ✓</span>' : '<span style="color:#f59e0b;">Not set — add later in Settings → API Keys</span>';
     document.getElementById('ob-summary').innerHTML = `
       <div class="ob-summary-row"><span class="ob-summary-label">Name</span><span>${esc(p.displayName)}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Credentials</span><span>${esc(p.credentials || '—')}</span></div>
       <div class="ob-summary-row" style="align-items:flex-start"><span class="ob-summary-label">Workplaces</span><span>${wpSummary}</span></div>
       <div class="ob-summary-row"><span class="ob-summary-label">Email template</span><span>${esc((p.emailPretext || '').slice(0,60))}…</span></div>
+      <div class="ob-summary-row"><span class="ob-summary-label">Gemini API key</span>${keyStatus}</div>
     `;
-    obShowStep(4);
+    obShowStep(5);
   }
 }
 
@@ -3913,7 +3984,7 @@ async function obComplete() {
     : [{ id: 'wp_1', name: 'My Practice', type: 'Private Practice', regSystem: 'lushnote', regFormat: 'YYYYMMDDNN' }];
   const activeId = wps[0].id;
   try {
-    await db.collection('users').doc(currentUser.uid).set({
+    const profileData = {
       email: currentUser.email,
       displayName: d.displayName,
       credentials: d.credentials || '',
@@ -3924,7 +3995,10 @@ async function obComplete() {
       status: 'active',
       tier: 'free',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+    };
+    if (d.geminiKey) profileData.geminiApiKey = d.geminiKey;
+    await db.collection('users').doc(currentUser.uid).set(profileData, { merge: true });
+    if (d.geminiKey) sessionStorage.setItem('gemini_api_key', d.geminiKey);
     currentUser.profile = {
       ...currentUser.profile,
       displayName: d.displayName,
@@ -3942,6 +4016,7 @@ async function obComplete() {
     updateHeaderUser();
     showView('app');
     initApp();
+    if (!_isStandalone()) setTimeout(openAddToHomeModal, 1200);
   } catch(e) {
     toast('Error saving onboarding data: ' + e.message, 'error');
   }
@@ -4393,7 +4468,7 @@ function showTemplatePickerModal(contentHint, opts = {}) {
 function _hasPersonalGroqKey() { return !!getGroqKey(); }
 
 function _checkGroqAudioKey(onProceed) {
-  if (_hasPersonalGroqKey()) { onProceed(); return; }
+  if (getGeminiKey() || _hasPersonalGroqKey()) { onProceed(); return; }
 
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9900;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -4401,13 +4476,13 @@ function _checkGroqAudioKey(onProceed) {
     <div style="background:#fff;border-radius:20px;max-width:480px;width:100%;padding:28px 26px;box-shadow:0 24px 64px rgba(15,23,42,.16);">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
         <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <h3 style="font-size:1rem;font-weight:700;margin:0;">Personal Groq API Key Required</h3>
+        <h3 style="font-size:1rem;font-weight:700;margin:0;">API Key Required</h3>
       </div>
       <p style="font-size:.84rem;color:#475569;margin:10px 0 22px;line-height:1.6;">
-        Audio features use Groq's speech-to-text API. Add your free personal key in Settings to get started.
+        Audio features require an AI API key. Add your free Gemini key in Settings to get started (recommended), or a Groq key if you already have one.
       </p>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <button id="_gk-settings-btn" style="padding:11px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;">Add my Groq key in Settings</button>
+        <button id="_gk-settings-btn" style="padding:11px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;">Add API key in Settings</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -4481,10 +4556,72 @@ function _recFormatTime(s) {
   return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 }
 
+async function _geminiErrorMsg(res) {
+  const body = await res.json().catch(() => ({}));
+  const msg = (body.error && body.error.message) ? body.error.message : '';
+  if (res.status === 400 && msg.toLowerCase().includes('api key')) return 'Invalid Gemini API key. Please check Settings → API Keys.';
+  if (res.status === 401 || res.status === 403) return 'Invalid or expired Gemini API key. Please update it in Settings → API Keys.';
+  if (res.status === 429) return msg.toLowerCase().includes('quota') ? 'Daily Gemini quota reached. Try again tomorrow or upgrade your Google AI Studio plan.' : 'Gemini rate limit reached. Please wait a moment and try again.';
+  if (res.status >= 500) return 'Gemini service error. Please try again in a moment.';
+  return msg || ('Gemini error ' + res.status);
+}
+
+async function geminiUploadAudio(blob) {
+  const key = getGeminiKey();
+  const mimeType = blob.type || 'audio/mp4';
+  const boundary = 'GeminiBoundary' + Date.now();
+  const meta = JSON.stringify({ file: { display_name: 'recording' } });
+  const encoder = new TextEncoder();
+  const head = encoder.encode('--' + boundary + '\r\nContent-Type: application/json; charset=utf-8\r\n\r\n' + meta + '\r\n--' + boundary + '\r\nContent-Type: ' + mimeType + '\r\n\r\n');
+  const tail = encoder.encode('\r\n--' + boundary + '--');
+  const audioBuf = await blob.arrayBuffer();
+  const body = new Uint8Array(head.length + audioBuf.byteLength + tail.length);
+  body.set(head, 0);
+  body.set(new Uint8Array(audioBuf), head.length);
+  body.set(tail, head.length + audioBuf.byteLength);
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/upload/v1beta/files?key=' + encodeURIComponent(key),
+    { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary, 'X-Goog-Upload-Protocol': 'multipart' }, body }
+  );
+  if (!res.ok) throw new Error(await _geminiErrorMsg(res));
+  const d = await res.json();
+  return d.file;
+}
+
+async function _geminiGenerate(contents, systemText) {
+  const key = getGeminiKey();
+  const reqBody = { contents };
+  if (systemText) reqBody.system_instruction = { parts: [{ text: systemText }] };
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key),
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) }
+  );
+  if (!res.ok) throw new Error(await _geminiErrorMsg(res));
+  const d = await res.json();
+  return (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) ? d.candidates[0].content.parts[0].text : '';
+}
+
 async function transcribeAudio(blob) {
   const ext = (blob.type||'').includes('ogg') ? 'ogg' : (blob.type||'').includes('mp4') ? 'mp4' : 'webm';
   // TEMP DEBUG — remove before production (see CLAUDE.md)
   debugLog('transcribe_start', { blobSizeKb: Math.round(blob.size / 1024), blobType: blob.type, ext });
+  if (getGeminiKey()) {
+    setLoading(true, 'Uploading audio…');
+    const file = await geminiUploadAudio(blob);
+    setLoading(true, 'Transcribing audio…');
+    const transcript = await _geminiGenerate([{ parts: [
+      { file_data: { mime_type: file.mimeType || blob.type || 'audio/mp4', file_uri: file.uri } },
+      { text: 'Transcribe this audio recording verbatim. Return only the transcript text with no labels, headings, or commentary.' }
+    ]}]);
+    // TEMP DEBUG — remove before production (see CLAUDE.md)
+    debugLog('transcribe_done', { wordCount: transcript.trim().split(/\s+/).length });
+    return transcript.trim();
+  }
+  const MAX_BYTES = 24 * 1024 * 1024;
+  if (blob.size > MAX_BYTES) {
+    const mb = Math.round(blob.size / 1024 / 1024);
+    throw new Error(`Recording is too large to transcribe (${mb} MB). Groq's limit is 25 MB. Please use a shorter recording (under 20 minutes) or reduce your auto-stop time in Settings → Recording Defaults.`);
+  }
   const form = new FormData();
   form.append('file', blob, `recording.${ext}`);
   form.append('model', 'whisper-large-v3-turbo');
@@ -4496,7 +4633,9 @@ async function transcribeAudio(blob) {
   });
   if (!res.ok) {
     const e = await res.json().catch(()=>({}));
-    const errMsg = e.error && e.error.message ? e.error.message : ('Transcription error ' + res.status);
+    const errMsg = res.status === 413
+      ? `Recording too large for Groq (${Math.round(blob.size/1024/1024)} MB — limit is 25 MB). Please record shorter sessions.`
+      : (e.error && e.error.message ? e.error.message : ('Transcription error ' + res.status));
     // TEMP DEBUG — remove before production (see CLAUDE.md)
     debugLog('transcribe_error', { status: res.status, message: errMsg, blobSizeKb: Math.round(blob.size / 1024) });
     throw new Error(errMsg);
@@ -4517,6 +4656,17 @@ async function transcribeAudio(blob) {
 }
 
 async function callGroqWithMode(transcript, mode, templatePrompt = null) {
+  if (getGeminiKey()) {
+    const redacted = applyTranscriptRedactions(transcript);
+    const personalPrefix = getPersonalisationPrefix();
+    const basePrompt = mode === 'dictation' ? DICTATE_PROMPT : SYSTEM_PROMPT;
+    const clinician2 = currentClinicianLabel() || 'the clinician';
+    const systemPrompt = (templatePrompt ? buildTemplateSystemPrompt(templatePrompt) : (personalPrefix + basePrompt)).replace(/\{CLINICIAN\}/g, clinician2);
+    const userMsg = mode === 'dictation'
+      ? 'Structure this dictated clinical note:\n\n' + redacted
+      : 'Structure this consultation transcript into a clinical note:\n\n' + redacted;
+    return await _geminiGenerate([{ parts: [{ text: userMsg }] }], systemPrompt);
+  }
   const redacted = applyTranscriptRedactions(transcript);
   const personalPrefix = getPersonalisationPrefix();
   const basePrompt = mode === 'dictation' ? DICTATE_PROMPT : SYSTEM_PROMPT;
@@ -4790,7 +4940,7 @@ async function startDictateRecording() {
     _recMode = 'dictation';
     _showRecordingUI('dictate-state', 'dictate');
     _recChunks = []; _recSeconds = 0; _recStartTime = Date.now();
-    _recorder = new MediaRecorder(_recStream);
+    _recorder = new MediaRecorder(_recStream, { audioBitsPerSecond: 48000 });
     _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
     _recorder.start(1000);
     clearInterval(_recTimer);
@@ -4805,6 +4955,7 @@ async function startDictateRecording() {
       if (_recSeconds > 0 && _recSeconds % 60 === 0) _recMarkInterrupted('dictate');
       // TEMP DEBUG — remove before production (see CLAUDE.md)
       if (_recSeconds > 0 && _recSeconds % 300 === 0) debugLog('rec_heartbeat', { elapsed_secs: _recSeconds, chunks: _recChunks.length, recorder_state: _recorder ? _recorder.state : 'null' });
+      if (rdD.autoStop !== false && _recSeconds >= (rdD.autoStopMinutes || 60) * 60) { _stopAndProcess('dictate'); }
     }, 1000);
   } catch(e) {
     _micErrorToast(e);
@@ -4964,7 +5115,7 @@ function _showRecordingUI(containerId, prefix) {
 }
 function _startRecorderForSession(prefix) {
   _recChunks = []; _recSeconds = 0; _recStartTime = Date.now();
-  _recorder = new MediaRecorder(_recStream);
+  _recorder = new MediaRecorder(_recStream, { audioBitsPerSecond: 48000 });
   _recorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
   _recorder.start(1000);
   clearInterval(_recTimer);
@@ -4979,6 +5130,7 @@ function _startRecorderForSession(prefix) {
     if (_recSeconds > 0 && _recSeconds % 60 === 0) _recMarkInterrupted(prefix);
     // TEMP DEBUG — remove before production (see CLAUDE.md)
     if (_recSeconds > 0 && _recSeconds % 300 === 0) debugLog('rec_heartbeat', { elapsed_secs: _recSeconds, chunks: _recChunks.length, recorder_state: _recorder ? _recorder.state : 'null' });
+    if (rd.autoStop !== false && _recSeconds >= (rd.autoStopMinutes || 60) * 60) { _stopAndProcess(prefix); }
   }, 1000);
 }
 async function _stopAndProcess(prefix) {
@@ -5749,6 +5901,99 @@ function saveWorkplace(wpId) {
   applyWorkspaceTheme();
   updateHeaderUser();
   applyRegPattern();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Add to Home Screen
+// ─────────────────────────────────────────────────────────────────────────────
+let _a2hsPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _a2hsPrompt = e;
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+function _isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+
+function _isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+function openAddToHomeModal() {
+  if (_isStandalone()) {
+    toast('LushNote is already installed on your device.');
+    return;
+  }
+  const overlay = document.createElement('div');
+  overlay.id = 'a2hs-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9990;display:flex;align-items:flex-end;justify-content:center;padding:0 0 env(safe-area-inset-bottom,0);';
+
+  if (_isIOS()) {
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:20px 20px 0 0;max-width:480px;width:100%;padding:28px 24px 32px;box-shadow:0 -8px 40px rgba(0,0,0,.18);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="44" height="44" style="border-radius:12px;flex-shrink:0;">
+            <circle cx="50" cy="50" r="50" fill="#5ad6a7"/>
+            <text x="48" y="70" font-family="FreeSerif,Georgia,serif" font-weight="bold" font-size="56" fill="white" text-anchor="middle" letter-spacing="-9.5">LN</text>
+          </svg>
+          <div>
+            <div style="font-size:1rem;font-weight:700;color:#111827;">Add to Home Screen</div>
+            <div style="font-size:.82rem;color:#6b7280;margin-top:2px;">Quick access from your home screen</div>
+          </div>
+          <button onclick="document.getElementById('a2hs-overlay').remove()" style="margin-left:auto;background:none;border:none;font-size:1.4rem;color:#9ca3af;cursor:pointer;line-height:1;padding:4px;">&times;</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px;">
+          <!-- Step 1 -->
+          <div style="display:flex;align-items:center;gap:14px;background:#f9fafb;border-radius:14px;padding:14px 16px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+            <div style="flex:1;">
+              <div style="font-size:.88rem;font-weight:600;color:#111827;margin-bottom:3px;">Tap the Share button</div>
+              <div style="font-size:.8rem;color:#6b7280;">In Safari, tap the share icon at the bottom of the screen</div>
+            </div>
+            <svg width="32" height="32" viewBox="0 0 44 44" fill="none" style="flex-shrink:0;opacity:.85;">
+              <rect width="44" height="44" rx="10" fill="#e5e7eb"/>
+              <path d="M22 6v20M15 13l7-7 7 7" stroke="#374151" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="10" y="26" width="24" height="14" rx="3" stroke="#374151" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+
+          <!-- Step 2 -->
+          <div style="display:flex;align-items:center;gap:14px;background:#f9fafb;border-radius:14px;padding:14px 16px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+            <div style="flex:1;">
+              <div style="font-size:.88rem;font-weight:600;color:#111827;margin-bottom:3px;">Tap "Add to Home Screen"</div>
+              <div style="font-size:.8rem;color:#6b7280;">Scroll down in the share sheet and tap this option</div>
+            </div>
+            <svg width="32" height="32" viewBox="0 0 44 44" fill="none" style="flex-shrink:0;opacity:.85;">
+              <rect width="44" height="44" rx="10" fill="#e5e7eb"/>
+              <rect x="8" y="12" width="28" height="20" rx="3" stroke="#374151" stroke-width="2" fill="none"/>
+              <path d="M22 17v8M18 21l4 4 4-4" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <div style="font-size:.78rem;color:#9ca3af;text-align:center;">Open LushNote in Safari to use this feature</div>
+      </div>`;
+  } else if (_a2hsPrompt) {
+    // Android / desktop with native prompt available
+    _a2hsPrompt.prompt();
+    _a2hsPrompt.userChoice.then(() => { _a2hsPrompt = null; });
+    return;
+  } else {
+    // Desktop — already installed or browser doesn't support
+    toast('To install, use your browser menu and look for "Install app" or "Add to Home Screen".');
+    return;
+  }
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 
 </script>
