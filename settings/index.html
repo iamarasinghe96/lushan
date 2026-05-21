@@ -102,6 +102,8 @@
     .as-btn-danger:hover { background:#fef2f2; }
     .as-btn-primary { padding:7px 16px;border:none;border-radius:var(--r-sm);background:var(--blue);color:#fff;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit; }
     .as-theme-swatch { width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s;display:inline-block; }
+    .da-chip { display:inline-block;padding:6px 14px;border:1.5px solid #e5e7eb;border-radius:20px;font-size:.8rem;cursor:pointer;background:#fff;color:#6b7280;margin:3px;user-select:none;transition:all .15s; }
+    .da-chip.selected { border-color:#dc2626;background:#fef2f2;color:#dc2626;font-weight:600; }
     .as-theme-swatch:hover { transform:scale(1.1); }
     .as-theme-swatch-active { border-color:#0f172a !important;transform:scale(1.15); }
 
@@ -203,8 +205,13 @@
         <button onclick="stSendPasswordReset()" class="btn btn-outline btn-sm" style="font-size:.82rem;padding:6px 14px;">Send password reset email</button>
         <div id="st-pw-msg" style="font-size:.8rem;margin-top:8px;"></div>
       </div>
-      <div style="display:flex;justify-content:flex-end;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
         <button class="btn btn-primary" onclick="stSaveProfile()">Save changes</button>
+      </div>
+      <div class="st-section" style="background:#fef2f2;border-color:#fecaca;">
+        <h2 class="st-section-h" style="color:#dc2626;">Delete Account</h2>
+        <p style="font-size:.84rem;color:#6b7280;margin-bottom:14px;">Permanently delete your account and erase all associated data — progress notes, patient profiles, and personal information. This cannot be undone.</p>
+        <button onclick="openDeleteAccountModal()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:.84rem;font-weight:600;cursor:pointer;font-family:inherit;">Delete my account</button>
       </div>
     </div>
 
@@ -956,6 +963,115 @@ async function stSendFeedback() {
   window.open(`mailto:iamarasinghe96@gmail.com?subject=${subj}&body=${body}`);
   msgEl.style.color='#059669'; msgEl.textContent='Thank you. Your email client should have opened.';
   document.getElementById('st-feedback-text').value='';
+}
+
+// ── Delete Account ──
+const DA_REASONS = [
+  'Security Concerns',
+  'Privacy Concerns',
+  'App Crashed / Bugs',
+  'Difficult to Use',
+  'Templates Not Working',
+  'Unsatisfied with AI Output',
+  'Missing Features',
+  'Too Complex',
+  'Switching to Another Tool',
+  'No Longer Need the App',
+  'Other'
+];
+
+function openDeleteAccountModal() {
+  const overlay = document.createElement('div');
+  overlay.id = 'da-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9900;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px;max-width:520px;width:100%;padding:28px 26px;box-shadow:0 24px 64px rgba(15,23,42,.18);">
+      <h3 style="font-size:1.05rem;font-weight:700;color:#111827;margin:0 0 8px;">Before you go…</h3>
+      <p style="font-size:.85rem;color:#6b7280;margin:0 0 18px;line-height:1.6;">We're sorry to see you leave. Could you tell us why? Your feedback helps us improve LushNote.</p>
+      <p style="font-size:.78rem;font-weight:600;color:#374151;margin-bottom:8px;">Select all that apply:</p>
+      <div id="da-chips" style="margin-bottom:18px;">
+        ${DA_REASONS.map(r => `<span class="da-chip" data-reason="${esc(r)}">${esc(r)}</span>`).join('')}
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Anything else? <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+        <textarea id="da-message" rows="3" placeholder="Your feedback helps us improve…" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:.84rem;font-family:inherit;resize:none;box-sizing:border-box;outline:none;"></textarea>
+      </div>
+      <div id="da-error" style="font-size:.82rem;color:#dc2626;margin-bottom:12px;display:none;"></div>
+      <div style="display:flex;gap:10px;">
+        <button id="da-cancel-btn" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.86rem;cursor:pointer;font-family:inherit;color:#374151;font-weight:500;">Cancel</button>
+        <button id="da-delete-btn" style="flex:2;padding:10px;border:none;border-radius:10px;background:#dc2626;color:#fff;font-weight:700;font-size:.86rem;cursor:pointer;font-family:inherit;">Delete my account permanently</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  overlay.querySelectorAll('.da-chip').forEach(chip => {
+    chip.onclick = () => chip.classList.toggle('selected');
+  });
+
+  overlay.querySelector('#da-cancel-btn').onclick = () => overlay.remove();
+  overlay.querySelector('#da-delete-btn').onclick = async () => {
+    const reasons = Array.from(overlay.querySelectorAll('.da-chip.selected')).map(c => c.dataset.reason);
+    const message = overlay.querySelector('#da-message').value.trim();
+    const btn = overlay.querySelector('#da-delete-btn');
+    const errEl = overlay.querySelector('#da-error');
+    btn.disabled = true;
+    btn.textContent = 'Deleting…';
+    errEl.style.display = 'none';
+    try {
+      await executeDeleteAccount(reasons, message);
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = 'Delete my account permanently';
+      errEl.style.display = '';
+      errEl.textContent = e.message;
+    }
+  };
+}
+
+async function executeDeleteAccount(reasons, message) {
+  const uid = currentUser.uid;
+
+  // Save feedback — best-effort, don't block deletion if write fails (rules may need deploying)
+  try {
+    await db.collection('deletion_feedback').doc(uid).set({
+      userId: uid,
+      email: currentUser.email,
+      reasons,
+      message,
+      deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e) {}
+
+  // Delete progress notes (up to 500 — matches query limit in security rules)
+  const notes = await db.collection('progress_notes').where('userId', '==', uid).limit(500).get();
+  if (!notes.empty) {
+    const batch = db.batch();
+    notes.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  }
+
+  // Delete patient profiles subcollection
+  const profiles = await db.collection('users').doc(uid).collection('patientProfiles').get();
+  if (!profiles.empty) {
+    const batch2 = db.batch();
+    profiles.docs.forEach(doc => batch2.delete(doc.ref));
+    await batch2.commit();
+  }
+
+  // Delete user document
+  await db.collection('users').doc(uid).delete();
+
+  // Delete Firebase Auth account
+  try {
+    await firebase.auth().currentUser.delete();
+  } catch(e) {
+    if (e.code === 'auth/requires-recent-login') {
+      throw new Error('For security, please sign out and sign back in, then try deleting your account again.');
+    }
+    throw e;
+  }
+
+  window.location.href = '../account-deleted/';
 }
 
 // Handle ?tab= param in URL

@@ -76,6 +76,10 @@ Extra fields written by app (allowed, not in profileValid validation):
 ### `users/{userId}/patientProfiles/{profileId}`
 Fields: `displayName, dob, gender` (open write for owner)
 
+### `deletion_feedback/{userId}`
+Written once on account deletion. Fields: `userId, email, reasons` (array of strings), `message` (string), `deletedAt` (timestamp).
+Read is blocked by rules — view in Firebase console only.
+
 ## Firestore Security Rules (verbatim — never write code that violates these)
 ```
 rules_version = '2';
@@ -147,7 +151,7 @@ service cloud.firestore {
       allow get:    if owns(userId);
       allow create: if owns(userId) && profileValid();
       allow update: if owns(userId) && profileValid();
-      allow delete: if false;
+      allow delete: if owns(userId);
 
       match /patientProfiles/{profileId} {
         allow read:   if owns(userId);
@@ -156,12 +160,22 @@ service cloud.firestore {
       }
     }
 
+    match /deletion_feedback/{docId} {
+      allow create: if verified() && request.resource.data.userId == request.auth.uid;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
   }
 }
 ```
+
+**IMPORTANT — deploy these updated rules to Firebase console.** Two changes from the previous version:
+1. `users/{userId}` — `allow delete` changed from `if false` to `if owns(userId)` (required for account deletion)
+2. New `deletion_feedback/{docId}` collection — allows users to write their own deletion reason on the way out
+
+Until deployed: the user document deletion will fail (security error), and deletion feedback will silently not save.
 
 ## Key State Object
 ```javascript
