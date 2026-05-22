@@ -1994,22 +1994,19 @@ With regards,
 
 <!-- ── Live Chat FAB ── -->
 <div id="ln-fab-wrap" class="fab-hidden">
-  <!-- Sub buttons (appear above FAB) -->
-  <div class="ln-fab-sub" id="ln-fab-subs">
-    <!-- Live Agent -->
-    <div class="ln-fab-sub" id="ln-sub-live" style="transition-delay:.06s">
-      <span class="ln-fab-label">Live Support</span>
-      <button class="ln-fab-sub-live" onclick="lnOpenChat('live')" title="Live Support">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4l4 4 4-4h4a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="8" cy="11" r="1.2" fill="#fff"/><circle cx="12" cy="11" r="1.2" fill="#fff"/><circle cx="16" cy="11" r="1.2" fill="#fff"/></svg>
-      </button>
-    </div>
-    <!-- AI Assistant -->
-    <div class="ln-fab-sub" id="ln-sub-ai" style="transition-delay:.0s">
-      <span class="ln-fab-label">Ask AI</span>
-      <button class="ln-fab-sub-ai" onclick="lnOpenChat('ai')" title="AI Assistant">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2Z" stroke="#fff" stroke-width="1.8"/><path d="M8 12h8M12 8v8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="17" cy="5" r="2.2" fill="#a5b4fc"/><path d="M16 4.5l.5.5 1-1" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-    </div>
+  <!-- Sub button: Live Agent -->
+  <div class="ln-fab-sub" id="ln-sub-live">
+    <span class="ln-fab-label">Live Support</span>
+    <button class="ln-fab-sub-live" onclick="lnOpenChat('live')" title="Live Support">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4l4 4 4-4h4a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="8" cy="11" r="1.2" fill="#fff"/><circle cx="12" cy="11" r="1.2" fill="#fff"/><circle cx="16" cy="11" r="1.2" fill="#fff"/></svg>
+    </button>
+  </div>
+  <!-- Sub button: AI Assistant -->
+  <div class="ln-fab-sub" id="ln-sub-ai">
+    <span class="ln-fab-label">Ask AI</span>
+    <button class="ln-fab-sub-ai" onclick="lnOpenChat('ai')" title="AI Assistant">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2Z" stroke="#fff" stroke-width="1.8"/><path d="M8 12h8M12 8v8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="17" cy="5" r="2.2" fill="#a5b4fc"/><path d="M16 4.5l.5.5 1-1" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
   </div>
   <!-- Main FAB button -->
   <button class="ln-fab-main" id="ln-fab-btn" onclick="lnFabToggle()" title="Help & Support">
@@ -4280,7 +4277,7 @@ async function trsAsk() {
     const sysPrompt = `You are a clinical assistant. You have access to the following consultation transcript. Answer questions strictly and factually based ONLY on what is explicitly stated in the transcript below. If the answer is not present in the transcript, say "That is not mentioned in the transcript." Do not infer, assume, or add any information beyond what the transcript contains.\n\nTRANSCRIPT:\n${transcript.slice(0, 12000)}`;
     let answer = '';
     if (getGeminiKey()) {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${getGeminiKey()}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${getGeminiKey()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: sysPrompt + '\n\nQuestion: ' + question }] }], generationConfig: { temperature: 0.0, maxOutputTokens: 512 } })
@@ -5329,7 +5326,7 @@ async function _geminiGenerate(contents, systemText) {
   const key = getGeminiKey();
   const reqBody = { contents };
   if (systemText) reqBody.system_instruction = { parts: [{ text: systemText }] };
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(key);
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key);
   const init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) };
   let lastErr;
   for (let attempt = 0; attempt < 4; attempt++) {
@@ -7031,7 +7028,7 @@ async function lnChatSend() {
       { role: 'model', parts: [{ text: "Understood. I'm ready to help with LushNote." }] }
     ].concat(_lnHistory);
 
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: contents, generationConfig: { temperature: 0.2, maxOutputTokens: 700 } })
