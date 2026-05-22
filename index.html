@@ -292,7 +292,12 @@
       background: var(--green-lt); border: 1px solid #6ee7b7;
       border-radius: var(--r-sm); padding: 9px 16px; margin-bottom: 16px;
       font-size: .83rem; color: #065f46; font-weight: 600;
-      transition: opacity 0.35s ease;
+      transition: opacity 0.35s ease; gap: 10px; flex-wrap: wrap;
+    }
+    #current-note-bar .btn-group { flex-shrink: 0; }
+    @media (max-width: 600px) {
+      #current-note-bar { padding: 8px 12px; }
+      #current-note-bar .btn-group { width: 100%; justify-content: flex-end; }
     }
     @keyframes dotFade { 0%,100%{opacity:.2} 50%{opacity:1} }
     .anim-dots span { display:inline-block; animation: dotFade 1.2s ease-in-out infinite; }
@@ -363,7 +368,11 @@
     .trs-input-row { display: flex; gap: 8px; }
     .trs-input-row textarea { resize: none; font-size: .86rem; flex: 1; height: 52px; padding: 10px 12px; }
     .trs-input-row button { flex-shrink: 0; }
-    @media (max-width: 760px) { .trs-body { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) {
+      .trs-body { grid-template-columns: 1fr; }
+      .trs-transcript-text { max-height: 35vh; }
+      .trs-chat { max-height: 30vh; }
+    }
     .patient-card {
       background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
       padding: 14px 18px; cursor: pointer; transition: border-color .15s, box-shadow .15s;
@@ -1824,7 +1833,10 @@ With regards,
       </div>
       <div class="trs-qa-pane">
         <div class="card" style="padding:16px 18px;flex:1;">
-          <h3 style="font-size:.8rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Ask About This Transcript</h3>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h3 style="font-size:.8rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin:0;">Ask About This Transcript</h3>
+            <button onclick="trsClearChat()" style="background:none;border:none;font-size:.75rem;font-weight:600;color:var(--text3);cursor:pointer;font-family:inherit;padding:2px 6px;border-radius:6px;" title="Clear chat">Clear</button>
+          </div>
           <div class="trs-chat" id="trs-chat"></div>
           <div style="margin-top:10px;">
             <div class="trs-input-row">
@@ -4034,6 +4046,13 @@ function closeTranscriptTab() {
   switchTab('edit');
   const btn = document.querySelector('.tab-btn[data-tab="transcript"]');
   if (btn) btn.remove();
+}
+
+function trsClearChat() {
+  const chat = document.getElementById('trs-chat');
+  if (chat) chat.innerHTML = '';
+  const q = document.getElementById('trs-question');
+  if (q) q.value = '';
 }
 
 async function trsAsk() {
