@@ -4277,13 +4277,14 @@ async function trsAsk() {
     const sysPrompt = `You are a clinical assistant. You have access to the following consultation transcript. Answer questions strictly and factually based ONLY on what is explicitly stated in the transcript below. If the answer is not present in the transcript, say "That is not mentioned in the transcript." Do not infer, assume, or add any information beyond what the transcript contains.\n\nTRANSCRIPT:\n${transcript.slice(0, 12000)}`;
     let answer = '';
     if (getGeminiKey()) {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${getGeminiKey()}`, {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + _getGeminiModel() + ':generateContent?key=' + getGeminiKey(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: sysPrompt + '\n\nQuestion: ' + question }] }], generationConfig: { temperature: 0.0, maxOutputTokens: 512 } })
       });
       const data = await res.json();
-      answer = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.';
+      _incrementGeminiCount();
+      answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : 'No response.';
     } else {
       const groqKey = getGroqKey();
       if (!groqKey) { toast('No API key configured.'); thinkingMsg.remove(); return; }
@@ -4424,6 +4425,7 @@ function startAuthListener() {
     if (profile.geminiApiKey && !sessionStorage.getItem('gemini_api_key')) {
       sessionStorage.setItem('gemini_api_key', profile.geminiApiKey);
     }
+    _initGeminiCount(profile);
     if (!profile.onboardingComplete) {
       showView('onboarding');
       startOnboarding();
@@ -5322,20 +5324,76 @@ const mimeType = blob.type || 'audio/mp4';
   return JSON.parse(rawText).file;
 }
 
+// ── Gemini model tier management ──
+// Tier 1: gemini-2.5-flash  — 20 RPD free (best quality)
+// Tier 2: gemini-2.0-flash  — 1,500 RPD free (fallback)
+let _geminiDailyCount = { date: '', count: 0 };
+
+function _geminiTodayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function _initGeminiCount(profile) {
+  const today = _geminiTodayKey();
+  const saved = profile && profile.geminiDailyUsage;
+  _geminiDailyCount = (saved && saved.date === today)
+    ? { date: today, count: saved.count || 0 }
+    : { date: today, count: 0 };
+}
+
+function _getGeminiModel() {
+  const today = _geminiTodayKey();
+  if (_geminiDailyCount.date !== today) _geminiDailyCount = { date: today, count: 0 };
+  return _geminiDailyCount.count < 20 ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
+}
+
+function _incrementGeminiCount() {
+  const today = _geminiTodayKey();
+  if (_geminiDailyCount.date !== today) _geminiDailyCount = { date: today, count: 0 };
+  _geminiDailyCount.count++;
+  if (db && currentUser) {
+    db.collection('users').doc(currentUser.uid).update({
+      geminiDailyUsage: { date: today, count: _geminiDailyCount.count }
+    }).catch(function() {});
+  }
+}
+
+function _forceGeminiFallback() {
+  const today = _geminiTodayKey();
+  _geminiDailyCount = { date: today, count: 20 };
+  if (db && currentUser) {
+    db.collection('users').doc(currentUser.uid).update({
+      geminiDailyUsage: { date: today, count: 20 }
+    }).catch(function() {});
+  }
+}
+
 async function _geminiGenerate(contents, systemText) {
   const key = getGeminiKey();
   const reqBody = { contents };
   if (systemText) reqBody.system_instruction = { parts: [{ text: systemText }] };
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key);
   const init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) };
+  let model = _getGeminiModel();
   let lastErr;
   for (let attempt = 0; attempt < 4; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + encodeURIComponent(key);
     const res = await fetch(url, init);
     const rawText = await res.text();
-    if (res.status === 429) { lastErr = await _geminiErrorMsg(res, rawText); throw new Error(lastErr); }
+    if (res.status === 429) {
+      const errMsg = await _geminiErrorMsg(res, rawText);
+      const isDaily = errMsg.toLowerCase().includes('daily') || errMsg.toLowerCase().includes('quota');
+      if (model === 'gemini-2.5-flash' && isDaily) {
+        _forceGeminiFallback();
+        model = 'gemini-2.0-flash';
+        continue;
+      }
+      throw new Error(errMsg);
+    }
     if (res.status === 503) { lastErr = await _geminiErrorMsg(res, rawText); continue; }
     if (!res.ok) throw new Error(await _geminiErrorMsg(res, rawText));
+    _incrementGeminiCount();
     const d = JSON.parse(rawText);
     return (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) ? d.candidates[0].content.parts[0].text : '';
   }
@@ -7028,12 +7086,13 @@ async function lnChatSend() {
       { role: 'model', parts: [{ text: "Understood. I'm ready to help with LushNote." }] }
     ].concat(_lnHistory);
 
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + _getGeminiModel() + ':generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: contents, generationConfig: { temperature: 0.2, maxOutputTokens: 700 } })
     });
     const data = await res.json();
+    _incrementGeminiCount();
     const answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : "Sorry, I couldn't get a response. Please try again.";
 
     _lnHistory.push({ role: 'model', parts: [{ text: answer }] });
