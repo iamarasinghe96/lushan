@@ -246,17 +246,6 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-box p { font-size: .9rem; color: var(--gray); font-weight: 500; }
 
-    /* generating shimmer — edit tab inline loading state */
-    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-    #tab-edit.generating textarea,
-    #tab-edit.generating input[type="text"] {
-      background: linear-gradient(90deg,#f0f4f8 25%,#e2e8f0 50%,#f0f4f8 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      color: transparent !important;
-      pointer-events: none;
-    }
-    #tab-edit.generating #preview-pane { opacity: .3; transition: opacity .3s; }
 
     /* ── Modal ── */
     .modal-overlay {
@@ -2448,47 +2437,47 @@ function toNumbered(raw) {
 }
 
 let _isAnimating = false;
-let _statusInterval = null;
+let _statusTimers = [];
 
-const _STATUS_MESSAGES = [
-  'Analysing the consultation transcript',
-  'Identifying speaker turns and dialogue',
-  'Applying clinician and patient voice labels',
-  'Extracting clinical symptoms and history',
-  'Mapping diagnoses to ICD-10 codes',
-  'Structuring the mental state examination',
-  'Drafting the management plan and next steps',
-  'Formatting clinical note sections',
-  'Cross-referencing medications and risk',
-  'Finalising the report',
+// Each entry: message shown, then wait ms before showing the next
+const _STATUS_SEQ = [
+  ['Analysing the consultation transcript',       1200],
+  ['Identifying speaker turns and dialogue',      1800],
+  ['Applying clinician and patient voice labels', 2400],
+  ['Extracting clinical symptoms and history',    2200],
+  ['Mapping diagnoses to ICD-10 codes',           1600],
+  ['Structuring the mental state examination',    2400],
+  ['Drafting the management plan and next steps', 2800],
+  ['Formatting clinical note sections',           2000],
+  ['Cross-referencing medications and risk',      1400],
+  ['Finalising the report',                       60000],
 ];
 
-function _startStatusCycle() {
-  let idx = 0;
-  const setMsg = () => {
-    document.getElementById('current-note-label').innerHTML =
-      _STATUS_MESSAGES[idx % _STATUS_MESSAGES.length] +
-      '<span class="anim-dots"><span>.</span><span>.</span><span>.</span></span>';
-    idx++;
-  };
-  setMsg();
-  _statusInterval = setInterval(setMsg, 2200);
+function _startStatusSequence() {
+  _stopStatusSequence();
+  const label = document.getElementById('current-note-label');
+  const dots = '<span class="anim-dots"><span>.</span><span>.</span><span>.</span></span>';
+  let delay = 0;
+  _STATUS_SEQ.forEach(([msg, ms]) => {
+    _statusTimers.push(setTimeout(() => { label.innerHTML = msg + dots; }, delay));
+    delay += ms;
+  });
 }
 
-function _stopStatusCycle() {
-  if (_statusInterval) { clearInterval(_statusInterval); _statusInterval = null; }
+function _stopStatusSequence() {
+  _statusTimers.forEach(clearTimeout);
+  _statusTimers = [];
 }
 
 function _setEditGenerating(on) {
-  document.getElementById('tab-edit').classList.toggle('generating', on);
   const bar = document.getElementById('current-note-bar');
   if (on) {
     bar.style.opacity = '0';
     bar.style.display = 'flex';
     requestAnimationFrame(() => { bar.style.opacity = '1'; });
-    _startStatusCycle();
+    _startStatusSequence();
   } else {
-    _stopStatusCycle();
+    _stopStatusSequence();
     document.getElementById('current-note-label').innerHTML =
       'Building your note<span class="anim-dots"><span>.</span><span>.</span><span>.</span></span>';
   }
@@ -2512,7 +2501,6 @@ function _typewriteEl(el, text, targetMs) {
 
 function _cancelTw(el) { el._twSession = (el._twSession || 0) + 1; }
 
-// Typewrite pre-known fields slowly while the API call runs (~10s spread)
 function _typewritePreKnownFields(patient, reg, dateDisplay, timeStart, timeEnd) {
   const clinician = currentClinicianLabel();
   [
@@ -2528,11 +2516,9 @@ function _typewritePreKnownFields(patient, reg, dateDisplay, timeStart, timeEnd)
   });
 }
 
-// skipIds: field IDs already pre-typed before API — don't clear or re-animate them
 function populateFieldsAnimated(data, overrides, skipIds) {
   _isAnimating = true;
   const skip = new Set(skipIds || []);
-  // Cancel any in-progress pre-typing on skipped fields so populateFields wins cleanly
   skip.forEach(id => _cancelTw(document.getElementById(id)));
   populateFields(data);
   if (overrides) {
@@ -2540,6 +2526,11 @@ function populateFieldsAnimated(data, overrides, skipIds) {
       if (val) document.getElementById(id).value = val;
     });
   }
+  // Preview updates immediately with final values — no delay
+  livePreview();
+  updateExportPreview();
+  updateEmailSubject();
+
   const allKnownIds = ['e-patient','e-reg-number','e-date-display','e-time-start','e-time-end',
                        'e-clinician','e-session-number','e-attendance'];
   const contentIds = ['e-diagnosis','e-presentation','e-history','e-medications','e-mse',
@@ -2562,9 +2553,6 @@ function populateFieldsAnimated(data, overrides, skipIds) {
         document.getElementById(id).value = vals[id];
       }
     });
-    livePreview();
-    updateExportPreview();
-    updateEmailSubject();
     _isAnimating = false;
     updateNoteBar();
   }, contentDelay + 2000);
