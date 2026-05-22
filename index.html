@@ -2266,16 +2266,24 @@ async function pasteAndGenerate() {
 
   // Switch to Edit tab immediately so user sees the note forming
   switchTab('edit');
+  // Compute date/time before API call so we can pre-type them
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2,'0');
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const autoDateDisplay = `${dd}/${mm}/${now.getFullYear()}`;
+  const endH = String(now.getHours()).padStart(2,'0');
+  const endM = String(now.getMinutes()).padStart(2,'0');
   _setEditGenerating(true);
+  // Start typing the fields we already know while the API call runs
+  _typewritePreKnownFields(
+    confirmResult.patient || '',
+    confirmResult.reg || '',
+    autoDateDisplay,
+    `${endH}:00`,
+    `${endH}:${endM}`
+  );
+  const _preKnownIds = ['e-patient','e-reg-number','e-date-display','e-time-start','e-time-end','e-clinician'];
   try {
-    // Compute date/time from upload moment
-    const now = new Date();
-    const dd = String(now.getDate()).padStart(2,'0');
-    const mm = String(now.getMonth()+1).padStart(2,'0');
-    const autoDateDisplay = `${dd}/${mm}/${now.getFullYear()}`;
-    const endH = String(now.getHours()).padStart(2,'0');
-    const endM = String(now.getMinutes()).padStart(2,'0');
-
     const tplPrompt0 = await resolveTemplatePrompt(chosenTemplate);
     const structured = await callGroqWithMode(transcript, 'paste', tplPrompt0);
     const data = parseJson(structured);
@@ -2287,7 +2295,7 @@ async function pasteAndGenerate() {
       'e-date-display': autoDateDisplay,
       'e-time-start': `${endH}:00`,
       'e-time-end': `${endH}:${endM}`
-    });
+    }, _preKnownIds);
 
     // Show transcript chip
     const chip = document.getElementById('transcript-chip');
@@ -2440,26 +2448,61 @@ function toNumbered(raw) {
 }
 
 let _isAnimating = false;
+let _statusInterval = null;
+
+const _STATUS_MESSAGES = [
+  'Analysing the consultation transcript',
+  'Identifying speaker turns and dialogue',
+  'Applying clinician and patient voice labels',
+  'Extracting clinical symptoms and history',
+  'Mapping diagnoses to ICD-10 codes',
+  'Structuring the mental state examination',
+  'Drafting the management plan and next steps',
+  'Formatting clinical note sections',
+  'Cross-referencing medications and risk',
+  'Finalising the report',
+];
+
+function _startStatusCycle() {
+  let idx = 0;
+  const setMsg = () => {
+    document.getElementById('current-note-label').innerHTML =
+      _STATUS_MESSAGES[idx % _STATUS_MESSAGES.length] +
+      '<span class="anim-dots"><span>.</span><span>.</span><span>.</span></span>';
+    idx++;
+  };
+  setMsg();
+  _statusInterval = setInterval(setMsg, 2200);
+}
+
+function _stopStatusCycle() {
+  if (_statusInterval) { clearInterval(_statusInterval); _statusInterval = null; }
+}
 
 function _setEditGenerating(on) {
   document.getElementById('tab-edit').classList.toggle('generating', on);
   const bar = document.getElementById('current-note-bar');
   if (on) {
-    document.getElementById('current-note-label').innerHTML =
-      'Generating note<span class="anim-dots"><span>.</span><span>.</span><span>.</span></span>';
     bar.style.opacity = '0';
     bar.style.display = 'flex';
     requestAnimationFrame(() => { bar.style.opacity = '1'; });
+    _startStatusCycle();
+  } else {
+    _stopStatusCycle();
+    document.getElementById('current-note-label').innerHTML =
+      'Building your note<span class="anim-dots"><span>.</span><span>.</span><span>.</span></span>';
   }
 }
 
 function _typewriteEl(el, text, targetMs) {
   el.value = '';
   if (!text) return;
+  const session = (el._twSession = (el._twSession || 0) + 1);
   const frames = Math.max(1, Math.round(targetMs / 16));
   const stepSize = Math.max(1, Math.ceil(text.length / frames));
   let i = 0;
   const step = () => {
+    if (el._twSession !== session) return;
     i = Math.min(i + stepSize, text.length);
     el.value = text.slice(0, i);
     if (i < text.length) requestAnimationFrame(step);
@@ -2467,29 +2510,54 @@ function _typewriteEl(el, text, targetMs) {
   requestAnimationFrame(step);
 }
 
-function populateFieldsAnimated(data, overrides) {
+function _cancelTw(el) { el._twSession = (el._twSession || 0) + 1; }
+
+// Typewrite pre-known fields slowly while the API call runs (~10s spread)
+function _typewritePreKnownFields(patient, reg, dateDisplay, timeStart, timeEnd) {
+  const clinician = currentClinicianLabel();
+  [
+    { id: 'e-patient',      val: patient,     delay: 0    },
+    { id: 'e-reg-number',   val: reg,         delay: 2000 },
+    { id: 'e-date-display', val: dateDisplay, delay: 4500 },
+    { id: 'e-time-start',   val: timeStart,   delay: 6500 },
+    { id: 'e-time-end',     val: timeEnd,     delay: 7500 },
+    { id: 'e-clinician',    val: clinician,   delay: 8500 },
+  ].forEach(({ id, val, delay }) => {
+    if (!val) return;
+    setTimeout(() => { _typewriteEl(document.getElementById(id), val, 900); }, delay);
+  });
+}
+
+// skipIds: field IDs already pre-typed before API — don't clear or re-animate them
+function populateFieldsAnimated(data, overrides, skipIds) {
   _isAnimating = true;
+  const skip = new Set(skipIds || []);
+  // Cancel any in-progress pre-typing on skipped fields so populateFields wins cleanly
+  skip.forEach(id => _cancelTw(document.getElementById(id)));
   populateFields(data);
   if (overrides) {
     Object.entries(overrides).forEach(([id, val]) => {
       if (val) document.getElementById(id).value = val;
     });
   }
-  const knownIds = ['e-patient','e-reg-number','e-date-display','e-time-start','e-time-end',
-                    'e-clinician','e-session-number','e-attendance'];
+  const allKnownIds = ['e-patient','e-reg-number','e-date-display','e-time-start','e-time-end',
+                       'e-clinician','e-session-number','e-attendance'];
   const contentIds = ['e-diagnosis','e-presentation','e-history','e-medications','e-mse',
                       'e-content','e-scales','e-risk','e-referrals','e-summary','e-nextsteps'];
+  const knownToAnimate = allKnownIds.filter(id => !skip.has(id));
+  const animIds = [...knownToAnimate, ...contentIds];
   const vals = {};
-  knownIds.concat(contentIds).forEach(id => {
+  animIds.forEach(id => {
     vals[id] = document.getElementById(id).value;
     document.getElementById(id).value = '';
   });
-  knownIds.forEach(id => { if (vals[id]) _typewriteEl(document.getElementById(id), vals[id], 600); });
+  knownToAnimate.forEach(id => { if (vals[id]) _typewriteEl(document.getElementById(id), vals[id], 500); });
+  const contentDelay = knownToAnimate.length > 0 ? 600 : 0;
   setTimeout(() => {
     contentIds.forEach(id => { if (vals[id]) _typewriteEl(document.getElementById(id), vals[id], 1800); });
-  }, 700);
+  }, contentDelay);
   setTimeout(() => {
-    knownIds.concat(contentIds).forEach(id => {
+    animIds.forEach(id => {
       if (vals[id] && document.getElementById(id).value !== vals[id]) {
         document.getElementById(id).value = vals[id];
       }
@@ -2499,7 +2567,7 @@ function populateFieldsAnimated(data, overrides) {
     updateEmailSubject();
     _isAnimating = false;
     updateNoteBar();
-  }, 2600);
+  }, contentDelay + 2000);
 }
 
 const LIST_FIELDS = ['e-diagnosis','e-presentation','e-history','e-medications',
