@@ -2826,10 +2826,11 @@ function newNote() {
 }
 
 function updateNoteBar() {
-  if (_isAnimating) return;
+  if (_isAnimating) { _dbg('updateNoteBar:skipped', { isAnimating: _isAnimating }); return; }
   const f = getFields();
   const bar = document.getElementById('current-note-bar');
   bar.style.display = 'flex';
+  _dbg('updateNoteBar:run', { lastTranscript: !!(state.lastTranscript), patient: f.patient });
   document.getElementById('current-note-label').textContent =
     `Editing: ${f.patient || 'Unnamed patient'}${f.date ? '  ·  ' + f.date : ''}`;
   const ctBtn = document.getElementById('change-template-btn');
@@ -3387,12 +3388,14 @@ function loadNoteById(id) {
 }
 
 function loadNoteFromHistory(note) {
-  _cancelActiveAnimation(); // ensure _isAnimating=false so updateNoteBar() runs
+  _dbg('loadNoteFromHistory:start', { noteId: note.id, hasStoredTranscript: !!note.transcript, inMemoryTranscript: !!(state.lastTranscript), isAnimating: _isAnimating });
+  _cancelActiveAnimation();
+  _dbg('loadNoteFromHistory:afterCancel', { isAnimating: _isAnimating });
   if (note.transcript) {
     state.lastTranscript = note.transcript;
     state.lastTranscriptMode = note.transcriptMode || 'paste';
   }
-  // Never clear lastTranscript here — cleared by newNote() or next generation
+  _dbg('loadNoteFromHistory:afterTranscriptCheck', { lastTranscript: !!(state.lastTranscript) });
   const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
   if (trsTabBtn && !state.lastTranscript) trsTabBtn.remove();
 
@@ -3402,7 +3405,9 @@ function loadNoteFromHistory(note) {
   updateExportPreview();
   updateEmailSubject();
   switchTab('edit');
+  _dbg('loadNoteFromHistory:afterSwitchTab', { lastTranscript: !!(state.lastTranscript), isAnimating: _isAnimating });
   updateNoteBar();
+  _dbg('loadNoteFromHistory:done', { trsBtn: document.getElementById('view-transcript-btn')?.style?.display });
   toast(`Loaded: ${note.patient || 'note'}`);
 }
 
