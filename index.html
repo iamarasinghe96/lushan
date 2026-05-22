@@ -51,7 +51,7 @@
       --r-xl: 20px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
     #view-app { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
     #view-app .sticky-top { flex-shrink: 0; }
     #view-app > main { flex: 1; min-height: 0; overflow-y: auto; }
@@ -397,7 +397,7 @@
     /* ── Patient info card ── */
     .pd-info-card {
       background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg);
-      padding: 20px 22px; display: flex; gap: 20px; align-items: center; margin-bottom: 20px;
+      padding: 20px 22px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 20px;
       box-shadow: var(--shadow-sm);
     }
     .pd-avatar {
@@ -799,6 +799,8 @@
       .preview-sticky { position: static; }
       .input-mode-grid { grid-template-columns: repeat(3,1fr); }
       #preview-pane { max-height: 60vh; overflow-y: auto; }
+      .two-col, .three-col { grid-template-columns: 1fr; }
+      .session-card-date-col { min-width: 70px; }
     }
 
     /* ── Responsive: Mobile ── */
@@ -3040,11 +3042,11 @@ async function loadHistoryData() {
   document.getElementById('history-no-firebase').style.display = 'none';
   try {
     state.allNotes = await fbLoadHistory();
-    renderHistory(state.allNotes);
+    filterPatients();
     loadPatientIndex();
   } catch(e) {
-    document.getElementById('history-list').innerHTML =
-      `<div class="warn-box">Could not load history: ${e.message}</div>`;
+    const area = document.getElementById('patients-area');
+    if (area) area.innerHTML = `<div class="warn-box">Could not load history: ${e.message}</div>`;
   }
 }
 
@@ -3396,7 +3398,7 @@ async function deleteHistoryNote(id) {
       if (remaining.length) showPatientDetail(key);
       else showPatientList();
     }
-    renderPatients(state.allNotes);
+    filterPatients();
     toast('Session deleted');
   } catch(e) {
     toast('Delete failed: ' + e.message);
