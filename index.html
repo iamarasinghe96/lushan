@@ -366,13 +366,15 @@
     .trs-expand-btn { display: block; width: 100%; margin-top: 6px; background: none; border: none; font-size: .75rem; font-weight: 600; color: var(--blue); cursor: pointer; font-family: inherit; padding: 4px 0; text-align: center; }
     .trs-qa-pane { display: flex; flex-direction: column; gap: 12px; }
     .trs-qa-pane h3 { font-size: .8rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 0; }
+    .trs-chat-wrap { position: relative; }
+    .trs-chat-wrap::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 44px; background: linear-gradient(var(--card), transparent); pointer-events: none; z-index: 1; border-radius: 4px 4px 0 0; }
     .trs-chat { display: flex; flex-direction: column; gap: 10px; max-height: 50vh; overflow-y: auto; scrollbar-width: thin; padding: 4px 0; }
     .trs-msg { font-size: .84rem; line-height: 1.55; padding: 10px 14px; border-radius: var(--r); max-width: 92%; }
     .trs-msg.user { background: var(--blue); color: #fff; align-self: flex-end; border-radius: var(--r) var(--r) 4px var(--r); }
     .trs-msg.ai { background: var(--bg); border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-radius: var(--r) var(--r) var(--r) 4px; }
     .trs-msg.ai.thinking { color: var(--text3); font-style: italic; }
     .trs-input-row { display: flex; gap: 8px; }
-    .trs-input-row textarea { resize: none; font-size: .86rem; flex: 1; height: 52px; padding: 10px 12px; }
+    .trs-input-row textarea { resize: none; font-size: .86rem; flex: 1; height: 52px; padding: 17px 12px 10px; line-height: 1.3; }
     .trs-input-row button { flex-shrink: 0; }
     @media (max-width: 760px) {
       .trs-body { grid-template-columns: 1fr; }
@@ -896,9 +898,6 @@
   </style>
 </head>
 <body>
-<!-- TEMP DEBUG — remove before production -->
-<button style="position:fixed;top:60px;right:8px;z-index:99999;background:#e00;color:#fff;font:bold 12px monospace;border:none;border-radius:4px;padding:4px 9px;cursor:pointer;" onclick="var p=document.getElementById('dbg-panel');if(p)p.style.display=p.style.display==='none'?'block':'none';">DBG v3</button>
-<!-- END TEMP DEBUG -->
 
 <!-- Global loading overlay — sits outside all views so it's always visible -->
 <div id="auth-loading-overlay" style="display:flex;position:fixed;inset:0;background:#fff;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
@@ -1847,7 +1846,7 @@ With regards,
             <h3 style="font-size:.8rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin:0;text-align:center;flex:1;">Ask About This Transcript</h3>
             <button onclick="trsClearChat()" style="background:none;border:none;font-size:.75rem;font-weight:600;color:var(--text3);cursor:pointer;font-family:inherit;padding:2px 6px;border-radius:6px;" title="Clear chat">Clear</button>
           </div>
-          <div class="trs-chat" id="trs-chat"></div>
+          <div class="trs-chat-wrap"><div class="trs-chat" id="trs-chat"></div></div>
           <div style="margin-top:10px;">
             <div class="trs-input-row">
               <textarea id="trs-question" placeholder="Ask a question about the consultation…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();trsAsk();}"></textarea>
@@ -2347,8 +2346,7 @@ function showTranscriptRejection(message) {
 
 async function pasteAndGenerate() {
   const groqKey = getGroqKey();
-  _dbg('pasteAndGenerate', { groqKey: groqKey.slice(0,8)||'(none)', geminiKey: getGeminiKey().slice(0,8)||'(none)' });
-  if (!groqKey && !getGeminiKey()) { _checkGroqAudioKey(() => pasteAndGenerate()); return; }
+if (!groqKey && !getGeminiKey()) { _checkGroqAudioKey(() => pasteAndGenerate()); return; }
 
   let transcript;
   try {
@@ -5091,15 +5089,6 @@ function dismissInterruptedBanner() {
   _recClearInterrupted();
 }
 
-// TEMP DEBUG — remove before production (see CLAUDE.md)
-function debugLog(event, data) {
-  if (!db || !currentUser) return;
-  const entry = Object.assign({ ts: new Date().toISOString(), event }, data || {});
-  db.collection('users').doc(currentUser.uid).update({
-    _debugLog: firebase.firestore.FieldValue.arrayUnion(entry)
-  }).catch(() => {});
-}
-
 function _micErrorToast(e) {
   const msg = (e && e.message || '').toLowerCase();
   if (msg.includes('overlay') || msg.includes('permission') && msg.includes('bubble')) {
@@ -5117,32 +5106,12 @@ function _recFormatTime(s) {
   return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 }
 
-// TEMP DEBUG — remove before production
-function _dbg(label, data) {
-  if (!document.getElementById('dbg-panel')) {
-    const p = document.createElement('div');
-    p.id = 'dbg-panel';
-    p.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:45vh;overflow-y:auto;background:#111;color:#0f0;font:11px/1.5 monospace;z-index:99998;padding:6px 8px;border-top:2px solid #0f0;';
-    p.innerHTML = '<div style="display:flex;justify-content:space-between;position:sticky;top:0;background:#111;padding:2px 0 4px;"><span style="color:#ff0;font-weight:bold;">DEBUG LOG</span><button onclick="this.closest(\'#dbg-panel\').style.display=\'none\'" style="background:#333;color:#fff;border:none;padding:2px 8px;cursor:pointer;">✕</button></div><div id="dbg-log"></div>';
-    document.body.appendChild(p);
-  }
-  document.getElementById('dbg-panel').style.display = 'block';
-  const el = document.getElementById('dbg-log');
-  if (!el) return;
-  const entry = document.createElement('div');
-  entry.style.cssText = 'border-bottom:1px solid #333;padding:3px 0;word-break:break-all;';
-  entry.textContent = '[' + new Date().toLocaleTimeString() + '] ' + label + ': ' + (typeof data === 'object' ? JSON.stringify(data) : data);
-  el.appendChild(entry);
-  el.scrollTop = el.scrollHeight;
-}
-// END TEMP DEBUG
 
 async function _geminiErrorMsg(res, rawText) {
   let body = {};
   try { body = JSON.parse(rawText); } catch(e) {}
   const msg = (body.error && body.error.message) ? body.error.message : '';
-  _dbg('_geminiErrorMsg', { status: res.status, msg, raw: (rawText || '').slice(0, 300) });
-  if (res.status === 400 && msg.toLowerCase().includes('api key')) return 'Invalid Gemini API key. Please check Settings → API Keys.';
+if (res.status === 400 && msg.toLowerCase().includes('api key')) return 'Invalid Gemini API key. Please check Settings → API Keys.';
   if (res.status === 401 || res.status === 403) return 'Invalid or expired Gemini API key. Please update it in Settings → API Keys.';
   if (res.status === 429) return msg.toLowerCase().includes('quota') ? 'Daily Gemini quota reached. Try again tomorrow or upgrade your Google AI Studio plan.' : 'Gemini rate limit reached. Please wait a moment and try again.';
   if (res.status >= 500) return 'Gemini service error. Please try again in a moment.';
@@ -5151,8 +5120,7 @@ async function _geminiErrorMsg(res, rawText) {
 
 async function geminiUploadAudio(blob) {
   const key = getGeminiKey();
-  _dbg('geminiUpload', { keyPrefix: key.slice(0,8), blobSize: blob.size, type: blob.type });
-  const mimeType = blob.type || 'audio/mp4';
+const mimeType = blob.type || 'audio/mp4';
   const boundary = 'GeminiBoundary' + Date.now();
   const meta = JSON.stringify({ file: { display_name: 'recording' } });
   const encoder = new TextEncoder();
@@ -5168,14 +5136,12 @@ async function geminiUploadAudio(blob) {
     { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary, 'X-Goog-Upload-Protocol': 'multipart' }, body }
   );
   const rawText = await res.text();
-  _dbg('geminiUpload resp', { status: res.status, body: rawText.slice(0, 400) });
   if (!res.ok) throw new Error(await _geminiErrorMsg(res, rawText));
   return JSON.parse(rawText).file;
 }
 
 async function _geminiGenerate(contents, systemText) {
   const key = getGeminiKey();
-  _dbg('_geminiGenerate', { keyPrefix: key.slice(0,8), hasSystem: !!systemText });
   const reqBody = { contents };
   if (systemText) reqBody.system_instruction = { parts: [{ text: systemText }] };
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(key);
@@ -5185,7 +5151,6 @@ async function _geminiGenerate(contents, systemText) {
     if (attempt > 0) await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
     const res = await fetch(url, init);
     const rawText = await res.text();
-    _dbg('_geminiGenerate resp', { status: res.status, body: rawText.slice(0, 400) });
     if (res.status === 503 || res.status === 429) { lastErr = await _geminiErrorMsg(res, rawText); continue; }
     if (!res.ok) throw new Error(await _geminiErrorMsg(res, rawText));
     const d = JSON.parse(rawText);
@@ -5196,8 +5161,6 @@ async function _geminiGenerate(contents, systemText) {
 
 async function transcribeAudio(blob) {
   const ext = (blob.type||'').includes('ogg') ? 'ogg' : (blob.type||'').includes('mp4') ? 'mp4' : 'webm';
-  // TEMP DEBUG — remove before production (see CLAUDE.md)
-  debugLog('transcribe_start', { blobSizeKb: Math.round(blob.size / 1024), blobType: blob.type, ext });
   if (getGeminiKey()) {
     setLoading(true, 'Uploading audio…');
     const file = await geminiUploadAudio(blob);
@@ -5206,8 +5169,6 @@ async function transcribeAudio(blob) {
       { file_data: { mime_type: file.mimeType || blob.type || 'audio/mp4', file_uri: file.uri } },
       { text: 'Transcribe this audio recording verbatim. Return only the transcript text with no labels, headings, or commentary.' }
     ]}]);
-    // TEMP DEBUG — remove before production (see CLAUDE.md)
-    debugLog('transcribe_done', { wordCount: transcript.trim().split(/\s+/).length });
     return transcript.trim();
   }
   const MAX_BYTES = 24 * 1024 * 1024;
@@ -5229,27 +5190,19 @@ async function transcribeAudio(blob) {
     const errMsg = res.status === 413
       ? `Recording too large for Groq (${Math.round(blob.size/1024/1024)} MB — limit is 25 MB). Please record shorter sessions.`
       : (e.error && e.error.message ? e.error.message : ('Transcription error ' + res.status));
-    // TEMP DEBUG — remove before production (see CLAUDE.md)
-    debugLog('transcribe_error', { status: res.status, message: errMsg, blobSizeKb: Math.round(blob.size / 1024) });
     throw new Error(errMsg);
   }
   const raw = await res.text();
   try {
     const json = JSON.parse(raw);
     const result = String(json.text || json.transcript || raw).trim();
-    // TEMP DEBUG — remove before production (see CLAUDE.md)
-    debugLog('transcribe_done', { wordCount: result.split(/\s+/).length });
     return result;
   } catch {
-    const result = raw.trim();
-    // TEMP DEBUG — remove before production (see CLAUDE.md)
-    debugLog('transcribe_done', { wordCount: result.split(/\s+/).length });
-    return result;
+    return raw.trim();
   }
 }
 
 async function callGroqWithMode(transcript, mode, templatePrompt = null) {
-  _dbg('callGroqWithMode', { mode, gemini: getGeminiKey().slice(0,8)||'(none)', groq: getGroqKey().slice(0,8)||'(none)' });
   if (getGeminiKey()) {
     const redacted = applyTranscriptRedactions(transcript);
     const personalPrefix = getPersonalisationPrefix();
@@ -5475,12 +5428,8 @@ async function processAudioAndGenerate(blob, mode) {
       }
     }
 
-    // TEMP DEBUG — remove before production (see CLAUDE.md)
-    debugLog('generate_done', { durationSecs: state.lastRecordingDuration, transcriptWords: transcript.trim().split(/\s+/).length });
     toast('Note generated successfully');
   } catch(e) {
-    // TEMP DEBUG — remove before production (see CLAUDE.md)
-    debugLog('generate_error', { message: e.message, durationSecs: state.lastRecordingDuration });
     toast('Generation failed: ' + e.message, 'error');
   } finally {
     setLoading(false);
@@ -5544,16 +5493,12 @@ async function startDictateRecording() {
     _recorder.start(1000);
     clearInterval(_recTimer);
     _recMarkInterrupted('dictate');
-    // TEMP DEBUG — remove before production (see CLAUDE.md)
     const rdD = (currentUser && currentUser.profile && currentUser.profile.recordingDefaults) || {};
-    debugLog('rec_start', { mode: 'dictate', autoStop: rdD.autoStop !== false, autoStopMinutes: rdD.autoStopMinutes || 60, mimeType: _recorder.mimeType });
     _recTimer = setInterval(() => {
       _recSeconds = Math.floor((Date.now() - _recStartTime) / 1000);
       const el = document.getElementById('dictate-timer');
       if (el) el.textContent = _recFormatTime(_recSeconds);
       if (_recSeconds > 0 && _recSeconds % 60 === 0) _recMarkInterrupted('dictate');
-      // TEMP DEBUG — remove before production (see CLAUDE.md)
-      if (_recSeconds > 0 && _recSeconds % 300 === 0) debugLog('rec_heartbeat', { elapsed_secs: _recSeconds, chunks: _recChunks.length, recorder_state: _recorder ? _recorder.state : 'null' });
       if (rdD.autoStop !== false && _recSeconds >= (rdD.autoStopMinutes || 60) * 60) { _stopAndProcess('dictate'); }
     }, 1000);
   } catch(e) {
@@ -5719,16 +5664,12 @@ function _startRecorderForSession(prefix) {
   _recorder.start(1000);
   clearInterval(_recTimer);
   _recMarkInterrupted(prefix);
-  // TEMP DEBUG — remove before production (see CLAUDE.md)
   const rd = (currentUser && currentUser.profile && currentUser.profile.recordingDefaults) || {};
-  debugLog('rec_start', { mode: prefix, autoStop: rd.autoStop !== false, autoStopMinutes: rd.autoStopMinutes || 60, mimeType: _recorder.mimeType });
   _recTimer = setInterval(() => {
     _recSeconds = Math.floor((Date.now() - _recStartTime) / 1000);
     const el = document.getElementById(prefix + '-timer');
     if (el) el.textContent = _recFormatTime(_recSeconds);
     if (_recSeconds > 0 && _recSeconds % 60 === 0) _recMarkInterrupted(prefix);
-    // TEMP DEBUG — remove before production (see CLAUDE.md)
-    if (_recSeconds > 0 && _recSeconds % 300 === 0) debugLog('rec_heartbeat', { elapsed_secs: _recSeconds, chunks: _recChunks.length, recorder_state: _recorder ? _recorder.state : 'null' });
     if (rd.autoStop !== false && _recSeconds >= (rd.autoStopMinutes || 60) * 60) { _stopAndProcess(prefix); }
   }, 1000);
 }
@@ -5737,8 +5678,6 @@ async function _stopAndProcess(prefix) {
   const actualDuration = _recStartTime ? Math.floor((Date.now() - _recStartTime) / 1000) : _recSeconds;
   state.lastRecordingDuration = actualDuration;
   _recClearInterrupted();
-  // TEMP DEBUG — remove before production (see CLAUDE.md)
-  debugLog('rec_stop', { stoppedBy: 'user', durationSecs: actualDuration, chunks: _recChunks.length, blobSizeKb: Math.round(_recChunks.reduce((s, c) => s + c.size, 0) / 1024) });
   clearInterval(_recTimer);
   _recorder.stop();
   const mode = _recMode;
