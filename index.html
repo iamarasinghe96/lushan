@@ -2063,6 +2063,7 @@ function getGroqKey() { return (sessionStorage.getItem('groq_api_key') || '').tr
 function getGeminiKey() { return (sessionStorage.getItem('gemini_api_key') || '').trim(); }
 const FREE_EMAIL    = 'lushhetti@gmail.com';
 const ADMIN_EMAIL   = 'iamarasinghe96@gmail.com';
+const SLACK_WEBHOOK = '';
 const WP_THEMES = [
   { primary: '#1a56db', dk: '#1347b8', lt: '#ebf0ff' },
   { primary: '#7c3aed', dk: '#6d28d9', lt: '#ede9fe' },
@@ -7090,6 +7091,13 @@ async function lnChatSend() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: contents, generationConfig: { temperature: 0.2, maxOutputTokens: 700 } })
     });
+    if (!res.ok) {
+      const rawText = await res.text();
+      const errMsg = await _geminiErrorMsg(res, rawText);
+      lnRemoveTyping();
+      lnAddMsg('ai', 'API error: ' + errMsg);
+      return;
+    }
     const data = await res.json();
     const answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : "Sorry, I couldn't get a response. Please try again.";
 
@@ -7105,40 +7113,121 @@ async function lnChatSend() {
 async function lnLiveSend(text, attachments) {
   lnAddTyping();
   try {
+    const geminiKey = getGeminiKey();
+    let aiCouldAnswer = false;
+    let aiAnswer = '';
+
+    if (geminiKey) {
+      const liveSystemPrompt = 'You are LushNote live support. The user has a question or issue about the LushNote app. Try your best to answer using this knowledge:\n\n' + LUSHNOTE_KB + '\n\nIf you can confidently answer, reply normally. If you CANNOT answer and the user needs human help, start your reply with exactly "ESCALATE:" followed by a one-line reason.';
+      const userParts = [];
+      if (text) userParts.push({ text: text });
+      attachments.forEach(function(a) { userParts.push({ inlineData: { mimeType: a.mimeType, data: a.base64 } }); });
+      try {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ role: 'user', parts: userParts }], system_instruction: { parts: [{ text: liveSystemPrompt }] }, generationConfig: { temperature: 0.2, maxOutputTokens: 600 } })
+        });
+        if (res.ok) {
+          const d = await res.json();
+          aiAnswer = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) ? d.candidates[0].content.parts[0].text : '';
+          if (aiAnswer && !aiAnswer.startsWith('ESCALATE:')) {
+            aiCouldAnswer = true;
+          }
+        }
+      } catch(e) {}
+    }
+
+    lnRemoveTyping();
+
+    if (aiCouldAnswer) {
+      lnAddMsg('ai', aiAnswer);
+      return;
+    }
+
+    // AI couldn't answer — escalate to Slack (or email fallback)
+    const userEmail = (currentUser && currentUser.email) ? currentUser.email : 'unknown';
+    const escalateReason = (aiAnswer && aiAnswer.startsWith('ESCALATE:')) ? aiAnswer.replace('ESCALATE:', '').trim() : 'User requested human support.';
+    const slackMsg = {
+      text: '*LushNote Live Support Request*',
+      blocks: [
+        { type: 'header', text: { type: 'plain_text', text: 'LushNote Support Request' } },
+        { type: 'section', fields: [
+          { type: 'mrkdwn', text: '*User:*\n' + userEmail },
+          { type: 'mrkdwn', text: '*Time:*\n' + new Date().toLocaleString('en-AU') }
+        ]},
+        { type: 'section', text: { type: 'mrkdwn', text: '*Message:*\n' + text } },
+        { type: 'section', text: { type: 'mrkdwn', text: '*Why escalated:*\n' + escalateReason } },
+        { type: 'context', elements: [{ type: 'mrkdwn', text: 'Reply to: ' + userEmail }] }
+      ]
+    };
+
     if (currentUser && db) {
       db.collection('users').doc(currentUser.uid).update({
-        lastSupportRequest: {
-          message: text,
-          hasImages: attachments.length > 0,
-          sentAt: new Date().toISOString()
-        }
+        lastSupportRequest: { message: text, escalateReason: escalateReason, sentAt: new Date().toISOString() }
       }).catch(function() {});
     }
-    lnRemoveTyping();
-    const emailAddr = (currentUser && currentUser.email) ? currentUser.email : 'your email';
-    lnAddMsg('ai', "Your message has been logged and the developer will reply to " + emailAddr + " soon.\n\nYou can also try the AI assistant for quick answers.");
-    const subject = encodeURIComponent('LushNote Support Request');
-    const body    = encodeURIComponent('User: ' + ((currentUser && currentUser.email) ? currentUser.email : 'unknown') + '\n\n' + text);
-    setTimeout(function() {
-      const link = document.createElement('a');
-      link.href = 'mailto:' + ADMIN_EMAIL + '?subject=' + subject + '&body=' + body;
-      link.click();
-    }, 600);
+
+    if (SLACK_WEBHOOK) {
+      fetch(SLACK_WEBHOOK, { method: 'POST', body: JSON.stringify(slackMsg) }).catch(function() {});
+      lnAddMsg('ai', "I've notified the developer on Slack and they'll get back to you at " + userEmail + " shortly.");
+    } else {
+      const subject = encodeURIComponent('LushNote Support: ' + text.slice(0, 60));
+      const body    = encodeURIComponent('From: ' + userEmail + '\n\nIssue: ' + text + '\n\nAI note: ' + escalateReason);
+      const a = document.createElement('a');
+      a.href = 'mailto:' + ADMIN_EMAIL + '?subject=' + subject + '&body=' + body;
+      a.click();
+      lnAddMsg('ai', "I've opened an email to the developer for you. Send it and they'll reply to " + userEmail + " shortly.");
+    }
+
+    document.getElementById('ln-escalate-bar').style.display = 'none';
   } catch (err) {
     lnRemoveTyping();
-    lnAddMsg('ai', 'Could not log your message. Please email directly: ' + ADMIN_EMAIL);
+    lnAddMsg('ai', 'Could not send your request. Please email: ' + ADMIN_EMAIL);
   }
 }
 
 function lnEscalate() {
   const msgs = document.getElementById('ln-msgs');
-  const chatSoFar = Array.from(msgs.querySelectorAll('.ln-msg')).map(function(el) { return el.textContent.trim(); }).join('\n---\n');
-  const subject = encodeURIComponent('LushNote Support: Need help');
-  const body    = encodeURIComponent('Hi,\n\nI need help with LushNote.\n\nConversation:\n' + chatSoFar + '\n\nUser: ' + ((currentUser && currentUser.email) ? currentUser.email : ''));
-  const a = document.createElement('a');
-  a.href = 'mailto:' + ADMIN_EMAIL + '?subject=' + subject + '&body=' + body;
-  a.click();
+  const chatSoFar = Array.from(msgs.querySelectorAll('.ln-msg')).map(function(el) { return (el.classList.contains('user') ? 'User: ' : 'AI: ') + el.textContent.trim(); }).join('\n');
+  const userEmail = (currentUser && currentUser.email) ? currentUser.email : 'unknown';
+  const slackMsg = {
+    text: '*LushNote Support Escalation*',
+    blocks: [
+      { type: 'header', text: { type: 'plain_text', text: 'Support Escalation (manual)' } },
+      { type: 'section', fields: [{ type: 'mrkdwn', text: '*User:*\n' + userEmail }] },
+      { type: 'section', text: { type: 'mrkdwn', text: '*Conversation:*\n```' + chatSoFar.slice(0, 2800) + '```' } }
+    ]
+  };
+  if (SLACK_WEBHOOK) {
+    fetch(SLACK_WEBHOOK, { method: 'POST', body: JSON.stringify(slackMsg) }).catch(function() {});
+    toast('Developer notified on Slack.');
+  } else {
+    const subject = encodeURIComponent('LushNote Support: Need help');
+    const body    = encodeURIComponent('From: ' + userEmail + '\n\nConversation:\n' + chatSoFar);
+    const a = document.createElement('a');
+    a.href = 'mailto:' + ADMIN_EMAIL + '?subject=' + subject + '&body=' + body;
+    a.click();
+  }
 }
+
+// ── Temp debug helper — call lnDebug() from browser console ──
+window.lnDebug = function() {
+  const today = _geminiTodayKey();
+  const model = _getGeminiModel();
+  const count = _geminiDailyCount.count;
+  const date  = _geminiDailyCount.date;
+  const key   = getGeminiKey() ? getGeminiKey().slice(0,8) + '…' : '(none)';
+  const info  = [
+    'Gemini model: ' + model,
+    'Daily count: ' + count + ' / 20 (date: ' + date + ')',
+    'Today key: ' + today,
+    'API key: ' + key,
+    'User: ' + ((currentUser && currentUser.email) ? currentUser.email : '(none)'),
+    'Slack webhook: ' + (SLACK_WEBHOOK ? 'set' : 'NOT SET')
+  ].join('\n');
+  alert('LushNote Debug\n\n' + info);
+};
 
 </script>
 
