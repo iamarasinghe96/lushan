@@ -896,6 +896,132 @@
       header h1 { font-size: .9rem; }
       .btn-paste { font-size: .88rem; }
     }
+
+    /* ── Live Chat FAB ── */
+    #ln-fab-wrap {
+      position: fixed; bottom: calc(24px + env(safe-area-inset-bottom));
+      right: 20px; z-index: 9000;
+      display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 10px;
+    }
+    #ln-fab-wrap.fab-hidden { display: none; }
+    .ln-fab-main {
+      width: 54px; height: 54px; border-radius: 50%;
+      background: #10b981; color: #fff; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(16,185,129,.45);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .ln-fab-main:hover { transform: scale(1.07); box-shadow: 0 6px 20px rgba(16,185,129,.55); }
+    .ln-fab-main.open  { background: #0d9668; }
+    .ln-fab-sub {
+      display: flex; align-items: center; gap: 9px;
+      opacity: 0; transform: translateY(8px) scale(.9);
+      transition: opacity .18s, transform .18s; pointer-events: none;
+    }
+    .ln-fab-sub.visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+    .ln-fab-sub button {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: none; cursor: pointer; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 3px 10px rgba(0,0,0,.22);
+      transition: transform .15s;
+    }
+    .ln-fab-sub button:hover { transform: scale(1.1); }
+    .ln-fab-sub-ai   { background: #6366f1; }
+    .ln-fab-sub-live { background: #f59e0b; }
+    .ln-fab-label {
+      background: rgba(15,23,42,.82); color: #fff;
+      font-size: .72rem; font-weight: 600; padding: 4px 9px;
+      border-radius: 20px; white-space: nowrap; pointer-events: none;
+    }
+    /* Chat panel */
+    #ln-chat-panel {
+      position: fixed; bottom: calc(94px + env(safe-area-inset-bottom));
+      right: 16px; z-index: 8900;
+      width: min(390px, calc(100vw - 32px));
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(15,23,42,.22);
+      display: flex; flex-direction: column; overflow: hidden;
+      max-height: calc(100vh - 130px);
+      transform: translateY(20px) scale(.96); opacity: 0;
+      transition: transform .22s, opacity .22s; pointer-events: none;
+    }
+    #ln-chat-panel.panel-open { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+    .ln-panel-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 14px 11px; border-bottom: 1px solid #e5e7eb;
+      flex-shrink: 0;
+    }
+    .ln-panel-header-icon {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; color: #fff;
+    }
+    .ln-panel-header-icon.ai   { background: #6366f1; }
+    .ln-panel-header-icon.live { background: #f59e0b; }
+    .ln-panel-title { font-size: .9rem; font-weight: 700; color: #111827; flex: 1; }
+    .ln-panel-sub   { font-size: .72rem; color: #6b7280; margin-top: 1px; }
+    .ln-panel-close {
+      background: none; border: none; cursor: pointer; color: #9ca3af;
+      font-size: 1.2rem; line-height: 1; padding: 4px; border-radius: 6px;
+    }
+    .ln-panel-close:hover { background: #f3f4f6; color: #374151; }
+    .ln-msgs {
+      flex: 1; overflow-y: auto; padding: 14px; display: flex;
+      flex-direction: column; gap: 10px; min-height: 180px; max-height: 340px;
+    }
+    .ln-msg {
+      max-width: 88%; padding: 9px 13px; border-radius: 14px;
+      font-size: .83rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+    }
+    .ln-msg.user { background: #10b981; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .ln-msg.ai   { background: #f3f4f6; color: #111827; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .ln-msg.ai a { color: #2563eb; }
+    .ln-msg-img  { max-width: 100%; border-radius: 8px; display: block; margin-top: 6px; }
+    .ln-typing { display: flex; gap: 4px; align-items: center; padding: 9px 14px; align-self: flex-start; }
+    .ln-typing span { width: 7px; height: 7px; border-radius: 50%; background: #9ca3af; animation: ln-bounce .9s infinite; }
+    .ln-typing span:nth-child(2) { animation-delay: .15s; }
+    .ln-typing span:nth-child(3) { animation-delay: .3s; }
+    @keyframes ln-bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+    .ln-input-row {
+      display: flex; align-items: flex-end; gap: 7px;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      border-top: 1px solid #e5e7eb; flex-shrink: 0;
+    }
+    .ln-input-col { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .ln-attach-preview { display: flex; gap: 6px; flex-wrap: wrap; }
+    .ln-attach-thumb {
+      width: 44px; height: 44px; object-fit: cover; border-radius: 6px;
+      border: 1px solid #e5e7eb; cursor: pointer;
+    }
+    #ln-input {
+      flex: 1; border: 1px solid #d1d5db; border-radius: 10px;
+      padding: 9px 12px; font-size: .85rem; resize: none;
+      font-family: inherit; color: #111827; max-height: 100px; overflow-y: auto;
+      outline: none;
+    }
+    #ln-input:focus { border-color: #10b981; box-shadow: 0 0 0 2px rgba(16,185,129,.15); }
+    .ln-send-btn {
+      width: 40px; height: 40px; border-radius: 50%; border: none;
+      background: #10b981; color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background .15s;
+    }
+    .ln-send-btn:hover { background: #0d9668; }
+    .ln-attach-btn {
+      width: 36px; height: 36px; border-radius: 8px; border: 1px solid #d1d5db;
+      background: #fff; cursor: pointer; color: #6b7280;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background .15s;
+    }
+    .ln-attach-btn:hover { background: #f3f4f6; }
+    .ln-escalate-bar {
+      padding: 8px 14px 10px; text-align: center; border-top: 1px solid #e5e7eb; flex-shrink: 0;
+    }
+    .ln-escalate-btn {
+      font-size: .75rem; color: #6b7280; background: none; border: none;
+      cursor: pointer; text-decoration: underline; font-family: inherit;
+    }
+    .ln-escalate-btn:hover { color: #374151; }
   </style>
 </head>
 <body>
@@ -1865,6 +1991,62 @@ With regards,
 
 </main>
 </div><!-- /view-app -->
+
+<!-- ── Live Chat FAB ── -->
+<div id="ln-fab-wrap" class="fab-hidden">
+  <!-- Sub buttons (appear above FAB) -->
+  <div class="ln-fab-sub" id="ln-fab-subs">
+    <!-- Live Agent -->
+    <div class="ln-fab-sub" id="ln-sub-live" style="transition-delay:.06s">
+      <span class="ln-fab-label">Live Support</span>
+      <button class="ln-fab-sub-live" onclick="lnOpenChat('live')" title="Live Support">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4l4 4 4-4h4a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="8" cy="11" r="1.2" fill="#fff"/><circle cx="12" cy="11" r="1.2" fill="#fff"/><circle cx="16" cy="11" r="1.2" fill="#fff"/></svg>
+      </button>
+    </div>
+    <!-- AI Assistant -->
+    <div class="ln-fab-sub" id="ln-sub-ai" style="transition-delay:.0s">
+      <span class="ln-fab-label">Ask AI</span>
+      <button class="ln-fab-sub-ai" onclick="lnOpenChat('ai')" title="AI Assistant">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2Z" stroke="#fff" stroke-width="1.8"/><path d="M8 12h8M12 8v8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="17" cy="5" r="2.2" fill="#a5b4fc"/><path d="M16 4.5l.5.5 1-1" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <!-- Main FAB button -->
+  <button class="ln-fab-main" id="ln-fab-btn" onclick="lnFabToggle()" title="Help & Support">
+    <svg width="26" height="26" fill="none" viewBox="0 0 24 24"><path d="M12 3C7.03 3 3 6.58 3 11c0 2.3 1.05 4.38 2.74 5.89L5 21l4.33-1.62C10.17 19.77 11.07 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M9 11h.01M12 11h.01M15 11h.01" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+  </button>
+</div>
+
+<!-- Chat panel -->
+<div id="ln-chat-panel">
+  <div class="ln-panel-header" id="ln-panel-header">
+    <div class="ln-panel-header-icon ai" id="ln-panel-icon">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2Z" stroke="#fff" stroke-width="1.8"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div>
+      <div class="ln-panel-title" id="ln-panel-title">LushNote Assistant</div>
+      <div class="ln-panel-sub" id="ln-panel-sub">AI-powered help</div>
+    </div>
+    <button class="ln-panel-close" onclick="lnCloseChat()">&#x2715;</button>
+  </div>
+  <div class="ln-msgs" id="ln-msgs"></div>
+  <div class="ln-input-row">
+    <div class="ln-input-col">
+      <div class="ln-attach-preview" id="ln-attach-preview"></div>
+      <textarea id="ln-input" rows="1" placeholder="Ask anything…" oninput="lnAutoResize(this)" onkeydown="lnInputKey(event)"></textarea>
+    </div>
+    <label class="ln-attach-btn" title="Attach image">
+      <input type="file" id="ln-file-input" accept="image/*" style="display:none" onchange="lnAttachFile(this)">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </label>
+    <button class="ln-send-btn" onclick="lnChatSend()" title="Send">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2 15 22l-4-9-9-4 20-7Z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <div class="ln-escalate-bar" id="ln-escalate-bar" style="display:none">
+    <button class="ln-escalate-btn" onclick="lnEscalate()">Can't find your answer? Contact the developer →</button>
+  </div>
+</div>
 
 <div id="toast"></div>
 <div id="rate-limit-banner">
@@ -4188,6 +4370,7 @@ function showView(name) {
   if (name === 'landing' || name === 'auth') {
     history.replaceState(null, '', location.pathname);
   }
+  if (name === 'app') { lnShowFab(); } else { lnHideFab(); }
   if (name === 'auth') {
     const btn = document.getElementById('google-signin-btn');
     if (btn) {
@@ -6599,6 +6782,308 @@ function openAddToHomeModal() {
 
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Live Chat FAB
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LUSHNOTE_KB = `
+LushNote is a clinical note builder for psychiatrists.
+
+FEATURES:
+- Generate notes: Paste Transcript (from text), Record Session (live audio), Dictate Note (voice dictation)
+- Templates: choose from built-in templates (Adult Psychiatry, Child, Forensic, etc.) or create custom ones
+- Edit & Preview: review and edit generated note fields before exporting
+- Export: copy to clipboard, email, or print the final note
+- History: view all past notes per patient
+- Patients: manage patient profiles (name, DOB, gender)
+- Settings: personalisation (writing style, treatment modalities), workplaces, transcript privacy, API key
+
+PERSONALISATION:
+- Clinician Profile: describe yourself for context-appropriate language
+- Treatment Modalities: CBT, ACT, DBT, psychodynamic, etc. influences note content
+- Documentation Style: brief vs. detailed; dot points vs. prose
+- Patient Privacy: can redact names, DOB, and other identifiers from transcript before AI processing
+- Note Length: Brief (dot points, short phrases) or Detailed (comprehensive prose)
+
+TEMPLATES:
+- Built-in: General Adult Psychiatry, Child & Adolescent, Forensic, Psychotherapy, MSE only, etc.
+- Custom: create your own with specialty, format, and section preferences
+
+TRANSCRIPT PRIVACY:
+- Names, DOB, email, phone, and address can be auto-redacted before the transcript is sent to AI
+- Controlled in Settings > Transcript Privacy
+
+API:
+- LushNote uses Google Gemini AI for note generation
+- Your Gemini API key is stored securely in your account and in session memory only
+- Key can be updated in Settings > API Key
+
+SECURITY:
+- Notes stored in Firebase Firestore, never on device localStorage
+- Authentication via Google sign-in
+- Each user can only access their own notes
+
+COMMON ISSUES:
+- Note not generating: Check that your Gemini API key is configured in Settings
+- Template not applying correctly: Try the Change Template button in the Edit tab
+- Note not saving: Check internet connection; autosave runs on field blur
+- Can't find a past note: Use History tab, search by patient name
+- PWA / home screen app opens wrong page: Delete and re-add to home screen
+`.trim();
+
+let _lnMode = 'ai';
+let _lnHistory = [];
+let _lnAttachments = [];
+let _lnTypingEl = null;
+
+function lnShowFab() {
+  document.getElementById('ln-fab-wrap').classList.remove('fab-hidden');
+}
+function lnHideFab() {
+  document.getElementById('ln-fab-wrap').classList.add('fab-hidden');
+  lnCloseChat();
+}
+
+function lnFabToggle() {
+  const subAi   = document.getElementById('ln-sub-ai');
+  const subLive = document.getElementById('ln-sub-live');
+  const btn     = document.getElementById('ln-fab-btn');
+  const open    = subAi.classList.contains('visible');
+  if (open) {
+    subAi.classList.remove('visible');
+    subLive.classList.remove('visible');
+    btn.classList.remove('open');
+  } else {
+    subAi.classList.add('visible');
+    subLive.classList.add('visible');
+    btn.classList.add('open');
+  }
+}
+
+function lnOpenChat(mode) {
+  _lnMode = mode;
+  _lnHistory = [];
+  _lnAttachments = [];
+  document.getElementById('ln-attach-preview').innerHTML = '';
+  document.getElementById('ln-file-input').value = '';
+
+  const panel  = document.getElementById('ln-chat-panel');
+  const icon   = document.getElementById('ln-panel-icon');
+  const title  = document.getElementById('ln-panel-title');
+  const sub    = document.getElementById('ln-panel-sub');
+  const escBar = document.getElementById('ln-escalate-bar');
+  const msgs   = document.getElementById('ln-msgs');
+
+  msgs.innerHTML = '';
+
+  if (mode === 'ai') {
+    icon.className = 'ln-panel-header-icon ai';
+    icon.innerHTML = '<svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2Z" stroke="#fff" stroke-width="1.8"/><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    title.textContent = 'LushNote Assistant';
+    sub.textContent   = 'AI-powered help';
+    escBar.style.display = 'block';
+    lnAddMsg('ai', "Hi! I'm your LushNote AI assistant. Ask me anything about how the app works, your notes, or your patients.");
+  } else {
+    icon.className = 'ln-panel-header-icon live';
+    icon.innerHTML = '<svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4l4 4 4-4h4a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>';
+    title.textContent = 'Live Support';
+    sub.textContent   = 'Contact the developer';
+    escBar.style.display = 'none';
+    lnAddMsg('ai', "Hi! Describe your issue and the developer will reply to your email. You can attach a screenshot too.");
+  }
+
+  lnCloseFabSubs();
+  panel.classList.add('panel-open');
+  setTimeout(() => document.getElementById('ln-input').focus(), 200);
+}
+
+function lnCloseChat() {
+  document.getElementById('ln-chat-panel').classList.remove('panel-open');
+  lnCloseFabSubs();
+}
+
+function lnCloseFabSubs() {
+  document.getElementById('ln-sub-ai').classList.remove('visible');
+  document.getElementById('ln-sub-live').classList.remove('visible');
+  document.getElementById('ln-fab-btn').classList.remove('open');
+}
+
+function lnAddMsg(role, text) {
+  const msgs = document.getElementById('ln-msgs');
+  const el = document.createElement('div');
+  el.className = 'ln-msg ' + role;
+  el.textContent = text;
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+  return el;
+}
+
+function lnAddTyping() {
+  const msgs = document.getElementById('ln-msgs');
+  const el = document.createElement('div');
+  el.className = 'ln-typing';
+  el.innerHTML = '<span></span><span></span><span></span>';
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+  _lnTypingEl = el;
+}
+
+function lnRemoveTyping() {
+  if (_lnTypingEl) { _lnTypingEl.remove(); _lnTypingEl = null; }
+}
+
+function lnAutoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function lnInputKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); lnChatSend(); }
+}
+
+function lnAttachFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const dataUrl  = ev.target.result;
+    const base64   = dataUrl.split(',')[1];
+    const mimeType = file.type;
+    const idx = _lnAttachments.length;
+    _lnAttachments.push({ base64, mimeType, dataUrl });
+    const preview = document.getElementById('ln-attach-preview');
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.className = 'ln-attach-thumb';
+    img.title = 'Click to remove';
+    img.onclick = function() { _lnAttachments.splice(idx, 1); img.remove(); };
+    preview.appendChild(img);
+    input.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function lnChatSend() {
+  const input = document.getElementById('ln-input');
+  const text  = input.value.trim();
+  if (!text && _lnAttachments.length === 0) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+
+  const msgs = document.getElementById('ln-msgs');
+  const msgEl = document.createElement('div');
+  msgEl.className = 'ln-msg user';
+  if (text) msgEl.textContent = text;
+  _lnAttachments.forEach(a => {
+    const img = document.createElement('img');
+    img.src = a.dataUrl;
+    img.className = 'ln-msg-img';
+    msgEl.appendChild(img);
+  });
+  msgs.appendChild(msgEl);
+  msgs.scrollTop = msgs.scrollHeight;
+  document.getElementById('ln-attach-preview').innerHTML = '';
+
+  const attachments = _lnAttachments.slice();
+  _lnAttachments = [];
+
+  if (_lnMode === 'live') {
+    await lnLiveSend(text, attachments);
+    return;
+  }
+
+  lnAddTyping();
+
+  try {
+    const geminiKey = getGeminiKey();
+    if (!geminiKey) {
+      lnRemoveTyping();
+      lnAddMsg('ai', 'No Gemini API key configured. Please add your API key in Settings to use the AI assistant.');
+      return;
+    }
+
+    const userParts = [];
+    if (text) userParts.push({ text: text });
+    attachments.forEach(a => userParts.push({ inlineData: { mimeType: a.mimeType, data: a.base64 } }));
+    _lnHistory.push({ role: 'user', parts: userParts });
+
+    let patientCtx = '';
+    if (state.allNotes && state.allNotes.length > 0) {
+      const pts = {};
+      state.allNotes.forEach(function(n) {
+        const name = n.patient || 'Unknown';
+        if (!pts[name]) pts[name] = [];
+        pts[name].push(n.date || '');
+      });
+      const ptLines = Object.keys(pts).map(function(name) {
+        return '  - ' + name + ': ' + pts[name].length + ' note(s), last on ' + (pts[name][0] || '?');
+      }).join('\n');
+      patientCtx = '\n\nCURRENT PATIENTS IN SYSTEM (' + Object.keys(pts).length + ' patients):\n' + ptLines;
+    }
+
+    const systemPrompt = 'You are the LushNote AI assistant — an expert helper for the LushNote clinical note builder app for psychiatrists.\n\nKNOWLEDGE BASE:\n' + LUSHNOTE_KB + patientCtx + '\n\nAnswer helpfully and concisely. If the user asks about a patient, use the patient list above. If you do not know the answer, say so honestly. Do not make up features that do not exist.';
+
+    const contents = [
+      { role: 'user', parts: [{ text: systemPrompt }] },
+      { role: 'model', parts: [{ text: "Understood. I'm ready to help with LushNote." }] }
+    ].concat(_lnHistory);
+
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: contents, generationConfig: { temperature: 0.2, maxOutputTokens: 700 } })
+    });
+    const data = await res.json();
+    const answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : "Sorry, I couldn't get a response. Please try again.";
+
+    _lnHistory.push({ role: 'model', parts: [{ text: answer }] });
+    lnRemoveTyping();
+    lnAddMsg('ai', answer);
+  } catch (err) {
+    lnRemoveTyping();
+    lnAddMsg('ai', 'Error: ' + (err.message || 'Something went wrong.'));
+  }
+}
+
+async function lnLiveSend(text, attachments) {
+  lnAddTyping();
+  try {
+    if (currentUser && db) {
+      db.collection('users').doc(currentUser.uid).update({
+        lastSupportRequest: {
+          message: text,
+          hasImages: attachments.length > 0,
+          sentAt: new Date().toISOString()
+        }
+      }).catch(function() {});
+    }
+    lnRemoveTyping();
+    const emailAddr = (currentUser && currentUser.email) ? currentUser.email : 'your email';
+    lnAddMsg('ai', "Your message has been logged and the developer will reply to " + emailAddr + " soon.\n\nYou can also try the AI assistant for quick answers.");
+    const subject = encodeURIComponent('LushNote Support Request');
+    const body    = encodeURIComponent('User: ' + ((currentUser && currentUser.email) ? currentUser.email : 'unknown') + '\n\n' + text);
+    setTimeout(function() {
+      const link = document.createElement('a');
+      link.href = 'mailto:' + ADMIN_EMAIL + '?subject=' + subject + '&body=' + body;
+      link.click();
+    }, 600);
+  } catch (err) {
+    lnRemoveTyping();
+    lnAddMsg('ai', 'Could not log your message. Please email directly: ' + ADMIN_EMAIL);
+  }
+}
+
+function lnEscalate() {
+  const msgs = document.getElementById('ln-msgs');
+  const chatSoFar = Array.from(msgs.querySelectorAll('.ln-msg')).map(function(el) { return el.textContent.trim(); }).join('\n---\n');
+  const subject = encodeURIComponent('LushNote Support: Need help');
+  const body    = encodeURIComponent('Hi,\n\nI need help with LushNote.\n\nConversation:\n' + chatSoFar + '\n\nUser: ' + ((currentUser && currentUser.email) ? currentUser.email : ''));
+  const a = document.createElement('a');
+  a.href = 'mailto:' + ADMIN_EMAIL + '?subject=' + subject + '&body=' + body;
+  a.click();
 }
 
 </script>
