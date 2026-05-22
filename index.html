@@ -3380,13 +3380,14 @@ function loadNoteById(id) {
 }
 
 function loadNoteFromHistory(note) {
-  // Transcripts are not stored — clear so the Transcript button doesn't
-  // misleadingly show the last generated session's transcript for a different note
-  state.lastTranscript = null;
-  state.lastChosenTemplate = null;
   _cancelActiveAnimation(); // ensure _isAnimating=false so updateNoteBar() runs
-  const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
-  if (trsTabBtn) trsTabBtn.remove();
+  // Keep lastTranscript/lastChosenTemplate so doctor can still view the
+  // transcript and change template after loading from Patients.
+  // Only remove the transcript tab button if there is no active transcript.
+  if (!state.lastTranscript) {
+    const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
+    if (trsTabBtn) trsTabBtn.remove();
+  }
 
   state.currentNoteId = note.id;
   populateFields(note);
