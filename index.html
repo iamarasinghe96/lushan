@@ -7021,13 +7021,24 @@ async function lnChatSend() {
       const pts = {};
       state.allNotes.forEach(function(n) {
         const name = n.patient || 'Unknown';
-        if (!pts[name]) pts[name] = [];
-        pts[name].push(n.date || '');
+        const key  = (name).trim().toLowerCase();
+        if (!pts[key]) pts[key] = { name: name, dates: [], diagnoses: [], reg: n.reg_number || '' };
+        pts[key].dates.push(n.date || '');
+        if (n.diagnosis && pts[key].diagnoses.indexOf(n.diagnosis.trim()) === -1) pts[key].diagnoses.push(n.diagnosis.trim());
       });
-      const ptLines = Object.keys(pts).map(function(name) {
-        return '  - ' + name + ': ' + pts[name].length + ' note(s), last on ' + (pts[name][0] || '?');
+      const profiles = state.patientProfiles || {};
+      const ptLines = Object.keys(pts).map(function(key) {
+        const p = pts[key];
+        const prof = profiles[key] || {};
+        const parts = [p.name];
+        if (prof.dob)    parts.push('DOB: ' + prof.dob);
+        if (prof.gender) parts.push(prof.gender);
+        if (p.reg)       parts.push('ID: ' + p.reg);
+        parts.push(p.dates.length + ' note(s), last: ' + (p.dates[0] || '?'));
+        if (p.diagnoses.length) parts.push('Dx: ' + p.diagnoses.join('; '));
+        return '  - ' + parts.join(' | ');
       }).join('\n');
-      patientCtx = '\n\nCURRENT PATIENTS IN SYSTEM (' + Object.keys(pts).length + ' patients):\n' + ptLines;
+      patientCtx = '\n\nCURRENT PATIENTS (' + Object.keys(pts).length + '):\n' + ptLines;
     }
 
     const systemPrompt = 'You are the LushNote AI assistant — an expert helper for the LushNote clinical note builder app for psychiatrists.\n\nKNOWLEDGE BASE:\n' + LUSHNOTE_KB + patientCtx + '\n\nAnswer helpfully and concisely. If the user asks about a patient, use the patient list above. If you do not know the answer, say so honestly. Do not make up features that do not exist.';
