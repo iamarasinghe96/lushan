@@ -2741,7 +2741,7 @@ function populateFields(d) {
 function getFields() {
   const v = id => document.getElementById(id).value.trim();
   const tS = v('e-time-start'), tE = v('e-time-end');
-  return {
+  const fields = {
     patient:        v('e-patient'),
     reg_number:     v('e-reg-number'),
     date:           displayToDateStr(v('e-date-display')),
@@ -2761,6 +2761,11 @@ function getFields() {
     summary:        v('e-summary'),
     nextsteps:      v('e-nextsteps'),
   };
+  if (state.lastTranscript) {
+    fields.transcript = state.lastTranscript.slice(0, 100000);
+    fields.transcriptMode = state.lastTranscriptMode || 'paste';
+  }
+  return fields;
 }
 
 function _showAllFields() {
@@ -3381,13 +3386,10 @@ function loadNoteById(id) {
 
 function loadNoteFromHistory(note) {
   _cancelActiveAnimation(); // ensure _isAnimating=false so updateNoteBar() runs
-  // Keep lastTranscript/lastChosenTemplate so doctor can still view the
-  // transcript and change template after loading from Patients.
-  // Only remove the transcript tab button if there is no active transcript.
-  if (!state.lastTranscript) {
-    const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
-    if (trsTabBtn) trsTabBtn.remove();
-  }
+  state.lastTranscript = note.transcript || null;
+  state.lastTranscriptMode = note.transcriptMode || 'paste';
+  const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
+  if (trsTabBtn) trsTabBtn.remove();
 
   state.currentNoteId = note.id;
   populateFields(note);
