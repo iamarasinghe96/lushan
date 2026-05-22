@@ -52,6 +52,9 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    #view-app { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+    #view-app .sticky-top { flex-shrink: 0; }
+    #view-app > main { flex: 1; min-height: 0; overflow-y: auto; }
 
     /* ── Header ── */
     .sticky-top { position: sticky; top: 0; z-index: 90; }
@@ -274,11 +277,12 @@
 
     /* Contained two-pane layout for Edit tab — eliminates page scrollbar */
     /* 112px sticky-top + 22px main padding-top = 134px total offset */
-    #tab-edit.active { display: flex; flex-direction: column; height: calc(100vh - 134px); overflow: hidden; }
     body.tab-edit-active { overflow: hidden; }
+    body.tab-edit-active #view-app > main { overflow: hidden; padding: 0; }
+    #tab-edit.active { display: flex; flex-direction: column; height: 100%; overflow: hidden; padding: 22px 20px 0; }
     #tab-edit .edit-grid { flex: 1; min-height: 0; align-items: stretch; }
-    #tab-edit .form-panel { overflow-y: auto; min-height: 0; padding-bottom: 24px; }
-    #tab-edit .preview-sticky { position: static; overflow-y: auto; min-height: 0; }
+    #tab-edit .form-panel { overflow-y: auto; min-height: 0; padding-bottom: 24px; scrollbar-width: thin; }
+    #tab-edit .preview-sticky { position: static; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
     #preview-pane { max-height: none; }
 
     /* ── Current note bar ── */
