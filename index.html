@@ -2794,10 +2794,10 @@ function _setEditGenerating(on) {
   if (on) {
     _cancelActiveAnimation();
     _showAllFields();
-    // Clear content + session fields so preview doesn't show the previous note
-    ['e-session-number','e-attendance','e-diagnosis','e-presentation','e-history',
-     'e-medications','e-mse','e-content','e-scales','e-risk','e-referrals',
-     'e-summary','e-nextsteps'].forEach(id => { document.getElementById(id).value = ''; });
+    // Clear all fields so preview doesn't show the previous note while generating
+    ['e-patient','e-reg-number','e-session-number','e-attendance','e-diagnosis',
+     'e-presentation','e-history','e-medications','e-mse','e-content','e-scales',
+     'e-risk','e-referrals','e-summary','e-nextsteps'].forEach(id => { document.getElementById(id).value = ''; });
     livePreview();
     bar.style.opacity = '0';
     bar.style.display = 'flex';
@@ -2805,8 +2805,7 @@ function _setEditGenerating(on) {
     _startStatusSequence();
   } else {
     _stopStatusSequence();
-    document.getElementById('current-note-label').innerHTML =
-      'Building your note<span class="anim-dots"><span>.</span><span>.</span><span>.</span></span>';
+    if (!_isAnimating) updateNoteBar();
   }
 }
 
@@ -5337,12 +5336,13 @@ async function _geminiGenerate(contents, systemText) {
     if (attempt > 0) await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
     const res = await fetch(url, init);
     const rawText = await res.text();
-    if (res.status === 503 || res.status === 429) { lastErr = await _geminiErrorMsg(res, rawText); continue; }
+    if (res.status === 429) { lastErr = await _geminiErrorMsg(res, rawText); throw new Error(lastErr); }
+    if (res.status === 503) { lastErr = await _geminiErrorMsg(res, rawText); continue; }
     if (!res.ok) throw new Error(await _geminiErrorMsg(res, rawText));
     const d = JSON.parse(rawText);
     return (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) ? d.candidates[0].content.parts[0].text : '';
   }
-  throw new Error(lastErr || 'Gemini API unavailable after retries. Please try again.');
+  throw new Error(lastErr || 'Gemini service temporarily unavailable. Please try again in a moment.');
 }
 
 async function transcribeAudio(blob) {
