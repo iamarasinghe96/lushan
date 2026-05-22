@@ -276,14 +276,13 @@
     .preview-sticky { position: sticky; top: 112px; }
 
     /* Contained two-pane layout for Edit tab — eliminates page scrollbar */
-    /* 112px sticky-top + 22px main padding-top = 134px total offset */
     body.tab-edit-active { overflow: hidden; }
     body.tab-edit-active #view-app > main { overflow: hidden; padding: 0; }
     #tab-edit.active { display: flex; flex-direction: column; height: 100%; overflow: hidden; padding: 22px 20px 0; }
-    #tab-edit .edit-grid { flex: 1; min-height: 0; align-items: stretch; }
+    #tab-edit .edit-grid { flex: 1; min-height: 0; align-items: stretch; height: 100%; overflow: hidden; grid-template-rows: 1fr; }
     #tab-edit .form-panel { overflow-y: auto; min-height: 0; padding-bottom: 24px; scrollbar-width: thin; }
     #tab-edit .preview-sticky { position: static; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
-    #preview-pane { max-height: none; }
+    #tab-edit .preview-sticky #preview-pane { overflow-y: visible; max-height: none; }
 
     /* ── Current note bar ── */
     #current-note-bar {
@@ -319,39 +318,50 @@
     #preview-pane .empty-state { color: var(--text3); font-style: italic; font-family: sans-serif; font-size: .84rem; }
 
     /* ── Patients tab ── */
-    .pt-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
-    .pt-sort-group { display: flex; gap: 4px; flex-shrink: 0; }
-    .pt-sort-btn {
+    .pt-search-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: 12px; box-shadow: var(--shadow-sm); overflow: hidden; }
+    .pt-search-row { display: flex; align-items: center; gap: 10px; padding: 12px 18px; }
+    .pt-search-row input[type=search] { border: none; outline: none; font-size: .88rem; width: 100%; background: transparent; padding: 0; box-shadow: none; }
+    .pt-filter-bar { display: flex; align-items: center; gap: 8px; padding: 8px 14px 10px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .pt-pill-group { display: flex; gap: 3px; }
+    .pt-pill {
       background: none; border: 1px solid var(--border); border-radius: 100px;
-      padding: 4px 11px; font-size: .78rem; font-weight: 600; cursor: pointer; color: var(--text2);
-      font-family: inherit; transition: all .15s; white-space: nowrap;
+      padding: 3px 10px; font-size: .75rem; font-weight: 600; cursor: pointer; color: var(--text2);
+      font-family: inherit; transition: all .15s; white-space: nowrap; line-height: 1.6;
     }
-    .pt-sort-btn:hover { border-color: var(--blue); color: var(--blue); }
-    .pt-sort-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
-    .pt-quick-group { display: flex; gap: 4px; flex-wrap: wrap; }
-    .pt-quick-btn {
-      background: none; border: 1px solid var(--border); border-radius: 100px;
-      padding: 4px 11px; font-size: .78rem; cursor: pointer; color: var(--gray);
-      font-family: inherit; transition: all .15s; white-space: nowrap;
-    }
-    .pt-quick-btn:hover { border-color: var(--blue); color: var(--blue); }
-    .pt-quick-btn.active { background: var(--blue-lt); border-color: var(--blue); color: var(--blue); font-weight: 600; }
-    .pt-date-range { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .pt-pill:hover { border-color: var(--blue); color: var(--blue); }
+    .pt-pill.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .pt-pill.active-lt { background: var(--blue-lt); border-color: var(--blue); color: var(--blue); }
+    .pt-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
+    .pt-date-range { display: flex; align-items: center; gap: 5px; }
     .pt-date-input {
-      border: 1px solid var(--border); border-radius: var(--r-sm); padding: 4px 9px;
-      font-size: .78rem; color: var(--text2); font-family: inherit; width: 106px;
-      background: var(--card); transition: border-color .15s; outline: none;
+      border: 1px solid var(--border); border-radius: var(--r-sm); padding: 3px 8px;
+      font-size: .75rem; color: var(--text2); font-family: inherit; width: 96px;
+      background: #fff; transition: border-color .15s; outline: none; line-height: 1.6;
     }
-    .pt-date-input:focus { border-color: var(--blue); }
+    .pt-date-input:focus { border-color: var(--blue); box-shadow: none; }
     .pt-date-input::placeholder { color: var(--text3); }
-    .pt-date-label { font-size: .76rem; color: var(--gray); white-space: nowrap; }
-    .pt-clear-dates {
-      background: none; border: none; cursor: pointer; color: var(--text3); font-size: .78rem;
-      padding: 0 4px; font-family: inherit; text-decoration: underline; transition: color .15s;
-    }
+    .pt-date-label { font-size: .74rem; color: var(--gray); white-space: nowrap; }
+    .pt-clear-dates { background: none; border: none; cursor: pointer; color: var(--text3); font-size: .73rem; padding: 0 2px; font-family: inherit; text-decoration: underline; transition: color .15s; }
     .pt-clear-dates:hover { color: var(--blue); }
-    .pt-result-count { font-size: .76rem; color: var(--text3); flex-grow: 1; text-align: right; }
+    .pt-result-count { font-size: .74rem; color: var(--text3); margin-left: auto; }
     #patients-area { display: grid; gap: 10px; }
+    /* ── Transcript tab ── */
+    #tab-transcript.active { display: flex; flex-direction: column; }
+    .trs-body { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    .trs-transcript-pane { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-sm); }
+    .trs-transcript-pane h3 { font-size: .8rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+    .trs-transcript-text { font-size: .83rem; line-height: 1.65; color: var(--text2); white-space: pre-wrap; max-height: 65vh; overflow-y: auto; scrollbar-width: thin; }
+    .trs-qa-pane { display: flex; flex-direction: column; gap: 12px; }
+    .trs-qa-pane h3 { font-size: .8rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 0; }
+    .trs-chat { display: flex; flex-direction: column; gap: 10px; max-height: 50vh; overflow-y: auto; scrollbar-width: thin; padding: 4px 0; }
+    .trs-msg { font-size: .84rem; line-height: 1.55; padding: 10px 14px; border-radius: var(--r); max-width: 92%; }
+    .trs-msg.user { background: var(--blue); color: #fff; align-self: flex-end; border-radius: var(--r) var(--r) 4px var(--r); }
+    .trs-msg.ai { background: var(--bg); border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-radius: var(--r) var(--r) var(--r) 4px; }
+    .trs-msg.ai.thinking { color: var(--text3); font-style: italic; }
+    .trs-input-row { display: flex; gap: 8px; }
+    .trs-input-row textarea { resize: none; font-size: .86rem; flex: 1; height: 52px; padding: 10px 12px; }
+    .trs-input-row button { flex-shrink: 0; }
+    @media (max-width: 760px) { .trs-body { grid-template-columns: 1fr; } }
     .patient-card {
       background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
       padding: 14px 18px; cursor: pointer; transition: border-color .15s, box-shadow .15s;
@@ -1487,6 +1497,9 @@ With regards,
         <button class="btn btn-outline btn-sm" id="change-template-btn" onclick="changeTemplate()" style="display:none;">
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Change Template
         </button>
+        <button class="btn btn-outline btn-sm" id="view-transcript-btn" onclick="openTranscriptTab()" style="display:none;">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><path d="M9 12h6M9 16h4M7 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8l-5-4H7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Transcript
+        </button>
         <button class="btn btn-outline btn-sm" onclick="reassignPatient()">
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M2 21c0-4 3.1-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 16l-3 3 3 3M16 19h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Reassign
         </button>
@@ -1731,31 +1744,33 @@ With regards,
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:4px;"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>New Patient
         </button>
       </div>
-      <div class="card" style="margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:10px;">
+      <div class="pt-search-card">
+        <div class="pt-search-row">
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--gray)"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <input type="search" id="history-search" placeholder="Search patients…" oninput="filterPatients()" style="border:none;outline:none;font-size:.88rem;width:100%;background:transparent;" />
+          <input type="search" id="history-search" placeholder="Search patients…" oninput="filterPatients()" />
         </div>
-      </div>
-      <div class="pt-filters">
-        <div class="pt-sort-group">
-          <button class="pt-sort-btn active" id="pt-sort-recent" onclick="ptSetSort('recent')">Recent</button>
-          <button class="pt-sort-btn" id="pt-sort-az" onclick="ptSetSort('az')">A–Z</button>
-          <button class="pt-sort-btn" id="pt-sort-visits" onclick="ptSetSort('visits')">Most Visits</button>
+        <div class="pt-filter-bar">
+          <div class="pt-pill-group">
+            <button class="pt-pill active" id="pt-sort-recent" onclick="ptSetSort('recent')">Recent</button>
+            <button class="pt-pill" id="pt-sort-az" onclick="ptSetSort('az')">A–Z</button>
+            <button class="pt-pill" id="pt-sort-visits" onclick="ptSetSort('visits')">Most Visits</button>
+          </div>
+          <div class="pt-sep"></div>
+          <div class="pt-pill-group">
+            <button class="pt-pill" id="pt-quick-today" onclick="ptQuick('today')">Today</button>
+            <button class="pt-pill" id="pt-quick-week" onclick="ptQuick('week')">This Week</button>
+            <button class="pt-pill" id="pt-quick-month" onclick="ptQuick('month')">This Month</button>
+          </div>
+          <div class="pt-sep"></div>
+          <div class="pt-date-range">
+            <span class="pt-date-label">From</span>
+            <input type="text" class="pt-date-input" id="pt-date-from" placeholder="DD/MM/YYYY" maxlength="10" oninput="ptDateInput(this)" />
+            <span class="pt-date-label">To</span>
+            <input type="text" class="pt-date-input" id="pt-date-to" placeholder="DD/MM/YYYY" maxlength="10" oninput="ptDateInput(this)" />
+            <button class="pt-clear-dates" id="pt-clear-btn" onclick="ptClearDates()" style="display:none;">Clear</button>
+          </div>
+          <span class="pt-result-count" id="pt-result-count"></span>
         </div>
-        <div class="pt-quick-group">
-          <button class="pt-quick-btn" id="pt-quick-today" onclick="ptQuick('today')">Today</button>
-          <button class="pt-quick-btn" id="pt-quick-week" onclick="ptQuick('week')">This Week</button>
-          <button class="pt-quick-btn" id="pt-quick-month" onclick="ptQuick('month')">This Month</button>
-        </div>
-      </div>
-      <div class="pt-date-range" id="pt-date-range-row" style="margin-bottom:10px;">
-        <span class="pt-date-label">From</span>
-        <input type="text" class="pt-date-input" id="pt-date-from" placeholder="DD/MM/YYYY" maxlength="10" oninput="ptDateInput(this)" />
-        <span class="pt-date-label">To</span>
-        <input type="text" class="pt-date-input" id="pt-date-to" placeholder="DD/MM/YYYY" maxlength="10" oninput="ptDateInput(this)" />
-        <button class="pt-clear-dates" id="pt-clear-btn" onclick="ptClearDates()" style="display:none;">Clear</button>
-        <span class="pt-result-count" id="pt-result-count"></span>
       </div>
       <div id="patients-area">
         <div class="history-empty" id="history-empty" style="display:none;">
@@ -1790,6 +1805,38 @@ With regards,
       <div id="patient-sessions-list"></div>
     </div>
 
+  </div>
+
+  <!-- ══════════════════════ TAB 5 – TRANSCRIPT ══════════════════════ -->
+  <div id="tab-transcript" class="tab-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <span style="font-size:.93rem;font-weight:700;color:var(--text);">Consultation Transcript</span>
+        <span id="trs-mode-label" style="font-size:.78rem;color:var(--gray);margin-left:8px;"></span>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="closeTranscriptTab()">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back to Edit
+      </button>
+    </div>
+    <div class="trs-body">
+      <div class="trs-transcript-pane">
+        <h3>Raw Transcript</h3>
+        <div class="trs-transcript-text" id="trs-transcript-text"></div>
+      </div>
+      <div class="trs-qa-pane">
+        <div class="card" style="padding:16px 18px;flex:1;">
+          <h3 style="font-size:.8rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Ask About This Transcript</h3>
+          <div class="trs-chat" id="trs-chat"></div>
+          <div style="margin-top:10px;">
+            <div class="trs-input-row">
+              <textarea id="trs-question" placeholder="Ask a question about the consultation…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();trsAsk();}"></textarea>
+              <button class="btn btn-primary btn-sm" onclick="trsAsk()" id="trs-ask-btn">Ask</button>
+            </div>
+            <p style="font-size:.72rem;color:var(--text3);margin-top:6px;">Answers are based strictly on the transcript. The AI will not guess or infer beyond what was said.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
 </main>
@@ -2764,6 +2811,8 @@ function newNote() {
   document.getElementById('session-stats-card').style.display = 'none';
   document.getElementById('raw-transcript-section').style.display = 'none';
   state.lastRecordingDuration = 0;
+  const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
+  if (trsTabBtn) trsTabBtn.remove();
   toast('Ready for a new note');
 }
 
@@ -2776,6 +2825,8 @@ function updateNoteBar() {
     `Editing: ${f.patient || 'Unnamed patient'}${f.date ? '  ·  ' + f.date : ''}`;
   const ctBtn = document.getElementById('change-template-btn');
   if (ctBtn) ctBtn.style.display = state.lastTranscript ? '' : 'none';
+  const trsBtn = document.getElementById('view-transcript-btn');
+  if (trsBtn) trsBtn.style.display = state.lastTranscript ? '' : 'none';
   const tplLabel = document.getElementById('current-template-label');
   const tplName  = document.getElementById('current-template-name');
   if (tplLabel && tplName) {
@@ -3030,11 +3081,11 @@ function ptSetSort(mode) {
 function ptQuick(period) {
   if (_ptQuick === period) {
     _ptQuick = null;
-    document.getElementById('pt-quick-' + period).classList.remove('active');
+    document.getElementById('pt-quick-' + period).classList.remove('active-lt');
   } else {
-    if (_ptQuick) document.getElementById('pt-quick-' + _ptQuick).classList.remove('active');
+    if (_ptQuick) document.getElementById('pt-quick-' + _ptQuick).classList.remove('active-lt');
     _ptQuick = period;
-    document.getElementById('pt-quick-' + period).classList.add('active');
+    document.getElementById('pt-quick-' + period).classList.add('active-lt');
     document.getElementById('pt-date-from').value = '';
     document.getElementById('pt-date-to').value = '';
     _ptFromMs = null;
@@ -3052,7 +3103,7 @@ function ptDateInput(el) {
   _ptQuick = null;
   ['today','week','month'].forEach(p => {
     const btn = document.getElementById('pt-quick-' + p);
-    if (btn) btn.classList.remove('active');
+    if (btn) btn.classList.remove('active-lt');
   });
   const from = document.getElementById('pt-date-from').value;
   const to = document.getElementById('pt-date-to').value;
@@ -3072,7 +3123,7 @@ function ptClearDates() {
   _ptQuick = null;
   ['today','week','month'].forEach(p => {
     const btn = document.getElementById('pt-quick-' + p);
-    if (btn) btn.classList.remove('active');
+    if (btn) btn.classList.remove('active-lt');
   });
   document.getElementById('pt-clear-btn').style.display = 'none';
   filterPatients();
@@ -3897,13 +3948,13 @@ const _tabToHash = { generate: 'generate', edit: 'edit', export: 'export', histo
 function switchTab(name, { updateHash = true } = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
-  document.body.classList.toggle('tab-edit-active', name === 'edit');
+  document.body.classList.toggle('tab-edit-active', name === 'edit' || name === 'transcript');
   const activeBtn = document.querySelector('.tab-btn[data-tab="' + name + '"]');
   if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   if (name === 'generate') document.getElementById('transcript-chip').style.display = 'none';
   if (name === 'history') loadHistoryData();
   if (name === 'export')  updateExportPreview();
-  if (updateHash) {
+  if (updateHash && name !== 'transcript') {
     const hash = _tabToHash[name] || name;
     history.replaceState(null, '', '#' + hash);
   }
@@ -3918,25 +3969,105 @@ window.addEventListener('hashchange', () => {
   }
 });
 
-// Sync window scroll → preview pane proportionally when Edit tab is active
+// Sync form-panel scroll → preview-sticky proportionally when Edit tab is active
 (function() {
   let _syncing = false;
-  window.addEventListener('scroll', () => {
+  document.addEventListener('scroll', e => {
     if (_syncing) return;
+    const formPanel = e.target.closest ? e.target.closest('.form-panel') : null;
+    if (!formPanel) return;
     const editTab = document.getElementById('tab-edit');
     if (!editTab || !editTab.classList.contains('active')) return;
-    const pane = document.getElementById('preview-pane');
-    if (!pane) return;
-    const winScrollable = document.documentElement.scrollHeight - window.innerHeight;
-    if (winScrollable <= 0) return;
-    const ratio = window.scrollY / winScrollable;
-    const paneScrollable = pane.scrollHeight - pane.clientHeight;
-    if (paneScrollable <= 0) return;
+    const previewPanel = editTab.querySelector('.preview-sticky');
+    if (!previewPanel) return;
+    const formScrollable = formPanel.scrollHeight - formPanel.clientHeight;
+    if (formScrollable <= 0) return;
+    const ratio = formPanel.scrollTop / formScrollable;
+    const previewScrollable = previewPanel.scrollHeight - previewPanel.clientHeight;
+    if (previewScrollable <= 0) return;
     _syncing = true;
-    pane.scrollTop = ratio * paneScrollable;
+    previewPanel.scrollTop = ratio * previewScrollable;
     requestAnimationFrame(() => { _syncing = false; });
-  }, { passive: true });
+  }, { passive: true, capture: true });
 })();
+
+// ── Transcript tab ──
+function openTranscriptTab() {
+  const transcript = state.lastTranscript;
+  if (!transcript) { toast('No transcript available for this note.'); return; }
+  document.getElementById('trs-transcript-text').textContent = transcript;
+  const modeMap = { paste: 'Pasted Text', conversation: 'Recorded Session', dictation: 'Dictated Note', document: 'Uploaded File' };
+  document.getElementById('trs-mode-label').textContent = modeMap[state.lastTranscriptMode] || '';
+  document.getElementById('trs-chat').innerHTML = '';
+  document.getElementById('trs-question').value = '';
+  if (!document.querySelector('.tab-btn[data-tab="transcript"]')) {
+    const tabs = document.querySelector('.tabs');
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn';
+    btn.dataset.tab = 'transcript';
+    btn.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:4px;"><path d="M9 12h6M9 16h4M7 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8l-5-4H7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Transcript';
+    btn.addEventListener('click', () => switchTab('transcript'));
+    tabs.appendChild(btn);
+  }
+  switchTab('transcript');
+}
+
+function closeTranscriptTab() {
+  switchTab('edit');
+  const btn = document.querySelector('.tab-btn[data-tab="transcript"]');
+  if (btn) btn.remove();
+}
+
+async function trsAsk() {
+  const question = (document.getElementById('trs-question').value || '').trim();
+  if (!question) return;
+  const transcript = state.lastTranscript;
+  if (!transcript) return;
+  const chat = document.getElementById('trs-chat');
+  const askBtn = document.getElementById('trs-ask-btn');
+  document.getElementById('trs-question').value = '';
+  const userMsg = document.createElement('div');
+  userMsg.className = 'trs-msg user';
+  userMsg.textContent = question;
+  chat.appendChild(userMsg);
+  const thinkingMsg = document.createElement('div');
+  thinkingMsg.className = 'trs-msg ai thinking';
+  thinkingMsg.textContent = 'Looking through transcript…';
+  chat.appendChild(thinkingMsg);
+  chat.scrollTop = chat.scrollHeight;
+  askBtn.disabled = true;
+  try {
+    const sysPrompt = `You are a clinical assistant. You have access to the following consultation transcript. Answer questions strictly and factually based ONLY on what is explicitly stated in the transcript below. If the answer is not present in the transcript, say "That is not mentioned in the transcript." Do not infer, assume, or add any information beyond what the transcript contains.\n\nTRANSCRIPT:\n${transcript.slice(0, 12000)}`;
+    let answer = '';
+    if (getGeminiKey()) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${getGeminiKey()}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: sysPrompt + '\n\nQuestion: ' + question }] }], generationConfig: { temperature: 0.0, maxOutputTokens: 512 } })
+      });
+      const data = await res.json();
+      answer = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.';
+    } else {
+      const groqKey = getGroqKey();
+      if (!groqKey) { toast('No API key configured.'); thinkingMsg.remove(); return; }
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: question }], temperature: 0.0, max_tokens: 512 })
+      });
+      const data = await res.json();
+      answer = data.choices?.[0]?.message?.content || 'No response.';
+    }
+    thinkingMsg.className = 'trs-msg ai';
+    thinkingMsg.textContent = answer;
+  } catch (err) {
+    thinkingMsg.className = 'trs-msg ai';
+    thinkingMsg.textContent = 'Error: ' + (err.message || 'Something went wrong.');
+  } finally {
+    askBtn.disabled = false;
+    chat.scrollTop = chat.scrollHeight;
+  }
+}
 
 // Auto-save when any form field loses focus
 document.addEventListener('focusout', e => {
