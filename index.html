@@ -412,8 +412,8 @@
     .pd-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
     @media(max-width:540px) { .pd-info-grid { grid-template-columns: 1fr; } }
     .pd-info-row  { display: flex; gap: 8px; align-items: baseline; }
-    .pd-info-label { font-size: .74rem; color: var(--text3); width: 110px; flex-shrink: 0; }
-    .pd-info-value { font-size: .82rem; color: var(--text2); font-weight: 600; }
+    .pd-info-label { font-size: .74rem; color: var(--text3); width: 100px; flex-shrink: 0; }
+    .pd-info-value { font-size: .82rem; color: var(--text2); font-weight: 600; flex: 1; min-width: 0; word-break: break-word; }
 
     /* ── Sessions list ── */
     .pd-sessions-title {
@@ -1789,11 +1789,13 @@ With regards,
       <div class="pd-info-card">
         <div class="pd-avatar" id="detail-avatar"></div>
         <div class="pd-info-main">
-          <div class="pd-info-name" id="detail-patient-name"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;">
+            <div class="pd-info-name" id="detail-patient-name"></div>
+            <button class="btn btn-outline btn-sm" onclick="openEditPatientModal(currentDetailKey)" style="flex-shrink:0;">Edit</button>
+          </div>
           <div class="pd-info-reg"  id="detail-patient-reg"></div>
           <div class="pd-info-grid" id="detail-info-grid"></div>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="openEditPatientModal(currentDetailKey)" style="align-self:flex-start;flex-shrink:0;">Edit</button>
       </div>
       <div class="pd-sessions-title">
         Sessions
