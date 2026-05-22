@@ -2241,7 +2241,12 @@ function transcriptConfirmModal(text) {
       const newFields = document.getElementById('tcm-new-fields');
       if (!v.trim()) { drop.style.display='none'; if (newFields) newFields.style.display='none'; return; }
       const matches = _patientIndex ? Object.values(_patientIndex).filter(p => p.name.toLowerCase().includes(v.toLowerCase())).slice(0,6) : [];
-      if (newFields) newFields.style.display = matches.length ? 'none' : '';
+      const isNew = !matches.length;
+      if (newFields) newFields.style.display = isNew ? '' : 'none';
+      if (isNew && _activeWpRegSystem() !== 'none') {
+        const ri = document.getElementById('tcm-reg');
+        if (ri && !ri.value) ri.value = _suggestNextReg();
+      }
       if (!matches.length) { drop.style.display='none'; return; }
       const inp = document.getElementById('tcm-patient');
       if (!inp) return;
@@ -3379,6 +3384,7 @@ function loadNoteFromHistory(note) {
   // misleadingly show the last generated session's transcript for a different note
   state.lastTranscript = null;
   state.lastChosenTemplate = null;
+  _cancelActiveAnimation(); // ensure _isAnimating=false so updateNoteBar() runs
   const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
   if (trsTabBtn) trsTabBtn.remove();
 
@@ -5284,7 +5290,12 @@ function showAssignPatientModal(transcript, mode) {
       const newFields = document.getElementById('apm-new-fields');
       if (!v.trim()) { drop.style.display='none'; if (newFields) newFields.style.display='none'; return; }
       const matches = _patientIndex ? Object.values(_patientIndex).filter(p => p.name.toLowerCase().includes(v.toLowerCase())).slice(0,6) : [];
-      if (newFields) newFields.style.display = matches.length ? 'none' : '';
+      const isNew = !matches.length;
+      if (newFields) newFields.style.display = isNew ? '' : 'none';
+      if (isNew && _activeWpRegSystem() !== 'none') {
+        const ri = document.getElementById('apm-reg');
+        if (ri && !ri.value) ri.value = _suggestNextReg();
+      }
       if (!matches.length) { drop.style.display='none'; return; }
       const inp = document.getElementById('apm-patient');
       const r = inp.getBoundingClientRect();
@@ -5867,6 +5878,32 @@ function obPreviewRegFormat(val) {
   preview.innerHTML = `Detected: <strong>${esc(p.description)}</strong>, pattern: <code style="background:#f3f4f6;padding:1px 5px;border-radius:3px;">${esc(p.template)}</code>`;
 }
 
+function _activeWpRegSystem() {
+  try {
+    const p = currentUser.profile, wps = p.workplaces || [], aw = wps.find(w => w.id === p.activeWorkplaceId) || wps[0];
+    return aw ? (aw.regSystem || 'lushnote') : 'lushnote';
+  } catch(e) { return 'lushnote'; }
+}
+
+function _suggestNextReg() {
+  const now = new Date();
+  const prefix = String(now.getFullYear()) + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+  let max = 0;
+  Object.values(_patientIndex || {}).forEach(p => {
+    if (p.regNumber && p.regNumber.startsWith(prefix)) {
+      const seq = parseInt(p.regNumber.slice(prefix.length), 10);
+      if (!isNaN(seq) && seq > max) max = seq;
+    }
+  });
+  (state.allNotes || []).forEach(n => {
+    if (n.reg_number && n.reg_number.startsWith(prefix)) {
+      const seq = parseInt(n.reg_number.slice(prefix.length), 10);
+      if (!isNaN(seq) && seq > max) max = seq;
+    }
+  });
+  return prefix + String(max + 1).padStart(3, '0');
+}
+
 function applyRegPattern() {
   if (!currentUser || !currentUser.profile) return;
   const p = currentUser.profile;
@@ -5878,6 +5915,10 @@ function applyRegPattern() {
     regInput.placeholder = activeWp.regTemplate;
     regInput.dataset.regPattern = activeWp.regPattern || '';
     regInput.dataset.regTemplate = activeWp.regTemplate || '';
+  } else if (activeWp && activeWp.regSystem === 'none') {
+    regInput.placeholder = 'e.g. 100234';
+    regInput.dataset.regPattern = '';
+    regInput.dataset.regTemplate = '';
   } else {
     regInput.placeholder = 'e.g. ' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '001';
     regInput.dataset.regPattern = '';
