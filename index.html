@@ -275,14 +275,16 @@
     .form-panel .card { margin-bottom: 0; }
     .preview-sticky { position: sticky; top: 112px; }
 
-    /* Contained two-pane layout for Edit tab — eliminates page scrollbar */
-    body.tab-edit-active { overflow: hidden; }
-    body.tab-edit-active #view-app > main { overflow: hidden; padding: 0; }
-    #tab-edit.active { display: flex; flex-direction: column; height: 100%; overflow: hidden; padding: 22px 20px 0; }
-    #tab-edit .edit-grid { flex: 1; min-height: 0; align-items: stretch; height: 100%; overflow: hidden; grid-template-rows: 1fr; }
-    #tab-edit .form-panel { overflow-y: auto; min-height: 0; padding-bottom: 24px; scrollbar-width: thin; }
-    #tab-edit .preview-sticky { position: static; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
-    #tab-edit .preview-sticky #preview-pane { overflow-y: visible; max-height: none; }
+    /* Contained two-pane layout for Edit tab — desktop only (≥901px) */
+    @media (min-width: 901px) {
+      body.tab-edit-active { overflow: hidden; }
+      body.tab-edit-active #view-app > main { overflow: hidden; padding: 0; }
+      #tab-edit.active { display: flex; flex-direction: column; height: 100%; overflow: hidden; padding: 22px 20px 0; }
+      #tab-edit .edit-grid { flex: 1; min-height: 0; align-items: stretch; height: 100%; overflow: hidden; grid-template-rows: 1fr; }
+      #tab-edit .form-panel { overflow-y: auto; min-height: 0; padding-bottom: 24px; scrollbar-width: thin; }
+      #tab-edit .preview-sticky { position: static; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+      #tab-edit .preview-sticky #preview-pane { overflow-y: visible; max-height: none; }
+    }
 
     /* ── Current note bar ── */
     #current-note-bar {
@@ -544,10 +546,6 @@
       .preview-sticky { position: static; }
       .two-col, .three-col { grid-template-columns: 1fr; }
       #preview-pane { max-height: 60vh; overflow-y: auto; }
-      /* Revert contained layout on mobile — single column uses normal page scroll */
-      #tab-edit.active { height: auto; overflow: visible; display: block; }
-      #tab-edit .form-panel { overflow-y: visible; }
-      #tab-edit .preview-sticky { overflow-y: visible; }
     }
 
     @media print {
@@ -800,9 +798,6 @@
       .edit-grid { grid-template-columns: 1fr; }
       .preview-sticky { position: static; }
       .input-mode-grid { grid-template-columns: repeat(3,1fr); }
-      #tab-edit.active { height: auto; overflow: visible; display: block; }
-      #tab-edit .form-panel { overflow-y: visible; }
-      #tab-edit .preview-sticky { overflow-y: visible; }
       #preview-pane { max-height: 60vh; overflow-y: auto; }
     }
 
