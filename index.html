@@ -3375,12 +3375,19 @@ function loadNoteById(id) {
 }
 
 function loadNoteFromHistory(note) {
+  // Transcripts are not stored — clear so the Transcript button doesn't
+  // misleadingly show the last generated session's transcript for a different note
+  state.lastTranscript = null;
+  state.lastChosenTemplate = null;
+  const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
+  if (trsTabBtn) trsTabBtn.remove();
+
   state.currentNoteId = note.id;
   populateFields(note);
   livePreview();
   updateExportPreview();
   updateEmailSubject();
-  switchTab('export');
+  switchTab('edit');
   toast(`Loaded: ${note.patient || 'note'}`);
 }
 
