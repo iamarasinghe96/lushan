@@ -1850,7 +1850,17 @@ With regards,
           <div style="margin-top:10px;">
             <div class="trs-input-row">
               <textarea id="trs-question" placeholder="Ask a question about the consultation…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();trsAsk();}"></textarea>
-              <button class="btn btn-primary btn-sm" onclick="trsAsk()" id="trs-ask-btn">Ask</button>
+              <button class="btn btn-primary btn-sm" onclick="trsAsk()" id="trs-ask-btn" title="Ask AI" style="padding:0;width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                <svg width="28" height="28" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 28 L44 14 L32 28 L44 42 Z" fill="white"/>
+                  <path d="M32 28 L20 32 L12 28" fill="rgba(255,255,255,0.5)"/>
+                  <path d="M8 18 C8.4 16.2 8.4 16.2 10 16 C8.4 15.8 8.4 15.8 8 14 C7.6 15.8 7.6 15.8 6 16 C7.6 16.2 7.6 16.2 8 18Z" fill="white"/>
+                  <path d="M5 26 C5.3 24.7 5.3 24.7 6.5 24.5 C5.3 24.3 5.3 24.3 5 23 C4.7 24.3 4.7 24.3 3.5 24.5 C4.7 24.7 4.7 24.7 5 26Z" fill="white" opacity="0.75"/>
+                  <path d="M14 10 C14.5 7.8 14.5 7.8 17 7.5 C14.5 7.2 14.5 7.2 14 5 C13.5 7.2 13.5 7.2 11 7.5 C13.5 7.8 13.5 7.8 14 10Z" fill="white"/>
+                  <path d="M47 22 C47.4 20.2 47.4 20.2 49 22 C47.4 19.8 47.4 19.8 47 18 C46.6 19.8 46.6 19.8 45 20 C46.6 20.2 46.6 20.2 47 22Z" fill="white"/>
+                  <path d="M49 30 C49.3 28.7 49.3 28.7 50.5 28.5 C49.3 28.3 49.3 28.3 49 27 C48.7 28.3 48.7 28.3 47.5 28.5 C48.7 28.7 48.7 28.7 49 30Z" fill="white" opacity="0.75"/>
+                </svg>
+              </button>
             </div>
             <p style="font-size:.72rem;color:var(--text3);margin-top:6px;">Answers are based strictly on the transcript. The AI will not guess or infer beyond what was said.</p>
           </div>
