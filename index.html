@@ -4689,11 +4689,26 @@ function getSuggestedTemplates(contentHint, n = 3) {
   if (!lower) return [];
   const recentIds = new Set(getRecentTemplates(10).map(t => t.id));
   const words = lower.split(/\s+/).filter(w => w.length > 3);
+  // Build bigrams from the content for phrase matching
+  const bigrams = [];
+  for (let i = 0; i < words.length - 1; i++) bigrams.push(words[i] + ' ' + words[i + 1]);
+
   const scored = CLINICAL_TEMPLATES
-    .filter(t => !recentIds.has(t.id))
     .map(t => {
-      const haystack = (t.title + ' ' + t.category + ' ' + t.description).toLowerCase();
-      const score = words.reduce((s, w) => s + (haystack.includes(w) ? 1 : 0), 0);
+      const titleL = t.title.toLowerCase();
+      const descL  = t.description.toLowerCase();
+      const catL   = t.category.toLowerCase();
+      let score = 0;
+      // Title matches weight 4×, description 1×, category 0.5×
+      words.forEach(w => {
+        if (titleL.includes(w)) score += 4;
+        if (descL.includes(w))  score += 1;
+        if (catL.includes(w))   score += 0.5;
+      });
+      // Bigram in title gets a bonus
+      bigrams.forEach(bg => { if (titleL.includes(bg)) score += 6; });
+      // Penalise recently used so we don't just repeat the last template
+      if (recentIds.has(t.id)) score *= 0.4;
       return { t, score };
     })
     .filter(x => x.score > 0)
@@ -4802,10 +4817,13 @@ function showTemplatePickerModal(contentHint, opts = {}) {
 
     function rebuildAllList() {
       const listEl = modal.querySelector('#tpl-all-list');
+      const topEl  = modal.querySelector('#tpl-top-sections');
       if (!listEl) return;
       const q = (modal.querySelector('#tpl-search-inp')?.value || '').toLowerCase().trim();
+      if (topEl) topEl.style.display = q ? 'none' : '';
       let tpls = getFilteredTemplates();
       if (q) tpls = tpls.filter(t => t.title.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || t.description.toLowerCase().includes(q));
+      if (q && !tpls.length) { listEl.innerHTML = '<p style="font-size:.84rem;color:#9ca3af;padding:8px 0;">No templates match your search</p>'; return; }
       listEl.innerHTML = buildAllListHtml(tpls);
       bindCardClicks(listEl);
       bindStarClicks(listEl);
@@ -4819,7 +4837,7 @@ function showTemplatePickerModal(contentHint, opts = {}) {
         </div>
         <div class="tpl-picker-controls">
           ${renderTypeTabs()}
-          <input class="tpl-search" id="tpl-search-inp" placeholder="Search templates…" style="margin-top:8px;" oninput="(()=>{const q=this.value.toLowerCase().trim();const top=document.getElementById('tpl-top-sections');if(top)top.style.display=q?'none':'';let tpls=getFilteredTemplates();if(q)tpls=tpls.filter(t=>t.title.toLowerCase().includes(q)||t.category.toLowerCase().includes(q)||t.description.toLowerCase().includes(q));document.getElementById('tpl-all-list').innerHTML=buildAllListHtml(tpls);bindCardClicks(document.getElementById('tpl-all-list'));bindStarClicks(document.getElementById('tpl-all-list'));})()" />
+          <input class="tpl-search" id="tpl-search-inp" placeholder="Search templates…" style="margin-top:8px;" />
         </div>
         <div class="tpl-picker-body">
           <div id="tpl-top-sections"></div>
@@ -4849,6 +4867,10 @@ function showTemplatePickerModal(contentHint, opts = {}) {
         </div>
       </div>`;
     document.body.appendChild(modal);
+
+    // Wire search input to rebuildAllList (inline oninput can't reach closure functions)
+    const searchInp = modal.querySelector('#tpl-search-inp');
+    if (searchInp) searchInp.addEventListener('input', rebuildAllList);
 
     // Pre-set slider from saved noteLength setting
     const savedLen = currentUser?.profile?.personalisation?.noteLength || 'balanced';
@@ -4933,22 +4955,6 @@ function showTemplatePickerModal(contentHint, opts = {}) {
     bindCardClicks(modal);
     bindStarClicks(modal);
 
-    // Search filter
-    window.tplFilterList = function(query) {
-      const q = query.toLowerCase();
-      const listEl = document.getElementById('tpl-all-list');
-      if (!listEl) return;
-      if (!q) { listEl.innerHTML = allListHtml; bindCardClicks(listEl); bindStarClicks(listEl); return; }
-      const matches = getAllTemplates().filter(t =>
-        t.title.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.category.toLowerCase().includes(q)
-      );
-      if (!matches.length) { listEl.innerHTML = '<p style="font-size:.84rem;color:#9ca3af;padding:8px 0;">No templates match your search</p>'; return; }
-      listEl.innerHTML = matches.map(buildCardHtml).join('');
-      bindCardClicks(listEl);
-      bindStarClicks(listEl);
-    };
 
     document.getElementById('tpl-skip-btn').onclick = () => done(null);
     document.getElementById('tpl-back-btn').onclick  = () => { modal.remove(); resolve({ _back: true }); };
