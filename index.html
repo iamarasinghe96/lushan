@@ -298,7 +298,12 @@
       background: var(--green-lt); border: 1px solid #6ee7b7;
       border-radius: var(--r-sm); padding: 9px 16px; margin-bottom: 16px;
       font-size: .83rem; color: #065f46; font-weight: 600;
+      transition: opacity 0.35s ease;
     }
+    @keyframes dotFade { 0%,100%{opacity:.2} 50%{opacity:1} }
+    .anim-dots span { display:inline-block; animation: dotFade 1.2s ease-in-out infinite; }
+    .anim-dots span:nth-child(2) { animation-delay:.25s; }
+    .anim-dots span:nth-child(3) { animation-delay:.5s; }
 
     /* ── Preview Pane ── */
     #preview-pane {
@@ -2278,14 +2283,11 @@ async function pasteAndGenerate() {
     if (confirmResult.patient) data.patient = confirmResult.patient;
     if (confirmResult.reg)     data.reg_number = confirmResult.reg;
     _setEditGenerating(false);
-    populateFieldsAnimated(data);
-    // Always use JS-computed date/time
-    document.getElementById('e-date-display').value = autoDateDisplay;
-    document.getElementById('e-time-start').value   = `${endH}:00`;
-    document.getElementById('e-time-end').value     = `${endH}:${endM}`;
-    livePreview();
-    updateExportPreview();
-    updateEmailSubject();
+    populateFieldsAnimated(data, {
+      'e-date-display': autoDateDisplay,
+      'e-time-start': `${endH}:00`,
+      'e-time-end': `${endH}:${endM}`
+    });
 
     // Show transcript chip
     const chip = document.getElementById('transcript-chip');
@@ -2437,20 +2439,67 @@ function toNumbered(raw) {
   }).filter((l, i, arr) => l !== '' || i < arr.length - 1).join('\n');
 }
 
+let _isAnimating = false;
+
 function _setEditGenerating(on) {
   document.getElementById('tab-edit').classList.toggle('generating', on);
+  const bar = document.getElementById('current-note-bar');
+  if (on) {
+    document.getElementById('current-note-label').innerHTML =
+      'Generating note<span class="anim-dots"><span>.</span><span>.</span><span>.</span></span>';
+    bar.style.opacity = '0';
+    bar.style.display = 'flex';
+    requestAnimationFrame(() => { bar.style.opacity = '1'; });
+  }
 }
 
-function populateFieldsAnimated(data) {
+function _typewriteEl(el, text, targetMs) {
+  el.value = '';
+  if (!text) return;
+  const frames = Math.max(1, Math.round(targetMs / 16));
+  const stepSize = Math.max(1, Math.ceil(text.length / frames));
+  let i = 0;
+  const step = () => {
+    i = Math.min(i + stepSize, text.length);
+    el.value = text.slice(0, i);
+    if (i < text.length) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function populateFieldsAnimated(data, overrides) {
+  _isAnimating = true;
   populateFields(data);
-  const fields = Array.from(document.querySelectorAll('#tab-edit textarea, #tab-edit input[type="text"]'));
-  fields.forEach(el => { el.style.opacity = '0'; el.style.transition = ''; });
-  fields.forEach((el, i) => {
-    setTimeout(() => {
-      el.style.transition = 'opacity 0.35s ease';
-      el.style.opacity = '1';
-    }, i * 35);
+  if (overrides) {
+    Object.entries(overrides).forEach(([id, val]) => {
+      if (val) document.getElementById(id).value = val;
+    });
+  }
+  const knownIds = ['e-patient','e-reg-number','e-date-display','e-time-start','e-time-end',
+                    'e-clinician','e-session-number','e-attendance'];
+  const contentIds = ['e-diagnosis','e-presentation','e-history','e-medications','e-mse',
+                      'e-content','e-scales','e-risk','e-referrals','e-summary','e-nextsteps'];
+  const vals = {};
+  knownIds.concat(contentIds).forEach(id => {
+    vals[id] = document.getElementById(id).value;
+    document.getElementById(id).value = '';
   });
+  knownIds.forEach(id => { if (vals[id]) _typewriteEl(document.getElementById(id), vals[id], 600); });
+  setTimeout(() => {
+    contentIds.forEach(id => { if (vals[id]) _typewriteEl(document.getElementById(id), vals[id], 1800); });
+  }, 700);
+  setTimeout(() => {
+    knownIds.concat(contentIds).forEach(id => {
+      if (vals[id] && document.getElementById(id).value !== vals[id]) {
+        document.getElementById(id).value = vals[id];
+      }
+    });
+    livePreview();
+    updateExportPreview();
+    updateEmailSubject();
+    _isAnimating = false;
+    updateNoteBar();
+  }, 2600);
 }
 
 const LIST_FIELDS = ['e-diagnosis','e-presentation','e-history','e-medications',
@@ -2571,6 +2620,7 @@ function newNote() {
 }
 
 function updateNoteBar() {
+  if (_isAnimating) return;
   const f = getFields();
   const bar = document.getElementById('current-note-bar');
   bar.style.display = 'flex';
@@ -2609,15 +2659,14 @@ async function changeTemplate() {
     const data = parseJson(raw);
     if (!data) throw new Error('Could not parse AI response. Try again.');
     _setEditGenerating(false);
-    populateFieldsAnimated(data);
-    // Restore patient/date info that was already set
-    if (patient) document.getElementById('e-patient').value = patient;
-    if (reg)     document.getElementById('e-reg-number').value = reg;
-    if (date)    document.getElementById('e-date-display').value = date;
-    if (tStart)  document.getElementById('e-time-start').value = tStart;
-    if (tEnd)    document.getElementById('e-time-end').value   = tEnd;
     state.lastChosenTemplate = chosenTemplate || null;
-    livePreview(); updateExportPreview(); updateEmailSubject(); updateNoteBar();
+    populateFieldsAnimated(data, {
+      'e-patient':      patient || undefined,
+      'e-reg-number':   reg     || undefined,
+      'e-date-display': date    || undefined,
+      'e-time-start':   tStart  || undefined,
+      'e-time-end':     tEnd    || undefined,
+    });
     toast('Note regenerated with new template', 'success');
   } catch(e) {
     if (!e._dailyLimit) toast('Error: ' + e.message);
