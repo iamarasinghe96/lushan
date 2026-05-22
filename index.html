@@ -2481,6 +2481,7 @@ function _setEditGenerating(on) {
   const bar = document.getElementById('current-note-bar');
   if (on) {
     _cancelActiveAnimation();
+    _showAllFields();
     // Clear content + session fields so preview doesn't show the previous note
     ['e-session-number','e-attendance','e-diagnosis','e-presentation','e-history',
      'e-medications','e-mse','e-content','e-scales','e-risk','e-referrals',
@@ -2568,6 +2569,7 @@ function populateFieldsAnimated(data, overrides, skipIds) {
       }
     });
     _isAnimating = false;
+    _syncFieldVisibility();
     updateNoteBar();
   }, contentDelay + 2000));
 }
@@ -2657,6 +2659,26 @@ function getFields() {
   };
 }
 
+function _showAllFields() {
+  document.querySelectorAll('#tab-edit .field-row, #tab-edit .two-col').forEach(el => {
+    el.style.display = '';
+  });
+}
+
+function _syncFieldVisibility() {
+  const alwaysShow = new Set(['e-patient','e-reg-number','e-date-display','e-time-start',
+                               'e-time-end','e-clinician','e-session-number','e-attendance']);
+  document.querySelectorAll('#tab-edit .field-row').forEach(row => {
+    const el = row.querySelector('textarea, input[type="text"]');
+    if (!el || alwaysShow.has(el.id)) return;
+    row.style.display = el.value.trim() ? '' : 'none';
+  });
+  document.querySelectorAll('#tab-edit .two-col').forEach(col => {
+    const allHidden = Array.from(col.querySelectorAll('.field-row')).every(r => r.style.display === 'none');
+    col.style.display = allHidden ? 'none' : '';
+  });
+}
+
 function toggleRawTranscript() {
   const body = document.getElementById('raw-transcript-body');
   const icon = document.getElementById('raw-transcript-toggle-icon');
@@ -2667,6 +2689,7 @@ function toggleRawTranscript() {
 
 function newNote() {
   state.currentNoteId = null;
+  _showAllFields();
   ['e-patient','e-reg-number','e-date-display','e-time-start','e-time-end',
    'e-session-number','e-attendance','e-diagnosis','e-presentation','e-history',
    'e-medications','e-mse','e-content','e-scales','e-risk','e-referrals',
