@@ -296,8 +296,9 @@
     }
     #current-note-bar .btn-group { flex-shrink: 0; }
     @media (max-width: 600px) {
-      #current-note-bar { padding: 8px 12px; }
-      #current-note-bar .btn-group { width: 100%; justify-content: flex-end; }
+      #current-note-bar { padding: 8px 12px; flex-wrap: nowrap; }
+      #current-note-bar .nb-label { display: none; }
+      #current-note-bar .btn-group .btn-sm { padding: 6px 9px; }
     }
     @keyframes dotFade { 0%,100%{opacity:.2} 50%{opacity:1} }
     .anim-dots span { display:inline-block; animation: dotFade 1.2s ease-in-out infinite; }
@@ -839,7 +840,6 @@
       .field-row { margin-bottom: 10px; }
       .section-title { margin-top: 12px; margin-bottom: 6px; }
       .edit-grid { gap: 10px; }
-      #current-note-bar { padding: 8px 10px; }
       .btn-group { flex-wrap: nowrap; }
       .btn-form-action { font-size: .75rem !important; padding: 7px 12px !important; white-space: nowrap; }
       #preview-pane { -webkit-overflow-scrolling: touch; }
@@ -1500,16 +1500,16 @@ With regards,
         </span>
       </div>
       <div class="btn-group">
-        <button class="btn btn-outline btn-sm" id="change-template-btn" onclick="changeTemplate()" style="display:none;">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Change Template
+        <button class="btn btn-outline btn-sm" id="change-template-btn" onclick="changeTemplate()" style="display:none;" title="Change Template">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="nb-label">Change Template</span>
         </button>
-        <button class="btn btn-outline btn-sm" id="view-transcript-btn" onclick="openTranscriptTab()" style="display:none;">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><path d="M9 12h6M9 16h4M7 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8l-5-4H7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Transcript
+        <button class="btn btn-outline btn-sm" id="view-transcript-btn" onclick="openTranscriptTab()" style="display:none;" title="Transcript">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><path d="M9 12h6M9 16h4M7 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8l-5-4H7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="nb-label">Transcript</span>
         </button>
-        <button class="btn btn-outline btn-sm" onclick="reassignPatient()">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M2 21c0-4 3.1-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 16l-3 3 3 3M16 19h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Reassign
+        <button class="btn btn-outline btn-sm" onclick="reassignPatient()" title="Reassign">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:3px;"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M2 21c0-4 3.1-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 16l-3 3 3 3M16 19h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="nb-label">Reassign</span>
         </button>
-        <button class="btn btn-gray btn-sm" onclick="newNote()">New Note</button>
+        <button class="btn btn-gray btn-sm" onclick="newNote()" title="New Note"><span class="nb-label">New </span>Note</button>
       </div>
     </div>
 
