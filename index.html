@@ -367,7 +367,7 @@
     .trs-qa-pane { display: flex; flex-direction: column; gap: 12px; }
     .trs-qa-pane h3 { font-size: .8rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 0; }
     .trs-chat-wrap { position: relative; }
-    .trs-chat-wrap::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 44px; background: linear-gradient(var(--card), transparent); pointer-events: none; z-index: 1; border-radius: 4px 4px 0 0; }
+    .trs-chat-wrap::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 22px; background: linear-gradient(var(--card), transparent); pointer-events: none; z-index: 1; border-radius: 4px 4px 0 0; }
     .trs-chat { display: flex; flex-direction: column; gap: 10px; max-height: 50vh; overflow-y: auto; scrollbar-width: thin; padding: 4px 0; }
     .trs-msg { font-size: .84rem; line-height: 1.55; padding: 10px 14px; border-radius: var(--r); max-width: 92%; }
     .trs-msg.user { background: var(--blue); color: #fff; align-self: flex-end; border-radius: var(--r) var(--r) 4px var(--r); }
@@ -1849,16 +1849,15 @@ With regards,
           <div class="trs-chat-wrap"><div class="trs-chat" id="trs-chat"></div></div>
           <div style="margin-top:10px;">
             <div class="trs-input-row">
-              <textarea id="trs-question" placeholder="Ask a question about the consultation…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();trsAsk();}"></textarea>
-              <button class="btn btn-primary btn-sm" onclick="trsAsk()" id="trs-ask-btn" title="Ask AI" style="padding:0;width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-                <svg width="28" height="28" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 28 L44 14 L32 28 L44 42 Z" fill="white"/>
-                  <path d="M32 28 L20 32 L12 28" fill="rgba(255,255,255,0.5)"/>
-                  <path d="M8 18 C8.4 16.2 8.4 16.2 10 16 C8.4 15.8 8.4 15.8 8 14 C7.6 15.8 7.6 15.8 6 16 C7.6 16.2 7.6 16.2 8 18Z" fill="white"/>
-                  <path d="M5 26 C5.3 24.7 5.3 24.7 6.5 24.5 C5.3 24.3 5.3 24.3 5 23 C4.7 24.3 4.7 24.3 3.5 24.5 C4.7 24.7 4.7 24.7 5 26Z" fill="white" opacity="0.75"/>
-                  <path d="M14 10 C14.5 7.8 14.5 7.8 17 7.5 C14.5 7.2 14.5 7.2 14 5 C13.5 7.2 13.5 7.2 11 7.5 C13.5 7.8 13.5 7.8 14 10Z" fill="white"/>
-                  <path d="M47 22 C47.4 20.2 47.4 20.2 49 22 C47.4 19.8 47.4 19.8 47 18 C46.6 19.8 46.6 19.8 45 20 C46.6 20.2 46.6 20.2 47 22Z" fill="white"/>
-                  <path d="M49 30 C49.3 28.7 49.3 28.7 50.5 28.5 C49.3 28.3 49.3 28.3 49 27 C48.7 28.3 48.7 28.3 47.5 28.5 C48.7 28.7 48.7 28.7 49 30Z" fill="white" opacity="0.75"/>
+              <textarea id="trs-question" placeholder="Ask about this transcript…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();trsAsk();}"></textarea>
+              <button class="btn btn-sm" onclick="trsAsk()" id="trs-ask-btn" title="Ask AI" style="background:#10b981;box-shadow:0 2px 8px rgba(16,185,129,.35);padding:0;width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="rgba(255,255,255,0.15)"/>
+                  <path d="M5 5 C5.3 4 5.3 4 6 3.7 C5.3 3.4 5.3 3.4 5 2.4 C4.7 3.4 4.7 3.4 4 3.7 C4.7 4 4.7 4 5 5Z" fill="white"/>
+                  <path d="M3 8.5 C3.2 7.8 3.2 7.8 3.8 7.5 C3.2 7.2 3.2 7.2 3 6.5 C2.8 7.2 2.8 7.2 2.2 7.5 C2.8 7.8 2.8 7.8 3 8.5Z" fill="white"/>
+                  <path d="M19 6 C19.2 5.3 19.2 5.3 19.8 5 C19.2 4.7 19.2 4.7 19 4 C18.8 4.7 18.8 4.7 18.2 5 C18.8 5.3 18.8 5.3 19 6Z" fill="white"/>
+                  <path d="M20.5 9.5 C20.7 9 20.7 9 21.2 8.8 C20.7 8.5 20.7 8.5 20.5 8 C20.3 8.5 20.3 8.5 19.8 8.8 C20.3 9 20.3 9 20.5 9.5Z" fill="white"/>
                 </svg>
               </button>
             </div>
