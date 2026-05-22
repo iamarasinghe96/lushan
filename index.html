@@ -1340,14 +1340,6 @@ With regards,
           Get a free key at <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">aistudio.google.com/api-keys</a> — sign in, click <strong>Create API key</strong>, then <strong>Create project</strong>, then <strong>Create API key in new project</strong>. No credit card needed.
         </div>
       </div>
-      <div class="field-row">
-        <label>Your Groq API Key <span style="font-size:.75rem;font-weight:500;color:#6b7280;">(required for audio features)</span></label>
-        <input type="password" id="s-groq-key" placeholder="gsk_..." autocomplete="off" />
-        <div style="font-size:.77rem;color:#6b7280;margin-top:6px;line-height:1.65;">
-          Sign in with Google at <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a>, click <strong>Create API key</strong>, copy and paste it here.<br>
-          Free key, no credit card needed.
-        </div>
-      </div>
 
       <div class="section-title">Firebase Firestore (optional – cross-device sync &amp; history)</div>
       <div class="info-box" style="margin-bottom:10px;">
@@ -2067,7 +2059,6 @@ function normalisePatientKey(name) {
 // ─────────────────────────────────────────────────────────────────────────────
 function showSettings() {
   document.getElementById('s-gemini-key').value      = sessionStorage.getItem('gemini_api_key') || '';
-  document.getElementById('s-groq-key').value       = sessionStorage.getItem('groq_api_key') || '';
   document.getElementById('s-firebase-config').value = localStorage.getItem('firebase_config') || '';
   document.getElementById('settings-overlay').style.display = 'flex';
 }
@@ -2088,20 +2079,6 @@ function saveSettings() {
     sessionStorage.removeItem('gemini_api_key');
     if (db && currentUser) {
       db.collection('users').doc(currentUser.uid).update({ geminiApiKey: '' }).catch(() => {});
-    }
-  }
-  const groqKey = document.getElementById('s-groq-key').value.trim();
-  if (groqKey) {
-    sessionStorage.setItem('groq_api_key', groqKey);
-    localStorage.removeItem('groq_api_key');
-    if (db && currentUser) {
-      db.collection('users').doc(currentUser.uid).update({ groqApiKey: groqKey }).catch(() => {});
-    }
-  } else {
-    sessionStorage.removeItem('groq_api_key');
-    localStorage.removeItem('groq_api_key');
-    if (db && currentUser) {
-      db.collection('users').doc(currentUser.uid).update({ groqApiKey: '' }).catch(() => {});
     }
   }
   const fbCfg = document.getElementById('s-firebase-config').value.trim();
@@ -2457,11 +2434,25 @@ function buildTemplateSystemPrompt(templatePrompt) {
   const personalPrefix = getPersonalisationPrefix();
   return `${personalPrefix}You are a medical scribe for ${currentClinicianLabel() || 'the clinician'}, practising in New South Wales and Victoria, Australia.
 
+TEMPLATE INSTRUCTIONS — apply these to every section of the note:
 ${templatePrompt}
+
+FIELD MAPPING — populate each JSON field strictly from the transcript using the template instructions above:
+- presentation: Patient's reported symptoms, affect, and session presentation (emphasise per template)
+- history: Relevant clinical and psychosocial history mentioned in this session
+- mse: Mental State Examination — appearance, behaviour, speech, mood, affect, thought, perception, cognition, insight
+- diagnosis: ICD-10 diagnosis or clinical formulation as relevant to the template
+- medications: Current medications, doses, changes discussed
+- content: Main session content — interventions, techniques, clinical work done (the primary narrative; apply template format here)
+- scales: Rating scale scores, symptom measures, or clinical tools administered
+- risk: Risk assessment — suicidality, self-harm, harm to others, protective factors
+- referrals: Any referrals, letters, or external services discussed
+- summary: Concise clinical summary of this session
+- nextsteps: Management plan, goals, and next appointment focus
 
 IMPORTANT: Return ONLY a raw JSON object (no markdown fences, no explanation). The JSON must have exactly these keys:
 patient, date, time, clinician, session_number, attendance, diagnosis, presentation, history, medications, mse, content, scales, risk, referrals, summary, nextsteps.
-Use empty string "" for any field not applicable. Use ICD-10 codes where relevant. Do not fabricate clinical details.`;
+Use empty string "" for any field not applicable to this template. Do not fabricate clinical details.`;
 }
 
 async function groqFetchWithRetry(url, init) {
@@ -5049,7 +5040,7 @@ function _checkGroqAudioKey(onProceed) {
         <h3 style="font-size:1rem;font-weight:700;margin:0;">API Key Required</h3>
       </div>
       <p style="font-size:.84rem;color:#475569;margin:10px 0 22px;line-height:1.6;">
-        Audio features require an AI API key. Add your free Gemini key in Settings to get started (recommended), or a Groq key if you already have one.
+        Audio features require a Google AI API key. Add your free Gemini key in Settings to get started.
       </p>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <button id="_gk-settings-btn" style="padding:11px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;">Add API key in Settings</button>
@@ -5963,7 +5954,7 @@ function initApp() {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('key') === 'saved') {
     history.replaceState(null, '', '#generate');
-    setTimeout(() => toast('Groq API key saved — you\'re all set!'), 400);
+    setTimeout(() => toast('API key saved — you\'re all set!'), 400);
   }
   updateApiStatusBar();
   const interrupted = localStorage.getItem('_ln_rec_interrupted');
@@ -6139,26 +6130,45 @@ async function stToggleFav(tplId) {
 }
 
 async function stSaveCustomTemplate() {
-  const title  = document.getElementById('st-ct-title').value.trim();
-  const cat    = document.getElementById('st-ct-category').value.trim();
-  const desc   = document.getElementById('st-ct-desc').value.trim();
-  const prompt = document.getElementById('st-ct-prompt').value.trim();
-  const errEl  = document.getElementById('st-ct-error');
+  const title     = document.getElementById('st-ct-title').value.trim();
+  const cat       = document.getElementById('st-ct-category').value.trim();
+  const desc      = document.getElementById('st-ct-desc').value.trim();
+  const specialty = document.getElementById('st-ct-specialty').value.trim();
+  const format    = document.getElementById('st-ct-format').value;
+  const instrText = document.getElementById('st-ct-prompt').value.trim();
+  const errEl     = document.getElementById('st-ct-error');
   errEl.textContent = '';
-  if (!title)  { errEl.textContent = 'Title is required.'; return; }
-  if (!cat)    { errEl.textContent = 'Category is required.'; return; }
-  if (!desc)   { errEl.textContent = 'Description is required.'; return; }
-  if (!prompt) { errEl.textContent = 'AI Prompt instructions are required.'; return; }
+  if (!title)     { errEl.textContent = 'Title is required.'; return; }
+  if (!cat)       { errEl.textContent = 'Category is required.'; return; }
+  if (!desc)      { errEl.textContent = 'Description is required.'; return; }
+  if (!specialty) { errEl.textContent = 'Clinical specialty / modality is required.'; return; }
+  if (!instrText) { errEl.textContent = 'Specific clinical instructions are required.'; return; }
+
+  const checkedSections = Array.from(document.querySelectorAll('#st-ct-sections input:checked')).map(cb => cb.value);
+  const formatLabels = { structured:'Structured sections', soap:'SOAP', dap:'DAP', narrative:'Narrative prose', letter:'Letter format' };
+
+  const assembledPrompt = [
+    `TEMPLATE: ${title}`,
+    `SPECIALTY/MODALITY: ${specialty}`,
+    `NOTE FORMAT: ${formatLabels[format] || format}`,
+    checkedSections.length ? `SECTIONS TO EMPHASISE: ${checkedSections.join(', ')}` : '',
+    '',
+    'SPECIFIC INSTRUCTIONS:',
+    instrText,
+  ].filter(l => l !== null).join('\n');
+
   const p = currentUser.profile;
   const customs = [...(p.customTemplates || [])];
-  const newTpl = { id: 'custom_' + Date.now(), title, category: cat, description: desc, prompt, custom: true };
+  const newTpl = { id: 'custom_' + Date.now(), title, category: cat, description: desc, prompt: assembledPrompt, custom: true };
   customs.push(newTpl);
   p.customTemplates = customs;
   try {
     await db.collection('users').doc(currentUser.uid).update({ customTemplates: customs });
-    ['st-ct-title','st-ct-category','st-ct-desc','st-ct-prompt'].forEach(id => document.getElementById(id).value = '');
+    ['st-ct-title','st-ct-category','st-ct-desc','st-ct-specialty','st-ct-prompt'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('st-ct-format').value = 'structured';
+    document.querySelectorAll('#st-ct-sections input').forEach(cb => cb.checked = false);
     stRenderTemplates();
-    toast('Template added');
+    toast('Template saved');
   } catch(e) { errEl.textContent = 'Save failed: ' + e.message; }
 }
 
@@ -6270,14 +6280,18 @@ function getPersonalisationPrefix() {
   const ps = currentUser?.profile?.personalisation;
   const parts = [];
   if (ps) {
-    if (ps.professionalIdentity) parts.push(ps.professionalIdentity);
-    if (ps.treatmentApproaches)  parts.push('Treatment approach: ' + ps.treatmentApproaches);
-    if (ps.documentStyle)        parts.push('Document style: ' + ps.documentStyle);
+    if (ps.professionalIdentity) parts.push('CLINICIAN PROFILE:\n' + ps.professionalIdentity);
+    if (ps.treatmentApproaches)  parts.push('TREATMENT MODALITIES:\n' + ps.treatmentApproaches);
+    if (ps.documentStyle)        parts.push('DOCUMENTATION STYLE:\n' + ps.documentStyle);
+    if (ps.useClientInfo === false) parts.push('PATIENT PRIVACY: Do not use the patient\'s name or personal details in the note body — refer to them generically (e.g. "the patient").');
   }
-  const lenMap = { brief: 'Write concisely using dot points and short phrases. Include only the most important information.', detailed: 'Write comprehensively and thoroughly. Use full sentences with explanations and include direct quotes where relevant.' };
+  const lenMap = {
+    brief:    'NOTE LENGTH: Brief — use dot points and short phrases only. No lengthy prose. Include the most important clinical information only.',
+    detailed: 'NOTE LENGTH: Detailed — write comprehensively and thoroughly using full sentences. Include clinical reasoning, direct patient quotes where relevant, and thorough explanations of assessment and management.'
+  };
   const activeLen = _genLengthOverride || ps?.noteLength;
   if (lenMap[activeLen]) parts.push(lenMap[activeLen]);
-  return parts.length ? parts.join('\n') + '\n\n' : '';
+  return parts.length ? parts.join('\n\n') + '\n\n' : '';
 }
 
 // ── Redact transcript before sending to AI ──
@@ -6285,10 +6299,21 @@ function applyTranscriptRedactions(text) {
   const pr = currentUser?.profile?.transcriptPrivacy;
   if (!pr) return text;
   let t = text;
+  if (pr.redactNames) {
+    // Title + name patterns (Dr., Mr., Mrs., Ms., Prof., A/Prof.)
+    t = t.replace(/\b(Dr|Mr|Mrs|Ms|Miss|Prof|A\/Prof)\.\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?/g, '[NAME]');
+    // Capitalised First Last pairs not at sentence start
+    t = t.replace(/([\s,\(])([A-Z][a-z]{1,14}\s+[A-Z][a-z]{1,14})\b/g, function(m, pre, name) {
+      const common = /^(The|This|They|That|There|These|Then|When|Where|What|Which|With|From|Into|Upon|Over|After|Before|About|Above|Also|Both|Each|Even|Just|Like|More|Most|Much|Only|Such|Very|Well|Your|Their|Some|Have|Been|Will|Would|Could|Should|Does|Said|Thank|Back|Last|Next|Good|Make|Know|Feel|Time|Week|Year)/;
+      if (common.test(name)) return m;
+      return pre + '[NAME]';
+    });
+  }
   if (pr.redactDOB) t = t.replace(/\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b/g, '[DOB]');
   if (pr.redactOther) {
     t = t.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]');
     t = t.replace(/\b(\+?61|0)[2-478][\s\-]?\d{4}[\s\-]?\d{4}\b/g, '[PHONE]');
+    t = t.replace(/\b\d+\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)*\s+(Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Court|Ct|Place|Pl|Way|Boulevard|Blvd)\b/gi, '[ADDRESS]');
   }
   return t;
 }
@@ -6673,7 +6698,8 @@ function openAddToHomeModal() {
         </div>
         <div class="st-section">
           <h2 class="st-section-h">Create Custom Template</h2>
-          <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;">Custom templates are added to the template picker when generating notes. Write clear AI instructions in the Prompt field. The more specific you are, the better the output.</p>
+          <p style="font-size:.82rem;color:#6b7280;margin-bottom:16px;">Custom templates appear in the template picker when generating notes. Fill in the builder below — the AI instructions are assembled from your answers automatically.</p>
+
           <div class="field-row"><label>Template title <span style="color:var(--danger)">*</span></label><input id="st-ct-title" placeholder="e.g. My PTSD Review Note" /></div>
           <div class="two-col">
             <div class="field-row">
@@ -6681,18 +6707,59 @@ function openAddToHomeModal() {
               <input id="st-ct-category" placeholder="e.g. Progress Notes" list="st-cat-list" />
               <datalist id="st-cat-list">
                 <option value="Progress Notes"/><option value="Assessments"/><option value="Therapy Notes"/>
-                <option value="Risk & Safety"/><option value="Medication"/><option value="Administrative"/>
+                <option value="Risk & Safety"/><option value="Medication"/><option value="Letters"/>
+                <option value="Administrative"/>
               </datalist>
             </div>
-            <div class="field-row"><label>Short description <span style="color:var(--danger)">*</span></label><input id="st-ct-desc" placeholder="What is this template for?" /></div>
+            <div class="field-row"><label>Short description <span style="color:var(--danger)">*</span></label><input id="st-ct-desc" placeholder="e.g. EMDR trauma session note" /></div>
           </div>
+
           <div class="field-row">
-            <label>AI Prompt Instructions <span style="color:var(--danger)">*</span></label>
-            <textarea id="st-ct-prompt" rows="6" placeholder="Describe exactly what you want the AI to generate. Example:&#10;&#10;Generate a trauma-focused EMDR session note. Include: current phase, target memory, SUDS rating before and after, bilateral stimulation used, patient response, and closure technique. Use clinical language appropriate for a psychiatrist's records."></textarea>
-            <p style="font-size:.75rem;color:#6b7280;margin-top:5px;">This is the instruction sent to the AI when this template is selected. Be specific about sections, clinical focus, and format.</p>
+            <label>Clinical specialty / modality <span style="color:var(--danger)">*</span></label>
+            <input id="st-ct-specialty" placeholder="e.g. EMDR, DBT, Psychiatry review, CBT, Medication review…" list="st-spec-list" />
+            <datalist id="st-spec-list">
+              <option value="General Psychiatry"/><option value="Psychology – CBT"/><option value="Psychology – DBT"/>
+              <option value="Psychology – ACT"/><option value="EMDR Therapy"/><option value="Psychodynamic Psychotherapy"/>
+              <option value="Medication Review"/><option value="Risk Assessment"/><option value="Neuropsychology"/>
+              <option value="Child & Adolescent Psychiatry"/><option value="Forensic Psychiatry"/>
+            </datalist>
           </div>
-          <div style="display:flex;justify-content:flex-end;">
-            <button class="btn btn-primary" onclick="stSaveCustomTemplate()">Add Template</button>
+
+          <div class="field-row">
+            <label>Note format</label>
+            <select id="st-ct-format" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:.88rem;font-family:inherit;background:#fff;color:var(--text);">
+              <option value="structured">Structured sections (default)</option>
+              <option value="soap">SOAP (Subjective / Objective / Assessment / Plan)</option>
+              <option value="dap">DAP (Data / Assessment / Plan)</option>
+              <option value="narrative">Narrative prose</option>
+              <option value="letter">Letter format</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label>Sections to emphasise</label>
+            <p style="font-size:.75rem;color:#9ca3af;margin:3px 0 10px;">These sections will receive detailed coverage in the generated note.</p>
+            <div id="st-ct-sections" style="display:flex;flex-wrap:wrap;gap:8px;">
+              <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:400;cursor:pointer;"><input type="checkbox" value="presentation"> Presentation / Mental State</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:400;cursor:pointer;"><input type="checkbox" value="history"> History</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:400;cursor:pointer;"><input type="checkbox" value="mse"> Mental State Exam</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:400;cursor:pointer;"><input type="checkbox" value="risk"> Risk Assessment</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:400;cursor:pointer;"><input type="checkbox" value="medications"> Medications</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:400;cursor:pointer;"><input type="checkbox" value="diagnosis"> Diagnosis / Formulation</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:400;cursor:pointer;"><input type="checkbox" value="scales"> Rating Scales / Scores</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:400;cursor:pointer;"><input type="checkbox" value="nextsteps"> Next Steps / Plan</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:400;cursor:pointer;"><input type="checkbox" value="referrals"> Referrals</label>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label>Specific clinical instructions <span style="color:var(--danger)">*</span></label>
+            <textarea id="st-ct-prompt" rows="5" placeholder="Describe what the AI must capture that is unique to this template. Examples:&#10;• Include EMDR phase, target memory, SUDS before/after, bilateral stimulation method&#10;• Document DBT diary card summary, skills practised, chain analysis&#10;• Record PHQ-9 and GAD-7 scores in the Scales field&#10;• Use letter format addressed to the referring GP"></textarea>
+            <p style="font-size:.74rem;color:#9ca3af;margin-top:5px;">Your instructions above, combined with the specialty and sections chosen, are assembled into a detailed AI prompt automatically.</p>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
+            <button class="btn btn-primary" onclick="stSaveCustomTemplate()">Save Template</button>
           </div>
           <div id="st-ct-error" style="font-size:.82rem;color:var(--danger);margin-top:8px;"></div>
         </div>
@@ -6795,32 +6862,41 @@ function openAddToHomeModal() {
         </div>
         <div class="st-section">
           <h2 class="st-section-h">Professional Identity</h2>
-          <p style="font-size:.82rem;color:#6b7280;margin-bottom:10px;">Describe your professional role and identity. This helps LushNote understand how to address you and your patients.</p>
+          <p style="font-size:.82rem;color:#6b7280;margin-bottom:6px;">Describe your professional role, client population, and clinical focus so LushNote can generate contextually accurate notes. Include your role, specialty, setting, and the types of presentations you work with.</p>
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;color:#6b7280;line-height:1.6;">
+            <strong style="color:#374151;">Example:</strong> "I am a consultant psychiatrist working in a public outpatient service in New South Wales, specialising in mood and anxiety disorders in adults. I also conduct comprehensive assessments for ADHD and Autism in adults. My caseload includes complex presentations, comorbid substance use, and patients on community treatment orders."
+          </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="font-size:.8rem;font-weight:600;color:#374151;">What would you like LushNote to know about you?</label>
-            <button onclick="document.getElementById('st-prof-identity').value='My name is Dr Lushan Vasantha. I am a Psychiatrist practising in New South Wales and Victoria, Australia.'" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;">Reset to default</button>
+            <button onclick="document.getElementById('st-prof-identity').value='My name is Dr Indika Amarasinghe. I am a Psychiatrist practising in New South Wales and Victoria, Australia.'" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;">Fill from profile</button>
           </div>
-          <textarea id="st-prof-identity" rows="4" placeholder="e.g. My name is Dr Lushan Vasantha. I am a Psychiatrist practising in New South Wales and Victoria, Australia."></textarea>
+          <textarea id="st-prof-identity" rows="5" placeholder="e.g. I am a consultant psychiatrist in NSW specialising in mood disorders. I work with adult outpatients including complex and comorbid presentations." oninput="stUpdateChars()"></textarea>
           <div id="st-pi-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
         </div>
         <div class="st-section">
           <h2 class="st-section-h">Treatment Approaches</h2>
-          <p style="font-size:.82rem;color:#6b7280;margin-bottom:10px;">Describe your preferred treatment modalities. LushNote will reflect these in generated notes.</p>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <label style="font-size:.8rem;font-weight:600;color:#374151;">What treatment modalities or theoretical orientations should LushNote consider?</label>
-            <button onclick="document.getElementById('st-treatment').value=''" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;">Clear</button>
+          <p style="font-size:.82rem;color:#6b7280;margin-bottom:6px;">List your therapeutic modalities and theoretical orientations. LushNote will reflect these in session content, formulations, and management plans.</p>
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;color:#6b7280;line-height:1.6;">
+            <strong style="color:#374151;">Example:</strong> "I primarily use CBT and ACT. I integrate DBT skills for patients with emotion dysregulation. For trauma presentations I use EMDR. My approach is evidence-based and goal-oriented, with explicit treatment targets reviewed each session."
           </div>
-          <textarea id="st-treatment" rows="4" placeholder="e.g. I use a trauma-informed, CBT-based approach. I integrate ACT and DBT skills where appropriate."></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="font-size:.8rem;font-weight:600;color:#374151;">What treatment modalities should LushNote reflect?</label>
+            <button onclick="document.getElementById('st-treatment').value='';stUpdatePersonChars();" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;">Clear</button>
+          </div>
+          <textarea id="st-treatment" rows="4" placeholder="e.g. I use CBT and ACT. I integrate DBT skills for emotion dysregulation. Evidence-based and goal-oriented approach." oninput="stUpdateChars()"></textarea>
           <div id="st-tr-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
         </div>
         <div class="st-section">
           <h2 class="st-section-h">Document Style</h2>
-          <p style="font-size:.82rem;color:#6b7280;margin-bottom:10px;">Describe your preferred writing style, terminology, and formatting for clinical documentation.</p>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <label style="font-size:.8rem;font-weight:600;color:#374151;">What general principles, formatting, and style should LushNote apply?</label>
-            <button onclick="document.getElementById('st-doc-style').value='Use English standards consistent with Australia.\nUse professional language consistent with Psychiatry.\nRefer to the person receiving the service as a \"patient\".';" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;">Reset to default</button>
+          <p style="font-size:.82rem;color:#6b7280;margin-bottom:6px;">Describe your preferred writing style, terminology, and formatting. Include language conventions, use of client quotes, tone, and any structural preferences.</p>
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;color:#6b7280;line-height:1.6;">
+            <strong style="color:#374151;">Example:</strong> "Use Australian English. Use professional, neutral language appropriate to psychiatry. Refer to the person as 'the patient'. Use a clear narrative format with logical flow. Incorporate direct patient quotes where they capture key clinical information. Avoid unnecessary jargon and embellishment. Be objective — distinguish between patient self-report, observation, and clinical interpretation."
           </div>
-          <textarea id="st-doc-style" rows="4" placeholder="e.g. Use English standards consistent with Australia. Use professional language consistent with Psychiatry. Refer to the person as 'patient'."></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="font-size:.8rem;font-weight:600;color:#374151;">What writing style and formatting should LushNote apply?</label>
+            <button onclick="document.getElementById('st-doc-style').value='Use Australian English spelling and grammar.\nUse professional, neutral language consistent with psychiatry.\nRefer to the person as \"the patient\".\nDistinguish between patient self-report, clinical observation, and interpretation.\nAvoid unnecessary jargon or embellishment.';stUpdatePersonChars();" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;">Reset to default</button>
+          </div>
+          <textarea id="st-doc-style" rows="5" placeholder="e.g. Use Australian English. Professional, neutral language. Refer to 'the patient'. Narrative format with direct quotes where relevant." oninput="stUpdateChars()"></textarea>
           <div id="st-ds-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
         </div>
         <div style="display:flex;justify-content:flex-end;">
@@ -6834,7 +6910,7 @@ function openAddToHomeModal() {
         <p class="st-sub">Your plan and account details</p>
         <div class="st-section" style="background:var(--blue-lt);border-color:var(--blue);text-align:center;padding:32px 24px;">
           <div style="font-size:1.1rem;font-weight:800;color:var(--blue);margin-bottom:10px;">LushNote is free to use</div>
-          <p style="font-size:.88rem;color:#374151;line-height:1.7;max-width:440px;margin:0 auto 14px;">This tool is built to support clinicians, not to generate profit. You bring your own Groq API key — your usage is billed directly to your Groq account, so there are no shared limits, no queues, and no costs on our end.</p>
+          <p style="font-size:.88rem;color:#374151;line-height:1.7;max-width:440px;margin:0 auto 14px;">This tool is built to support clinicians, not to generate profit. You bring your own Google AI (Gemini) API key — your usage is billed directly to your Google account at their standard rates, so there are no shared limits, no queues, and no platform costs on our end.</p>
           <p style="font-size:.84rem;color:#6b7280;line-height:1.65;max-width:440px;margin:0 auto;">If usage grows to a point where infrastructure costs become a burden, we may ask for a small voluntary contribution. It would be a last resort, not a goal.. Our goal is to keep access open for every clinician who needs it.</p>
         </div>
         <div class="st-section">

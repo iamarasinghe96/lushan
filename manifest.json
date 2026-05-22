@@ -2,10 +2,10 @@
   "name": "LushNote",
   "short_name": "LushNote",
   "description": "Clinical note builder for psychiatrists",
-  "start_url": "/lushan/",
+  "start_url": "/lushan/#generate",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#10b981",
   "icons": [
     {
       "src": "icon-192.png",

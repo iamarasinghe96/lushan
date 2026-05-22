@@ -8,6 +8,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%235ad6a7'/%3E%3Ctext x='48' y='70' font-family='FreeSerif%2CGeorgia%2Cserif' font-weight='bold' font-size='56' fill='white' text-anchor='middle' letter-spacing='-9.5'%3ELN%3C%2Ftext%3E%3C%2Fsvg%3E">
+  <link rel="manifest" href="../manifest.json">
+  <link rel="apple-touch-icon" href="../icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="LushNote">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#10b981">
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -332,29 +338,6 @@
         <span id="st-gemini-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
       </div>
 
-      <div class="st-section">
-        <h2 class="st-section-h">Groq API Key</h2>
-        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">Required for audio features: Record Session, Dictate Note, and Upload Recording. Free to set up, no credit card needed.</p>
-
-        <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
-          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:10px;">How to get your free API key</div>
-          <ol style="margin:0;padding-left:18px;font-size:.83rem;color:#374151;line-height:2;">
-            <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a> and sign in with your Google account</li>
-            <li>Click <strong>Create API key</strong></li>
-            <li>Give it a name (e.g. <em>LushNote</em>), then click <strong>Submit</strong></li>
-            <li>Copy the key shown. It starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">gsk_</code></li>
-            <li>Paste it in the field below and click <strong>Save Key</strong></li>
-          </ol>
-        </div>
-
-        <div class="field-row">
-          <label>Groq API Key</label>
-          <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" style="font-family:monospace;" />
-          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">Stored securely in your account — available on any device you sign in with.</p>
-        </div>
-        <button class="btn btn-primary" onclick="stSaveGroqKey()" style="margin-top:4px;">Save Key</button>
-        <span id="st-groq-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
-      </div>
     </div>
 
     <!-- Personalisation -->
@@ -388,29 +371,35 @@
       </div>
       <div class="st-section">
         <h2 class="st-section-h">Professional Identity</h2>
+        <p style="font-size:.82rem;color:#6b7280;margin-bottom:6px;">Describe your professional role, client population, and clinical focus. Include your specialty, setting, and the types of presentations you work with. The more detail you provide, the more accurately LushNote can tailor notes to your practice.</p>
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;color:#6b7280;line-height:1.6;"><strong style="color:#374151;">Example:</strong> "I am a consultant psychiatrist in NSW specialising in mood and anxiety disorders in adults. I work in a public outpatient service and also see private patients. I conduct ADHD and Autism assessments and facilitate group therapy for GAD."</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <label>What would you like LushNote to know about you?</label>
           <button onclick="(function(){const n=document.getElementById('st-name')?.value||'';const c=document.getElementById('st-credentials')?.value||'';document.getElementById('st-prof-identity').value='My name is '+(n||'your name')+(c?', '+c:'')+'.';})()" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Fill from profile</button>
         </div>
-        <textarea id="st-prof-identity" rows="4" placeholder="e.g. My name is Dr Lushan Vasantha. I am a Psychiatrist practising in New South Wales and Victoria, Australia." oninput="stUpdateChars()"></textarea>
+        <textarea id="st-prof-identity" rows="5" placeholder="e.g. I am a consultant psychiatrist in NSW specialising in mood disorders. I work with adult outpatients including complex and comorbid presentations." oninput="stUpdateChars()"></textarea>
         <div id="st-pi-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
       </div>
       <div class="st-section">
         <h2 class="st-section-h">Treatment Approaches</h2>
+        <p style="font-size:.82rem;color:#6b7280;margin-bottom:6px;">List your therapeutic modalities and theoretical orientations. LushNote will reflect these in session content, formulations, and management plans.</p>
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;color:#6b7280;line-height:1.6;"><strong style="color:#374151;">Example:</strong> "I primarily use CBT and ACT. I integrate DBT skills for patients with emotion dysregulation. For trauma presentations I use EMDR. My approach is evidence-based and goal-oriented with explicit treatment targets reviewed each session."</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <label>What treatment modalities should LushNote consider?</label>
+          <label>What treatment modalities should LushNote reflect?</label>
           <button onclick="document.getElementById('st-treatment').value='';stUpdateChars();" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Clear</button>
         </div>
-        <textarea id="st-treatment" rows="4" placeholder="e.g. I use a trauma-informed, CBT-based approach. I integrate ACT and DBT skills where appropriate." oninput="stUpdateChars()"></textarea>
+        <textarea id="st-treatment" rows="4" placeholder="e.g. I use CBT and ACT. I integrate DBT skills for emotion dysregulation. Evidence-based and goal-oriented approach." oninput="stUpdateChars()"></textarea>
         <div id="st-tr-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
       </div>
       <div class="st-section">
         <h2 class="st-section-h">Document Style</h2>
+        <p style="font-size:.82rem;color:#6b7280;margin-bottom:6px;">Describe your preferred writing style, terminology, and formatting. Include language conventions, use of patient quotes, tone, and structural preferences.</p>
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;color:#6b7280;line-height:1.6;"><strong style="color:#374151;">Example:</strong> "Use Australian English. Professional, neutral language consistent with psychiatry. Refer to the person as 'the patient'. Narrative format with logical flow. Include direct patient quotes where they capture key clinical information. Distinguish between self-report, observation, and clinical interpretation."</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <label>What writing style and formatting should LushNote apply?</label>
-          <button onclick="document.getElementById('st-doc-style').value='Use English standards consistent with Australia.\nUse professional language consistent with Psychiatry.\nRefer to the person receiving the service as a \"patient\".';stUpdateChars();" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Reset to default</button>
+          <button onclick="document.getElementById('st-doc-style').value='Use Australian English spelling and grammar.\nUse professional, neutral language consistent with psychiatry.\nRefer to the person as \"the patient\".\nDistinguish between patient self-report, clinical observation, and interpretation.\nAvoid unnecessary jargon or embellishment.';stUpdateChars();" style="font-size:.76rem;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-left:10px;">Reset to default</button>
         </div>
-        <textarea id="st-doc-style" rows="4" placeholder="e.g. Use English standards consistent with Australia. Use professional language. Refer to the person as 'patient'." oninput="stUpdateChars()"></textarea>
+        <textarea id="st-doc-style" rows="5" placeholder="e.g. Use Australian English. Professional, neutral language. Refer to 'the patient'. Narrative format with direct quotes where relevant." oninput="stUpdateChars()"></textarea>
         <div id="st-ds-count" style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;"></div>
       </div>
       <div class="st-section">
