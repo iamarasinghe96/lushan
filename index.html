@@ -246,6 +246,18 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-box p { font-size: .9rem; color: var(--gray); font-weight: 500; }
 
+    /* generating shimmer — edit tab inline loading state */
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    #tab-edit.generating textarea,
+    #tab-edit.generating input[type="text"] {
+      background: linear-gradient(90deg,#f0f4f8 25%,#e2e8f0 50%,#f0f4f8 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      color: transparent !important;
+      pointer-events: none;
+    }
+    #tab-edit.generating #preview-pane { opacity: .3; transition: opacity .3s; }
+
     /* ── Modal ── */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(15,23,42,.44);
@@ -2247,7 +2259,9 @@ async function pasteAndGenerate() {
   state.lastTranscriptMode = 'paste';
   state.lastChosenTemplate = chosenTemplate || null;
 
-  setLoading(true, 'Reading transcript & generating report…');
+  // Switch to Edit tab immediately so user sees the note forming
+  switchTab('edit');
+  _setEditGenerating(true);
   try {
     // Compute date/time from upload moment
     const now = new Date();
@@ -2263,7 +2277,8 @@ async function pasteAndGenerate() {
     if (!data) throw new Error('Could not parse AI response as JSON. Try again.');
     if (confirmResult.patient) data.patient = confirmResult.patient;
     if (confirmResult.reg)     data.reg_number = confirmResult.reg;
-    populateFields(data);
+    _setEditGenerating(false);
+    populateFieldsAnimated(data);
     // Always use JS-computed date/time
     document.getElementById('e-date-display').value = autoDateDisplay;
     document.getElementById('e-time-start').value   = `${endH}:00`;
@@ -2292,13 +2307,12 @@ async function pasteAndGenerate() {
       }
     }
 
-    switchTab('edit');
     toast('Report generated!');
   } catch(e) {
     if (!e._dailyLimit) toast('Error: ' + e.message);
     console.error(e);
   } finally {
-    setLoading(false);
+    _setEditGenerating(false);
   }
 }
 
@@ -2421,6 +2435,22 @@ function toNumbered(raw) {
     n++;
     return n + '. ' + clean;
   }).filter((l, i, arr) => l !== '' || i < arr.length - 1).join('\n');
+}
+
+function _setEditGenerating(on) {
+  document.getElementById('tab-edit').classList.toggle('generating', on);
+}
+
+function populateFieldsAnimated(data) {
+  populateFields(data);
+  const fields = Array.from(document.querySelectorAll('#tab-edit textarea, #tab-edit input[type="text"]'));
+  fields.forEach(el => { el.style.opacity = '0'; el.style.transition = ''; });
+  fields.forEach((el, i) => {
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.35s ease';
+      el.style.opacity = '1';
+    }, i * 35);
+  });
 }
 
 const LIST_FIELDS = ['e-diagnosis','e-presentation','e-history','e-medications',
@@ -2571,14 +2601,15 @@ async function changeTemplate() {
   const date    = document.getElementById('e-date-display').value;
   const tStart  = document.getElementById('e-time-start').value;
   const tEnd    = document.getElementById('e-time-end').value;
-  setLoading(true, 'Regenerating with new template…');
+  _setEditGenerating(true);
   try {
     let raw;
     const tplPrompt1 = await resolveTemplatePrompt(chosenTemplate);
     raw = await callGroqWithMode(state.lastTranscript, state.lastTranscriptMode || 'paste', tplPrompt1);
     const data = parseJson(raw);
     if (!data) throw new Error('Could not parse AI response. Try again.');
-    populateFields(data);
+    _setEditGenerating(false);
+    populateFieldsAnimated(data);
     // Restore patient/date info that was already set
     if (patient) document.getElementById('e-patient').value = patient;
     if (reg)     document.getElementById('e-reg-number').value = reg;
@@ -2591,7 +2622,7 @@ async function changeTemplate() {
   } catch(e) {
     if (!e._dailyLimit) toast('Error: ' + e.message);
   } finally {
-    setLoading(false);
+    _setEditGenerating(false);
   }
 }
 
