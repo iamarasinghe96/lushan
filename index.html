@@ -2438,6 +2438,14 @@ function toNumbered(raw) {
 
 let _isAnimating = false;
 let _statusTimers = [];
+let _animTimers = [];
+
+function _cancelActiveAnimation() {
+  _animTimers.forEach(clearTimeout);
+  _animTimers = [];
+  document.querySelectorAll('#tab-edit textarea, #tab-edit input[type="text"]').forEach(el => _cancelTw(el));
+  _isAnimating = false;
+}
 
 // Each entry: message shown, then wait ms before showing the next
 const _STATUS_SEQ = [
@@ -2472,6 +2480,12 @@ function _stopStatusSequence() {
 function _setEditGenerating(on) {
   const bar = document.getElementById('current-note-bar');
   if (on) {
+    _cancelActiveAnimation();
+    // Clear content + session fields so preview doesn't show the previous note
+    ['e-session-number','e-attendance','e-diagnosis','e-presentation','e-history',
+     'e-medications','e-mse','e-content','e-scales','e-risk','e-referrals',
+     'e-summary','e-nextsteps'].forEach(id => { document.getElementById(id).value = ''; });
+    livePreview();
     bar.style.opacity = '0';
     bar.style.display = 'flex';
     requestAnimationFrame(() => { bar.style.opacity = '1'; });
@@ -2512,7 +2526,7 @@ function _typewritePreKnownFields(patient, reg, dateDisplay, timeStart, timeEnd)
     { id: 'e-clinician',    val: clinician,   delay: 8500 },
   ].forEach(({ id, val, delay }) => {
     if (!val) return;
-    setTimeout(() => { _typewriteEl(document.getElementById(id), val, 900); }, delay);
+    _animTimers.push(setTimeout(() => { _typewriteEl(document.getElementById(id), val, 900); }, delay));
   });
 }
 
@@ -2544,10 +2558,10 @@ function populateFieldsAnimated(data, overrides, skipIds) {
   });
   knownToAnimate.forEach(id => { if (vals[id]) _typewriteEl(document.getElementById(id), vals[id], 500); });
   const contentDelay = knownToAnimate.length > 0 ? 600 : 0;
-  setTimeout(() => {
+  _animTimers.push(setTimeout(() => {
     contentIds.forEach(id => { if (vals[id]) _typewriteEl(document.getElementById(id), vals[id], 1800); });
-  }, contentDelay);
-  setTimeout(() => {
+  }, contentDelay));
+  _animTimers.push(setTimeout(() => {
     animIds.forEach(id => {
       if (vals[id] && document.getElementById(id).value !== vals[id]) {
         document.getElementById(id).value = vals[id];
@@ -2555,7 +2569,7 @@ function populateFieldsAnimated(data, overrides, skipIds) {
     });
     _isAnimating = false;
     updateNoteBar();
-  }, contentDelay + 2000);
+  }, contentDelay + 2000));
 }
 
 const LIST_FIELDS = ['e-diagnosis','e-presentation','e-history','e-medications',
