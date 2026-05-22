@@ -319,6 +319,38 @@
     #preview-pane .empty-state { color: var(--text3); font-style: italic; font-family: sans-serif; font-size: .84rem; }
 
     /* ── Patients tab ── */
+    .pt-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .pt-sort-group { display: flex; gap: 4px; flex-shrink: 0; }
+    .pt-sort-btn {
+      background: none; border: 1px solid var(--border); border-radius: 100px;
+      padding: 4px 11px; font-size: .78rem; font-weight: 600; cursor: pointer; color: var(--text2);
+      font-family: inherit; transition: all .15s; white-space: nowrap;
+    }
+    .pt-sort-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .pt-sort-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .pt-quick-group { display: flex; gap: 4px; flex-wrap: wrap; }
+    .pt-quick-btn {
+      background: none; border: 1px solid var(--border); border-radius: 100px;
+      padding: 4px 11px; font-size: .78rem; cursor: pointer; color: var(--gray);
+      font-family: inherit; transition: all .15s; white-space: nowrap;
+    }
+    .pt-quick-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .pt-quick-btn.active { background: var(--blue-lt); border-color: var(--blue); color: var(--blue); font-weight: 600; }
+    .pt-date-range { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .pt-date-input {
+      border: 1px solid var(--border); border-radius: var(--r-sm); padding: 4px 9px;
+      font-size: .78rem; color: var(--text2); font-family: inherit; width: 106px;
+      background: var(--card); transition: border-color .15s; outline: none;
+    }
+    .pt-date-input:focus { border-color: var(--blue); }
+    .pt-date-input::placeholder { color: var(--text3); }
+    .pt-date-label { font-size: .76rem; color: var(--gray); white-space: nowrap; }
+    .pt-clear-dates {
+      background: none; border: none; cursor: pointer; color: var(--text3); font-size: .78rem;
+      padding: 0 4px; font-family: inherit; text-decoration: underline; transition: color .15s;
+    }
+    .pt-clear-dates:hover { color: var(--blue); }
+    .pt-result-count { font-size: .76rem; color: var(--text3); flex-grow: 1; text-align: right; }
     #patients-area { display: grid; gap: 10px; }
     .patient-card {
       background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
@@ -1699,11 +1731,31 @@ With regards,
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-1px;margin-right:4px;"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>New Patient
         </button>
       </div>
-      <div class="card" style="margin-bottom:16px;">
+      <div class="card" style="margin-bottom:12px;">
         <div style="display:flex;align-items:center;gap:10px;">
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--gray)"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <input type="search" id="history-search" placeholder="Search patients…" oninput="filterPatients()" style="border:none;outline:none;font-size:.88rem;width:100%;background:transparent;" />
         </div>
+      </div>
+      <div class="pt-filters">
+        <div class="pt-sort-group">
+          <button class="pt-sort-btn active" id="pt-sort-recent" onclick="ptSetSort('recent')">Recent</button>
+          <button class="pt-sort-btn" id="pt-sort-az" onclick="ptSetSort('az')">A–Z</button>
+          <button class="pt-sort-btn" id="pt-sort-visits" onclick="ptSetSort('visits')">Most Visits</button>
+        </div>
+        <div class="pt-quick-group">
+          <button class="pt-quick-btn" id="pt-quick-today" onclick="ptQuick('today')">Today</button>
+          <button class="pt-quick-btn" id="pt-quick-week" onclick="ptQuick('week')">This Week</button>
+          <button class="pt-quick-btn" id="pt-quick-month" onclick="ptQuick('month')">This Month</button>
+        </div>
+      </div>
+      <div class="pt-date-range" id="pt-date-range-row" style="margin-bottom:10px;">
+        <span class="pt-date-label">From</span>
+        <input type="text" class="pt-date-input" id="pt-date-from" placeholder="DD/MM/YYYY" maxlength="10" oninput="ptDateInput(this)" />
+        <span class="pt-date-label">To</span>
+        <input type="text" class="pt-date-input" id="pt-date-to" placeholder="DD/MM/YYYY" maxlength="10" oninput="ptDateInput(this)" />
+        <button class="pt-clear-dates" id="pt-clear-btn" onclick="ptClearDates()" style="display:none;">Clear</button>
+        <span class="pt-result-count" id="pt-result-count"></span>
       </div>
       <div id="patients-area">
         <div class="history-empty" id="history-empty" style="display:none;">
@@ -2961,18 +3013,125 @@ function groupByPatient(notes) {
   return groups;
 }
 
+// ── Patient filter/sort state ──
+let _ptSort = 'recent';
+let _ptQuick = null;
+let _ptFromMs = null;
+let _ptToMs = null;
+
+function ptSetSort(mode) {
+  _ptSort = mode;
+  ['recent','az','visits'].forEach(m => {
+    document.getElementById('pt-sort-' + m).classList.toggle('active', m === mode);
+  });
+  filterPatients();
+}
+
+function ptQuick(period) {
+  if (_ptQuick === period) {
+    _ptQuick = null;
+    document.getElementById('pt-quick-' + period).classList.remove('active');
+  } else {
+    if (_ptQuick) document.getElementById('pt-quick-' + _ptQuick).classList.remove('active');
+    _ptQuick = period;
+    document.getElementById('pt-quick-' + period).classList.add('active');
+    document.getElementById('pt-date-from').value = '';
+    document.getElementById('pt-date-to').value = '';
+    _ptFromMs = null;
+    _ptToMs = null;
+    document.getElementById('pt-clear-btn').style.display = 'none';
+  }
+  filterPatients();
+}
+
+function ptDateInput(el) {
+  let v = el.value.replace(/\D/g, '');
+  if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
+  if (v.length > 5) v = v.slice(0,5) + '/' + v.slice(5,9);
+  el.value = v;
+  _ptQuick = null;
+  ['today','week','month'].forEach(p => {
+    const btn = document.getElementById('pt-quick-' + p);
+    if (btn) btn.classList.remove('active');
+  });
+  const from = document.getElementById('pt-date-from').value;
+  const to = document.getElementById('pt-date-to').value;
+  _ptFromMs = ptParseDateStr(from);
+  _ptToMs = ptParseDateStr(to);
+  if (_ptToMs) _ptToMs += 86400000 - 1;
+  const hasDates = _ptFromMs || _ptToMs;
+  document.getElementById('pt-clear-btn').style.display = hasDates ? '' : 'none';
+  filterPatients();
+}
+
+function ptClearDates() {
+  document.getElementById('pt-date-from').value = '';
+  document.getElementById('pt-date-to').value = '';
+  _ptFromMs = null;
+  _ptToMs = null;
+  _ptQuick = null;
+  ['today','week','month'].forEach(p => {
+    const btn = document.getElementById('pt-quick-' + p);
+    if (btn) btn.classList.remove('active');
+  });
+  document.getElementById('pt-clear-btn').style.display = 'none';
+  filterPatients();
+}
+
+function ptParseDateStr(str) {
+  if (!str || str.length < 10) return null;
+  const parts = str.split('/');
+  if (parts.length !== 3) return null;
+  const d = parseInt(parts[0], 10), m = parseInt(parts[1], 10) - 1, y = parseInt(parts[2], 10);
+  if (isNaN(d) || isNaN(m) || isNaN(y) || y < 1900 || y > 2200) return null;
+  return new Date(y, m, d).getTime();
+}
+
+function _ptDateRangeMs() {
+  if (_ptQuick) {
+    const now = new Date();
+    if (_ptQuick === 'today') {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      return [start, start + 86400000 - 1];
+    }
+    if (_ptQuick === 'week') {
+      const day = now.getDay();
+      const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((day + 6) % 7)).getTime();
+      return [mon, mon + 7 * 86400000 - 1];
+    }
+    if (_ptQuick === 'month') {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).getTime() + 86400000 - 1;
+      return [start, end];
+    }
+  }
+  if (_ptFromMs || _ptToMs) return [_ptFromMs || 0, _ptToMs || Infinity];
+  return null;
+}
+
 function filterPatients() {
   const q = document.getElementById('history-search').value.toLowerCase().trim();
-  const filtered = q
-    ? state.allNotes.filter(n => (n.patient || 'Unknown').toLowerCase().includes(q))
-    : state.allNotes;
-  renderPatients(filtered);
+  const range = _ptDateRangeMs();
+
+  let filtered = state.allNotes;
+
+  if (q) filtered = filtered.filter(n => (n.patient || 'Unknown').toLowerCase().includes(q));
+
+  if (range) {
+    const [from, to] = range;
+    filtered = filtered.filter(n => {
+      const ms = n.createdAt ? n.createdAt.toMillis() : 0;
+      return ms >= from && ms <= to;
+    });
+  }
+
+  renderPatients(filtered, q);
 }
 
 // Keep old name as alias used elsewhere
 function filterHistory() { filterPatients(); }
 
-function renderPatients(notes) {
+function renderPatients(notes, query) {
   const area  = document.getElementById('patients-area');
   const empty = document.getElementById('history-empty');
   if (!area) return;
@@ -2986,16 +3145,42 @@ function renderPatients(notes) {
   // Clear existing patient cards
   area.querySelectorAll('.patient-card').forEach(c => c.remove());
 
-  if (!notes.length) { empty.style.display = 'block'; return; }
+  if (!notes.length) {
+    empty.style.display = 'block';
+    const countEl = document.getElementById('pt-result-count');
+    if (countEl) countEl.textContent = '0 patients';
+    return;
+  }
   empty.style.display = 'none';
 
   const groups = groupByPatient(notes);
-  // Sort patient groups by most recent session date descending
-  const sorted = Object.entries(groups).sort(([,a],[,b]) => {
-    const latestA = Math.max(...a.map(n => n.createdAt?.toMillis?.() || 0));
-    const latestB = Math.max(...b.map(n => n.createdAt?.toMillis?.() || 0));
-    return latestB - latestA;
-  });
+
+  let sorted;
+  if (_ptSort === 'az') {
+    sorted = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b));
+  } else if (_ptSort === 'visits') {
+    sorted = Object.entries(groups).sort(([,a],[,b]) => b.length - a.length);
+  } else if (query && _ptSort === 'recent') {
+    // Relevance: starts-with first, then contains, then by most recent
+    sorted = Object.entries(groups).sort(([ka,a],[kb,b]) => {
+      const qa = query.toLowerCase();
+      const aStarts = ka.startsWith(qa) ? 0 : 1;
+      const bStarts = kb.startsWith(qa) ? 0 : 1;
+      if (aStarts !== bStarts) return aStarts - bStarts;
+      const latestA = Math.max(...a.map(n => n.createdAt ? n.createdAt.toMillis() : 0));
+      const latestB = Math.max(...b.map(n => n.createdAt ? n.createdAt.toMillis() : 0));
+      return latestB - latestA;
+    });
+  } else {
+    sorted = Object.entries(groups).sort(([,a],[,b]) => {
+      const latestA = Math.max(...a.map(n => n.createdAt ? n.createdAt.toMillis() : 0));
+      const latestB = Math.max(...b.map(n => n.createdAt ? n.createdAt.toMillis() : 0));
+      return latestB - latestA;
+    });
+  }
+
+  const countEl = document.getElementById('pt-result-count');
+  if (countEl) countEl.textContent = sorted.length + ' patient' + (sorted.length !== 1 ? 's' : '');
 
   const html = sorted.map(([key, sessions]) => {
     const displayName = sessions[0].patient || 'Unknown';
