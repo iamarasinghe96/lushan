@@ -1994,24 +1994,24 @@ With regards,
 
 <!-- ── Live Chat FAB ── -->
 <div id="ln-fab-wrap" class="fab-hidden">
-  <!-- Sub button: AI Assistant (higher, farther from main FAB) -->
-  <div class="ln-fab-sub" id="ln-sub-ai">
-    <span class="ln-fab-label">Ask AI</span>
-    <button class="ln-fab-sub-ai" onclick="lnOpenChat('ai')" title="AI Assistant">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2Z" stroke="#fff" stroke-width="1.8"/><path d="M8 12h8M12 8v8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="17" cy="5" r="2.2" fill="#a5b4fc"/><path d="M16 4.5l.5.5 1-1" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-  </div>
-  <!-- Sub button: Live Support (lower, just above main FAB) -->
+  <!-- Main FAB first in DOM = visually at the bottom with column-reverse -->
+  <button class="ln-fab-main" id="ln-fab-btn" onclick="lnFabToggle()" title="Help & Support">
+    <svg width="26" height="26" fill="none" viewBox="0 0 24 24"><path d="M12 3C7.03 3 3 6.58 3 11c0 2.3 1.05 4.38 2.74 5.89L5 21l4.33-1.62C10.17 19.77 11.07 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M9 11h.01M12 11h.01M15 11h.01" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+  </button>
+  <!-- Live Support: second = just above main FAB -->
   <div class="ln-fab-sub" id="ln-sub-live">
     <span class="ln-fab-label">Live Support</span>
     <button class="ln-fab-sub-live" onclick="lnOpenChat('live')" title="Live Support">
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4l4 4 4-4h4a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="8" cy="11" r="1.2" fill="#fff"/><circle cx="12" cy="11" r="1.2" fill="#fff"/><circle cx="16" cy="11" r="1.2" fill="#fff"/></svg>
     </button>
   </div>
-  <!-- Main FAB button -->
-  <button class="ln-fab-main" id="ln-fab-btn" onclick="lnFabToggle()" title="Help & Support">
-    <svg width="26" height="26" fill="none" viewBox="0 0 24 24"><path d="M12 3C7.03 3 3 6.58 3 11c0 2.3 1.05 4.38 2.74 5.89L5 21l4.33-1.62C10.17 19.77 11.07 20 12 20c4.97 0 9-3.58 9-8s-4.03-9-9-9Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M9 11h.01M12 11h.01M15 11h.01" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
-  </button>
+  <!-- Ask AI: third = highest, above Live Support -->
+  <div class="ln-fab-sub" id="ln-sub-ai">
+    <span class="ln-fab-label">Ask AI</span>
+    <button class="ln-fab-sub-ai" onclick="lnOpenChat('ai')" title="AI Assistant">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2Z" stroke="#fff" stroke-width="1.8"/><path d="M8 12h8M12 8v8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="17" cy="5" r="2.2" fill="#a5b4fc"/><path d="M16 4.5l.5.5 1-1" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
 </div>
 
 <!-- Chat panel -->
