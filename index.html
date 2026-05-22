@@ -4425,7 +4425,6 @@ function startAuthListener() {
     if (profile.geminiApiKey && !sessionStorage.getItem('gemini_api_key')) {
       sessionStorage.setItem('gemini_api_key', profile.geminiApiKey);
     }
-    _initGeminiCount(profile);
     if (!profile.onboardingComplete) {
       showView('onboarding');
       startOnboarding();
@@ -5331,73 +5330,21 @@ const mimeType = blob.type || 'audio/mp4';
 // ── Gemini model tier management ──
 // Tier 1: gemini-2.5-flash  — 20 RPD free (best quality)
 // Tier 2: gemini-2.0-flash  — 1,500 RPD free (fallback)
-let _geminiDailyCount = { date: '', count: 0 };
-
-function _geminiTodayKey() {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-
-function _initGeminiCount(profile) {
-  const today = _geminiTodayKey();
-  const saved = profile && profile.geminiDailyUsage;
-  _geminiDailyCount = (saved && saved.date === today)
-    ? { date: today, count: saved.count || 0 }
-    : { date: today, count: 0 };
-}
-
-function _getGeminiModel() {
-  const today = _geminiTodayKey();
-  if (_geminiDailyCount.date !== today) _geminiDailyCount = { date: today, count: 0 };
-  return _geminiDailyCount.count < 20 ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
-}
-
-function _incrementGeminiCount() {
-  const today = _geminiTodayKey();
-  if (_geminiDailyCount.date !== today) _geminiDailyCount = { date: today, count: 0 };
-  _geminiDailyCount.count++;
-  if (db && currentUser) {
-    db.collection('users').doc(currentUser.uid).update({
-      geminiDailyUsage: { date: today, count: _geminiDailyCount.count }
-    }).catch(function() {});
-  }
-}
-
-function _forceGeminiFallback() {
-  const today = _geminiTodayKey();
-  _geminiDailyCount = { date: today, count: 20 };
-  if (db && currentUser) {
-    db.collection('users').doc(currentUser.uid).update({
-      geminiDailyUsage: { date: today, count: 20 }
-    }).catch(function() {});
-  }
-}
 
 async function _geminiGenerate(contents, systemText) {
   const key = getGeminiKey();
   const reqBody = { contents };
   if (systemText) reqBody.system_instruction = { parts: [{ text: systemText }] };
   const init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) };
-  let model = _getGeminiModel();
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key);
   let lastErr;
   for (let attempt = 0; attempt < 4; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + encodeURIComponent(key);
     const res = await fetch(url, init);
     const rawText = await res.text();
-    if (res.status === 429) {
-      const errMsg = await _geminiErrorMsg(res, rawText);
-      const isDaily = errMsg.toLowerCase().includes('daily') || errMsg.toLowerCase().includes('quota');
-      if (model === 'gemini-2.5-flash' && isDaily) {
-        _forceGeminiFallback();
-        model = 'gemini-2.0-flash';
-        continue;
-      }
-      throw new Error(errMsg);
-    }
+    if (res.status === 429) { throw new Error(await _geminiErrorMsg(res, rawText)); }
     if (res.status === 503) { lastErr = await _geminiErrorMsg(res, rawText); continue; }
     if (!res.ok) throw new Error(await _geminiErrorMsg(res, rawText));
-    _incrementGeminiCount();
     const d = JSON.parse(rawText);
     return (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) ? d.candidates[0].content.parts[0].text : '';
   }
@@ -7217,15 +7164,9 @@ function lnEscalate() {
 
 // ── Temp debug helper — call lnDebug() from browser console ──
 window.lnDebug = function() {
-  const today = _geminiTodayKey();
-  const model = _getGeminiModel();
-  const count = _geminiDailyCount.count;
-  const date  = _geminiDailyCount.date;
   const key   = getGeminiKey() ? getGeminiKey().slice(0,8) + '…' : '(none)';
   const info  = [
-    'Gemini model: ' + model,
-    'Daily count: ' + count + ' / 20 (date: ' + date + ')',
-    'Today key: ' + today,
+    'Gemini model: gemini-2.0-flash',
     'API key: ' + key,
     'User: ' + ((currentUser && currentUser.email) ? currentUser.email : '(none)'),
     'Slack webhook: ' + (SLACK_WEBHOOK ? 'set' : 'NOT SET')
