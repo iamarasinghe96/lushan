@@ -4278,7 +4278,7 @@ async function trsAsk() {
     const sysPrompt = `You are a clinical assistant. You have access to the following consultation transcript. Answer questions strictly and factually based ONLY on what is explicitly stated in the transcript below. If the answer is not present in the transcript, say "That is not mentioned in the transcript." Do not infer, assume, or add any information beyond what the transcript contains.\n\nTRANSCRIPT:\n${transcript.slice(0, 12000)}`;
     let answer = '';
     if (getGeminiKey()) {
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + getGeminiKey(), {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + getGeminiKey(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: sysPrompt + '\n\nQuestion: ' + question }] }], generationConfig: { temperature: 0.0, maxOutputTokens: 512 } })
@@ -5328,15 +5328,13 @@ const mimeType = blob.type || 'audio/mp4';
 }
 
 // ── Gemini model tier management ──
-// Tier 1: gemini-2.5-flash  — 20 RPD free (best quality)
-// Tier 2: gemini-2.0-flash  — 1,500 RPD free (fallback)
 
 async function _geminiGenerate(contents, systemText) {
   const key = getGeminiKey();
   const reqBody = { contents };
   if (systemText) reqBody.system_instruction = { parts: [{ text: systemText }] };
   const init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) };
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key);
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(key);
   let lastErr;
   for (let attempt = 0; attempt < 4; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
@@ -7048,7 +7046,7 @@ async function lnChatSend() {
       { role: 'model', parts: [{ text: "Understood. I'm ready to help with LushNote." }] }
     ].concat(_lnHistory);
 
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: contents, generationConfig: { temperature: 0.2, maxOutputTokens: 700 } })
@@ -7085,7 +7083,7 @@ async function lnLiveSend(text, attachments) {
       if (text) userParts.push({ text: text });
       attachments.forEach(function(a) { userParts.push({ inlineData: { mimeType: a.mimeType, data: a.base64 } }); });
       try {
-        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ role: 'user', parts: userParts }], system_instruction: { parts: [{ text: liveSystemPrompt }] }, generationConfig: { temperature: 0.2, maxOutputTokens: 600 } })
@@ -7177,7 +7175,7 @@ function lnEscalate() {
 window.lnDebug = function() {
   const key   = getGeminiKey() ? getGeminiKey().slice(0,8) + '…' : '(none)';
   const info  = [
-    'Gemini model: gemini-2.0-flash',
+    'Gemini model: gemini-2.5-flash',
     'API key: ' + key,
     'User: ' + ((currentUser && currentUser.email) ? currentUser.email : '(none)'),
     'Slack webhook: ' + (SLACK_WEBHOOK ? 'set' : 'NOT SET')
