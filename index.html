@@ -110,7 +110,7 @@
     .tab-panel.active { display: block; }
 
     /* ── Layout ── */
-    main { max-width: 1200px; margin: 0 auto; padding: 22px 20px 80px; }
+    main { width: 100%; max-width: 1200px; margin: 0 auto; padding: 22px 20px 80px; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 22px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
     .card h2 { font-size: .93rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; color: var(--text); }
 
@@ -1761,9 +1761,9 @@ With regards,
           <div class="pt-sep"></div>
           <div class="pt-date-range">
             <span class="pt-date-label">From</span>
-            <input type="text" class="pt-date-input" id="pt-date-from" placeholder="DD/MM/YYYY" maxlength="10" oninput="ptDateInput(this)" />
+            <input type="text" inputmode="numeric" class="pt-date-input" id="pt-date-from" placeholder="DD/MM/YYYY" maxlength="10" oninput="ptDateInput(this)" />
             <span class="pt-date-label">To</span>
-            <input type="text" class="pt-date-input" id="pt-date-to" placeholder="DD/MM/YYYY" maxlength="10" oninput="ptDateInput(this)" />
+            <input type="text" inputmode="numeric" class="pt-date-input" id="pt-date-to" placeholder="DD/MM/YYYY" maxlength="10" oninput="ptDateInput(this)" />
             <button class="pt-clear-dates" id="pt-clear-btn" onclick="ptClearDates()" style="display:none;">Clear</button>
           </div>
           <span class="pt-result-count" id="pt-result-count"></span>
