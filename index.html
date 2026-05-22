@@ -3388,10 +3388,18 @@ function loadNoteById(id) {
 
 function loadNoteFromHistory(note) {
   _cancelActiveAnimation(); // ensure _isAnimating=false so updateNoteBar() runs
-  state.lastTranscript = note.transcript || null;
-  state.lastTranscriptMode = note.transcriptMode || 'paste';
+  if (note.transcript) {
+    // Use the stored transcript (saved to Firestore)
+    state.lastTranscript = note.transcript;
+    state.lastTranscriptMode = note.transcriptMode || 'paste';
+  } else if (state.currentNoteId !== note.id) {
+    // Different note with no stored transcript — clear in-memory one
+    state.lastTranscript = null;
+    state.lastTranscriptMode = 'paste';
+  }
+  // Same note, no stored transcript → keep in-memory transcript from this session
   const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
-  if (trsTabBtn) trsTabBtn.remove();
+  if (trsTabBtn && !state.lastTranscript) trsTabBtn.remove();
 
   state.currentNoteId = note.id;
   populateFields(note);
