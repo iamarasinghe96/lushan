@@ -358,7 +358,12 @@
     .trs-body { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
     .trs-transcript-pane { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-sm); }
     .trs-transcript-pane h3 { font-size: .8rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
-    .trs-transcript-text { font-size: .83rem; line-height: 1.65; color: var(--text2); white-space: pre-wrap; max-height: 65vh; overflow-y: auto; scrollbar-width: thin; }
+    .trs-transcript-wrap { position: relative; }
+    .trs-transcript-text { font-size: .83rem; line-height: 1.65; color: var(--text2); white-space: pre-wrap; max-height: 22vh; overflow: hidden; scrollbar-width: thin; transition: max-height 0.35s ease; }
+    .trs-transcript-text.expanded { max-height: 70vh; overflow-y: auto; }
+    .trs-transcript-fade { position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: linear-gradient(transparent, var(--card)); pointer-events: none; transition: opacity 0.25s; }
+    .trs-transcript-text.expanded + .trs-transcript-fade { opacity: 0; }
+    .trs-expand-btn { display: block; width: 100%; margin-top: 6px; background: none; border: none; font-size: .75rem; font-weight: 600; color: var(--blue); cursor: pointer; font-family: inherit; padding: 4px 0; text-align: center; }
     .trs-qa-pane { display: flex; flex-direction: column; gap: 12px; }
     .trs-qa-pane h3 { font-size: .8rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 0; }
     .trs-chat { display: flex; flex-direction: column; gap: 10px; max-height: 50vh; overflow-y: auto; scrollbar-width: thin; padding: 4px 0; }
@@ -371,7 +376,8 @@
     .trs-input-row button { flex-shrink: 0; }
     @media (max-width: 760px) {
       .trs-body { grid-template-columns: 1fr; }
-      .trs-transcript-text { max-height: 35vh; }
+      .trs-transcript-text { max-height: 18vh; }
+      .trs-transcript-text.expanded { max-height: 60vh; }
       .trs-chat { max-height: 30vh; }
     }
     .patient-card {
@@ -1829,12 +1835,16 @@ With regards,
     <div class="trs-body">
       <div class="trs-transcript-pane">
         <h3>Raw Transcript</h3>
-        <div class="trs-transcript-text" id="trs-transcript-text"></div>
+        <div class="trs-transcript-wrap">
+          <div class="trs-transcript-text" id="trs-transcript-text"></div>
+          <div class="trs-transcript-fade" id="trs-transcript-fade"></div>
+        </div>
+        <button class="trs-expand-btn" id="trs-expand-btn" onclick="trsToggleExpand()">Show more ▾</button>
       </div>
       <div class="trs-qa-pane">
         <div class="card" style="padding:16px 18px;flex:1;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <h3 style="font-size:.8rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin:0;">Ask About This Transcript</h3>
+            <h3 style="font-size:.8rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin:0;text-align:center;flex:1;">Ask About This Transcript</h3>
             <button onclick="trsClearChat()" style="background:none;border:none;font-size:.75rem;font-weight:600;color:var(--text3);cursor:pointer;font-family:inherit;padding:2px 6px;border-radius:6px;" title="Clear chat">Clear</button>
           </div>
           <div class="trs-chat" id="trs-chat"></div>
@@ -4025,7 +4035,11 @@ window.addEventListener('hashchange', () => {
 function openTranscriptTab() {
   const transcript = state.lastTranscript;
   if (!transcript) { toast('No transcript available for this note.'); return; }
-  document.getElementById('trs-transcript-text').textContent = transcript;
+  const txtEl = document.getElementById('trs-transcript-text');
+  txtEl.textContent = transcript;
+  txtEl.classList.remove('expanded');
+  const expandBtn = document.getElementById('trs-expand-btn');
+  if (expandBtn) expandBtn.textContent = 'Show more ▾';
   const modeMap = { paste: 'Pasted Text', conversation: 'Recorded Session', dictation: 'Dictated Note', document: 'Uploaded File' };
   document.getElementById('trs-mode-label').textContent = modeMap[state.lastTranscriptMode] || '';
   document.getElementById('trs-chat').innerHTML = '';
@@ -4053,6 +4067,13 @@ function trsClearChat() {
   if (chat) chat.innerHTML = '';
   const q = document.getElementById('trs-question');
   if (q) q.value = '';
+}
+
+function trsToggleExpand() {
+  const txt = document.getElementById('trs-transcript-text');
+  const btn = document.getElementById('trs-expand-btn');
+  const expanded = txt.classList.toggle('expanded');
+  btn.textContent = expanded ? 'Show less ▴' : 'Show more ▾';
 }
 
 async function trsAsk() {
