@@ -3675,6 +3675,7 @@ function switchTab(name, { updateHash = true } = {}) {
   document.body.classList.toggle('tab-edit-active', name === 'edit');
   const activeBtn = document.querySelector('.tab-btn[data-tab="' + name + '"]');
   if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  if (name === 'generate') document.getElementById('transcript-chip').style.display = 'none';
   if (name === 'history') loadHistoryData();
   if (name === 'export')  updateExportPreview();
   if (updateHash) {
