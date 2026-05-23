@@ -4372,8 +4372,8 @@ ${transcript}`;
       const data = await res.json();
       rawText = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : '';
       _trsRenderAnswer(thinkingMsg, rawText);
-    } else if (res.status === 429 && getGroqKey()) {
-      _geminiMarkExhausted('lite');
+    } else if (getGroqKey()) {
+      if (res.status === 429) _geminiMarkExhausted('lite');
       rawText = await _groqChat([{ role: 'system', content: sysPrompt }, { role: 'user', content: 'Question: ' + question }], 400);
       _trsRenderAnswer(thinkingMsg, rawText);
     } else if (res.status === 429) {
