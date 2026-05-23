@@ -3577,7 +3577,7 @@ function showPatientDetail(patientKey) {
         </div>
         <span class="session-card-badge">${i === 0 ? 'Latest' : 'Past'}</span>
         <div class="session-card-actions" onclick="event.stopPropagation()">
-          <button class="btn btn-danger btn-sm" onclick="deleteHistoryNote('${note.id}')">Delete</button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteHistoryNote('${note.id}')">Delete</button>
         </div>
       </div>`;
   }).join('');
@@ -3610,19 +3610,16 @@ function loadNoteFromHistory(note) {
 
 async function deleteHistoryNote(id) {
   if (!await showConfirm('Delete this session permanently?', {title: 'Delete Session', confirmText: 'Delete', dangerConfirm: true})) return;
+  const detailVisible = document.getElementById('patient-detail-view').style.display !== 'none';
+  const key = (document.getElementById('detail-patient-name')?.textContent || '').trim().toLowerCase();
   try {
     await fbDeleteNote(id);
     state.allNotes = state.allNotes.filter(n => n.id !== id);
-    // If in detail view, refresh it or go back if no sessions left
-    const detailVisible = document.getElementById('patient-detail-view').style.display !== 'none';
+    filterPatients();
     if (detailVisible) {
-      const nameEl = document.getElementById('detail-patient-name');
-      const key = (nameEl?.textContent || '').trim().toLowerCase();
       const remaining = state.allNotes.filter(n => (n.patient||'Unknown').trim().toLowerCase() === key);
       if (remaining.length) showPatientDetail(key);
-      else showPatientList();
     }
-    filterPatients();
     toast('Session deleted');
   } catch(e) {
     toast('Delete failed: ' + e.message);
