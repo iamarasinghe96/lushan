@@ -4278,7 +4278,7 @@ async function trsAsk() {
     const sysPrompt = `You are a clinical assistant. You have access to the following consultation transcript. Answer questions strictly and factually based ONLY on what is explicitly stated in the transcript below. If the answer is not present in the transcript, say "That is not mentioned in the transcript." Do not infer, assume, or add any information beyond what the transcript contains.\n\nTRANSCRIPT:\n${transcript.slice(0, 12000)}`;
     let answer = '';
     if (getGeminiKey()) {
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + getGeminiKey(), {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + getGeminiKey(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: sysPrompt + '\n\nQuestion: ' + question }] }], generationConfig: { temperature: 0.0, maxOutputTokens: 512 } })
@@ -7046,7 +7046,7 @@ async function lnChatSend() {
       { role: 'model', parts: [{ text: "Understood. I'm ready to help with LushNote." }] }
     ].concat(_lnHistory);
 
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: contents, generationConfig: { temperature: 0.2, maxOutputTokens: 700 } })
@@ -7083,7 +7083,7 @@ async function lnLiveSend(text, attachments) {
       if (text) userParts.push({ text: text });
       attachments.forEach(function(a) { userParts.push({ inlineData: { mimeType: a.mimeType, data: a.base64 } }); });
       try {
-        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + geminiKey, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ role: 'user', parts: userParts }], system_instruction: { parts: [{ text: liveSystemPrompt }] }, generationConfig: { temperature: 0.2, maxOutputTokens: 600 } })
