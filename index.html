@@ -481,7 +481,7 @@
     /* ── Toast ── */
     #toast {
       position: fixed;
-      bottom: calc(88px + env(safe-area-inset-bottom));
+      bottom: calc(22px + env(safe-area-inset-bottom));
       left: 20px;
       background: var(--text); color: #fff; padding: 11px 18px;
       border-radius: var(--r); font-size: .83rem; font-weight: 600;
@@ -1988,13 +1988,11 @@ With regards,
             <div class="trs-input-row">
               <textarea id="trs-question" placeholder="Ask about this transcript…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();trsAsk();}"></textarea>
               <button class="btn btn-sm" onclick="trsAsk()" id="trs-ask-btn" title="Ask AI" style="background:#10b981;box-shadow:0 2px 8px rgba(16,185,129,.35);padding:0;width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="rgba(255,255,255,0.15)"/>
-                  <path d="M5 5 C5.3 4 5.3 4 6 3.7 C5.3 3.4 5.3 3.4 5 2.4 C4.7 3.4 4.7 3.4 4 3.7 C4.7 4 4.7 4 5 5Z" fill="white"/>
-                  <path d="M3 8.5 C3.2 7.8 3.2 7.8 3.8 7.5 C3.2 7.2 3.2 7.2 3 6.5 C2.8 7.2 2.8 7.2 2.2 7.5 C2.8 7.8 2.8 7.8 3 8.5Z" fill="white"/>
-                  <path d="M19 6 C19.2 5.3 19.2 5.3 19.8 5 C19.2 4.7 19.2 4.7 19 4 C18.8 4.7 18.8 4.7 18.2 5 C18.8 5.3 18.8 5.3 19 6Z" fill="white"/>
-                  <path d="M20.5 9.5 C20.7 9 20.7 9 21.2 8.8 C20.7 8.5 20.7 8.5 20.5 8 C20.3 8.5 20.3 8.5 19.8 8.8 C20.3 9 20.3 9 20.5 9.5Z" fill="white"/>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="rgba(255,255,255,0.15)"/>
+                  <path d="M5.5 2.5L6 4L7.5 4.5L6 5L5.5 6.5L5 5L3.5 4.5L5 4Z" fill="white"/>
+                  <path d="M19.5 2.9L19.9 4.1L21.1 4.5L19.9 4.9L19.5 6.1L19.1 4.9L17.9 4.5L19.1 4.1Z" fill="white"/>
+                  <path d="M4 16.6L4.35 17.65L5.4 18L4.35 18.35L4 19.4L3.65 18.35L2.6 18L3.65 17.65Z" fill="white"/>
                 </svg>
               </button>
             </div>
@@ -2048,7 +2046,11 @@ With regards,
       <textarea id="ln-input" rows="1" placeholder="Ask anything…" oninput="lnAutoResize(this)" onkeydown="lnInputKey(event)"></textarea>
     </div>
     <button class="ln-send-btn" onclick="lnChatSend()" title="Send">
-      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2 15 22l-4-9-9-4 20-7Z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5.5 2.5L6 4L7.5 4.5L6 5L5.5 6.5L5 5L3.5 4.5L5 4Z" fill="white"/>
+        <path d="M19.5 2.9L19.9 4.1L21.1 4.5L19.9 4.9L19.5 6.1L19.1 4.9L17.9 4.5L19.1 4.1Z" fill="white"/>
+      </svg>
     </button>
   </div>
   <div class="ln-escalate-bar" id="ln-escalate-bar" style="display:none">
@@ -7168,7 +7170,7 @@ function lnOpenChat(mode) {
     title.textContent = 'Live Support';
     sub.textContent   = 'Contact the developer';
     escBar.style.display = 'none';
-    lnAddMsg('ai', "Hi! Describe your issue and the developer will get back to you at " + ((currentUser && currentUser.email) ? currentUser.email : 'your email') + ".");
+    lnAddMsg('ai', "Report bugs, errors and feedback directly here. You will be connected to a developer as soon as possible.");
   }
 
   lnCloseFabSubs();
@@ -7351,98 +7353,44 @@ async function lnChatSend() {
 
 async function lnLiveSend(text) {
   lnAddTyping();
+  const userEmail = (currentUser && currentUser.email) ? currentUser.email : 'unknown';
   try {
-    const geminiKey = getGeminiKey();
-    let aiCouldAnswer = false;
-    let aiAnswer = '';
-
-    const liveSystemPrompt = 'You are LushNote live support. The user has a question or issue about the LushNote app. Try your best to answer using this knowledge:\n\n' + LUSHNOTE_KB + '\n\nIf you can confidently answer, reply normally. If you CANNOT answer and the user needs human help, start your reply with exactly "ESCALATE:" followed by a one-line reason.';
-
-    if (geminiKey) {
-      try {
-        _geminiIncrCount('lite');
-        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + geminiKey, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: text }] }], system_instruction: { parts: [{ text: liveSystemPrompt }] }, generationConfig: { temperature: 0.2, maxOutputTokens: 600 } })
-        });
-        if (res.ok) {
-          const d = await res.json();
-          aiAnswer = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) ? d.candidates[0].content.parts[0].text : '';
-          if (aiAnswer && !aiAnswer.startsWith('ESCALATE:')) aiCouldAnswer = true;
-        } else if (res.status === 429 && getGroqKey()) {
-          _geminiMarkExhausted('lite');
-          aiAnswer = await _groqChat([{ role: 'system', content: liveSystemPrompt }, { role: 'user', content: text }], 600);
-          if (aiAnswer && !aiAnswer.startsWith('ESCALATE:')) aiCouldAnswer = true;
-        } else if (res.status === 429) {
-          _geminiMarkExhausted('lite');
-        }
-      } catch(e) {}
-    }
-
-    lnRemoveTyping();
-
-    if (aiCouldAnswer) {
-      lnAddMsg('ai', aiAnswer);
-      return;
-    }
-
-    // AI couldn't answer — escalate to Slack (or email fallback)
-    const userEmail = (currentUser && currentUser.email) ? currentUser.email : 'unknown';
-    const escalateReason = (aiAnswer && aiAnswer.startsWith('ESCALATE:')) ? aiAnswer.replace('ESCALATE:', '').trim() : 'User requested human support.';
     const slackMsg = {
-      text: '*LushNote Live Support Request*',
+      text: '*LushNote Support Message*',
       blocks: [
-        { type: 'header', text: { type: 'plain_text', text: 'LushNote Support Request' } },
+        { type: 'header', text: { type: 'plain_text', text: 'LushNote Support Message' } },
         { type: 'section', fields: [
-          { type: 'mrkdwn', text: '*User:*\n' + userEmail },
+          { type: 'mrkdwn', text: '*From:*\n' + userEmail },
           { type: 'mrkdwn', text: '*Time:*\n' + new Date().toLocaleString('en-AU') }
         ]},
         { type: 'section', text: { type: 'mrkdwn', text: '*Message:*\n' + text } },
-        { type: 'section', text: { type: 'mrkdwn', text: '*Why escalated:*\n' + escalateReason } },
         { type: 'context', elements: [{ type: 'mrkdwn', text: 'Reply to: ' + userEmail }] }
       ]
     };
-
     if (currentUser && db) {
       db.collection('users').doc(currentUser.uid).update({
-        lastSupportRequest: { message: text, escalateReason: escalateReason, sentAt: new Date().toISOString() }
+        lastSupportRequest: { message: text, sentAt: new Date().toISOString() }
       }).catch(function() {});
     }
-
-    if (SLACK_WEBHOOK) {
-      try {
-        const slackRes = await fetch(SLACK_WEBHOOK, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(slackMsg)
-        });
-        if (slackRes.ok) {
-          lnAddMsg('ai', "I've notified the developer on Slack. They'll reply to " + userEmail + " shortly.");
-        } else {
-          throw new Error('HTTP ' + slackRes.status);
-        }
-      } catch (slackErr) {
-        const subject = encodeURIComponent('LushNote Support: ' + text.slice(0, 60));
-        const body    = encodeURIComponent('From: ' + userEmail + '\n\nIssue: ' + text + '\n\nAI note: ' + escalateReason);
-        const a = document.createElement('a');
-        a.href = 'mailto:' + ADMIN_EMAIL + '?subject=' + subject + '&body=' + body;
-        a.click();
-        lnAddMsg('ai', 'Slack notification failed (' + slackErr.message + '). An email draft has been opened — please send it and the developer will reply to ' + userEmail + '.');
-      }
+    const slackRes = await fetch(SLACK_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(slackMsg)
+    });
+    lnRemoveTyping();
+    if (slackRes.ok) {
+      lnAddMsg('ai', "Your message has been sent to the developer. They'll get back to you at " + userEmail + " as soon as possible.");
     } else {
-      const subject = encodeURIComponent('LushNote Support: ' + text.slice(0, 60));
-      const body    = encodeURIComponent('From: ' + userEmail + '\n\nIssue: ' + text + '\n\nAI note: ' + escalateReason);
-      const a = document.createElement('a');
-      a.href = 'mailto:' + ADMIN_EMAIL + '?subject=' + subject + '&body=' + body;
-      a.click();
-      lnAddMsg('ai', "I've opened an email to the developer for you. Send it and they'll reply to " + userEmail + " shortly.");
+      throw new Error('HTTP ' + slackRes.status);
     }
-
-    document.getElementById('ln-escalate-bar').style.display = 'none';
   } catch (err) {
     lnRemoveTyping();
-    lnAddMsg('ai', 'Could not send your request. Please email: ' + ADMIN_EMAIL);
+    const subject = encodeURIComponent('LushNote Support: ' + text.slice(0, 60));
+    const body    = encodeURIComponent('From: ' + userEmail + '\n\nMessage: ' + text);
+    const a = document.createElement('a');
+    a.href = 'mailto:' + ADMIN_EMAIL + '?subject=' + subject + '&body=' + body;
+    a.click();
+    lnAddMsg('ai', 'Could not reach Slack. An email draft has been opened — please send it and the developer will reply to ' + userEmail + '.');
   }
 }
 
