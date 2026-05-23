@@ -4486,6 +4486,9 @@ async function doSignOut() {
   await firebase.auth().signOut();
   sessionStorage.removeItem('groq_api_key');
   sessionStorage.removeItem('gemini_api_key');
+  localStorage.removeItem('lnGem_flash');
+  localStorage.removeItem('lnGem_lite');
+  _geminiUsage = { flash: 0, lite: 0, date: '' };
   currentUser = null;
   state.currentNoteId   = null;
   state.allNotes        = [];
@@ -5299,31 +5302,52 @@ function _recFormatTime(s) {
 
 const GEMINI_RPD = 20;
 
-function _geminiCountToday(model) {
+let _geminiUsage = { flash: 0, lite: 0, date: '' };
+
+function _todayLocal() {
+  const n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+}
+
+async function _geminiLoadUsage() {
+  if (!db || !currentUser) return;
   try {
-    const s = JSON.parse(localStorage.getItem('lnGem_' + model) || '{}');
-    const today = new Date().toISOString().slice(0, 10);
-    return s.d === today ? (s.n || 0) : 0;
-  } catch(e) { return 0; }
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    const u = doc.exists && doc.data().geminiUsage;
+    const today = _todayLocal();
+    _geminiUsage = (u && u.date === today)
+      ? { flash: u.flash || 0, lite: u.lite || 0, date: today }
+      : { flash: 0, lite: 0, date: today };
+    _updateApiQuotaBar();
+  } catch(e) {}
+}
+
+function _geminiSaveUsage() {
+  if (!db || !currentUser) return;
+  db.collection('users').doc(currentUser.uid)
+    .update({ geminiUsage: _geminiUsage })
+    .catch(function() {});
+}
+
+function _geminiCountToday(model) {
+  if (_geminiUsage.date !== _todayLocal()) return 0;
+  return _geminiUsage[model] || 0;
 }
 
 function _geminiIncrCount(model) {
-  try {
-    const key = 'lnGem_' + model;
-    const today = new Date().toISOString().slice(0, 10);
-    const s = JSON.parse(localStorage.getItem(key) || '{}');
-    const n = (s.d === today ? (s.n || 0) : 0) + 1;
-    localStorage.setItem(key, JSON.stringify({d: today, n: n}));
-  } catch(e) {}
+  const today = _todayLocal();
+  if (_geminiUsage.date !== today) _geminiUsage = { flash: 0, lite: 0, date: today };
+  _geminiUsage[model] = (_geminiUsage[model] || 0) + 1;
   _updateApiQuotaBar();
+  _geminiSaveUsage();
 }
 
 function _geminiMarkExhausted(model) {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem('lnGem_' + model, JSON.stringify({d: today, n: GEMINI_RPD}));
-  } catch(e) {}
+  const today = _todayLocal();
+  if (_geminiUsage.date !== today) _geminiUsage = { flash: 0, lite: 0, date: today };
+  _geminiUsage[model] = GEMINI_RPD;
   _updateApiQuotaBar();
+  _geminiSaveUsage();
 }
 
 function _quotaResetIn() {
@@ -5344,12 +5368,10 @@ function _updateApiQuotaBar() {
   if (!getGeminiKey()) { bar.style.display = 'none'; return; }
   const flash = _geminiCountToday('flash');
   const lite  = _geminiCountToday('lite');
-  const flashLeft = Math.max(0, GEMINI_RPD - flash);
-  const liteLeft  = Math.max(0, GEMINI_RPD - lite);
-  const exhausted = flashLeft === 0 || liteLeft === 0;
-  const warning   = !exhausted && (flashLeft <= 5 || liteLeft <= 5);
+  const exhausted = flash >= GEMINI_RPD || lite >= GEMINI_RPD;
+  const warning   = !exhausted && (flash >= GEMINI_RPD - 5 || lite >= GEMINI_RPD - 5);
   bar.className = exhausted ? 'quota-full' : (warning ? 'quota-warn' : '');
-  txt.textContent = 'Gemini today: ' + flashLeft + '/20 generation · ' + liteLeft + '/20 chat left · ' + _quotaResetIn();
+  txt.textContent = 'Gemini today: ' + flash + '/20 generation · ' + lite + '/20 chat used · ' + _quotaResetIn();
   if (lnk) {
     lnk.textContent = exhausted ? 'Add Groq key to keep going →' : 'Add Groq API to extend usage →';
     lnk.style.display = '';
@@ -6274,7 +6296,7 @@ function validateRegNumber() {
 }
 
 function initApp() {
-  _updateApiQuotaBar();
+  _geminiLoadUsage();
   loadPatientIndex();
   applyRegPattern();
   const clinEl = document.getElementById('e-clinician');
