@@ -5332,14 +5332,7 @@ function _updateApiQuotaBar() {
   const txt = document.getElementById('api-quota-text');
   const lnk = document.getElementById('api-quota-link');
   if (!bar || !txt) return;
-  const hasGroq = !!getGroqKey();
-  if (hasGroq) {
-    bar.className = 'groq-active';
-    txt.textContent = 'Groq API active — generation and chat unlimited';
-    if (lnk) lnk.style.display = 'none';
-    bar.style.display = 'flex';
-    return;
-  }
+  if (!!getGroqKey()) { bar.style.display = 'none'; return; }
   if (!getGeminiKey()) { bar.style.display = 'none'; return; }
   const flash = _geminiCountToday('flash');
   const lite  = _geminiCountToday('lite');
