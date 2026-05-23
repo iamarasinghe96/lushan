@@ -6812,12 +6812,20 @@ SECURITY:
 - Authentication via Google sign-in
 - Each user can only access their own notes
 
+ADD TO HOME SCREEN:
+- LushNote is a PWA — it can be installed on your phone like an app
+- On first sign-in it automatically prompts you to add it to your home screen
+- iOS (Safari only): tap the Share button (box with arrow) → scroll down → tap "Add to Home Screen" → tap Add
+- Android (Chrome): tap the 3-dot menu → "Add to Home Screen" or "Install app" → confirm
+- If you missed the prompt, open LushNote in Safari (iOS) or Chrome (Android) and use the browser menu
+- Once installed it opens full-screen with no browser UI, just like a native app
+- If the installed app opens the wrong page: delete it from home screen and re-add
+
 COMMON ISSUES:
 - Note not generating: Check that your Gemini API key is configured in Settings
 - Template not applying correctly: Try the Change Template button in the Edit tab
 - Note not saving: Check internet connection; autosave runs on field blur
 - Can't find a past note: Use History tab, search by patient name
-- PWA / home screen app opens wrong page: Delete and re-add to home screen
 `.trim();
 
 let _lnMode = 'ai';
