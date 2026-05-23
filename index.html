@@ -1728,6 +1728,7 @@ With regards,
             <div class="field-row">
               <label>Attendance &amp; Consent</label>
               <input type="text" id="e-attendance" placeholder="e.g. Attended on time. Verbal consent confirmed." oninput="livePreview()" />
+              <span id="attendance-consent-hint" style="display:none;font-size:.74rem;color:var(--teal,#0d9488);margin-top:3px;">Historically agreed to AI-assisted documentation</span>
             </div>
           </div>
 
@@ -2601,6 +2602,8 @@ if (!groqKey && !getGeminiKey()) { _checkGroqAudioKey(() => pasteAndGenerate());
     document.getElementById('transcript-chip-text').textContent = `Transcript loaded, ${wc} words${chosenTemplate ? ' · ' + chosenTemplate.title : ''}`;
     chip.style.display = 'inline-flex';
 
+    autoFillPatientDefaults();
+
     // Auto-save to Firebase
     if (db) {
       state.currentNoteId = null; // new note
@@ -2927,20 +2930,15 @@ function flattenAIValue(val) {
 function populateFields(d) {
   const set = (id, val) => {
     const str = flattenAIValue(val);
-    if (!str) return;
-    document.getElementById(id).value = LIST_FIELDS.includes(id) ? toNumbered(str) : str;
+    document.getElementById(id).value = str ? (LIST_FIELDS.includes(id) ? toNumbered(str) : str) : '';
   };
-  set('e-patient',        d.patient);
-  set('e-reg-number',     d.reg_number);
-  // Date: "DD Month YYYY" → "DD/MM/YYYY" display
-  if (d.date) document.getElementById('e-date-display').value = dateToDisplay(d.date);
-  // Time: split "HH:MM – HH:MM" into start / end
-  if (d.time) {
-    const parts = d.time.split(/\s*[–-]\s*/);
-    if (parts[0]) document.getElementById('e-time-start').value = parts[0].trim();
-    if (parts[1]) document.getElementById('e-time-end').value   = parts[1].trim();
-  }
-  set('e-clinician',      d.clinician || currentClinicianLabel());
+  set('e-patient',    d.patient);
+  set('e-reg-number', d.reg_number);
+  document.getElementById('e-date-display').value = d.date ? dateToDisplay(d.date) : '';
+  const tp = d.time ? d.time.split(/\s*[–-]\s*/) : [];
+  document.getElementById('e-time-start').value = tp[0] ? tp[0].trim() : '';
+  document.getElementById('e-time-end').value   = tp[1] ? tp[1].trim() : '';
+  document.getElementById('e-clinician').value  = flattenAIValue(d.clinician) || currentClinicianLabel();
   set('e-session-number', d.session_number);
   set('e-attendance',     d.attendance);
   set('e-diagnosis',      d.diagnosis);
@@ -2954,7 +2952,37 @@ function populateFields(d) {
   set('e-referrals',      d.referrals);
   set('e-summary',        d.summary);
   set('e-nextsteps',      d.nextsteps);
+  const hint = document.getElementById('attendance-consent-hint');
+  if (hint) hint.style.display = 'none';
   updateNoteBar();
+}
+
+function autoFillPatientDefaults() {
+  const patient = (document.getElementById('e-patient').value || '').trim();
+  if (!patient || !state.allNotes || !state.allNotes.length) return;
+  const key = normalisePatientKey(patient);
+  const prior = state.allNotes.filter(n => normalisePatientKey(n.patient || '') === key);
+  if (!prior.length) return;
+
+  const sessionEl = document.getElementById('e-session-number');
+  if (sessionEl && !sessionEl.value.trim()) {
+    sessionEl.value = String(prior.length + 1);
+    sessionEl.dispatchEvent(new Event('input'));
+  }
+
+  const attendEl = document.getElementById('e-attendance');
+  if (attendEl && !attendEl.value.trim()) {
+    const hasConsent = prior.some(n => {
+      const att = (n.attendance || '').toLowerCase();
+      return att.includes('consent') || att.includes('agreed') || att.includes('verbal');
+    });
+    if (hasConsent) {
+      attendEl.value = 'Patient attended. Historically agreed to AI-assisted documentation.';
+      attendEl.dispatchEvent(new Event('input'));
+      const hint = document.getElementById('attendance-consent-hint');
+      if (hint) hint.style.display = 'block';
+    }
+  }
 }
 
 function getFields() {
@@ -3025,6 +3053,8 @@ function newNote() {
     document.getElementById(id).value = '';
   });
   document.getElementById('e-clinician').value = currentClinicianLabel();
+  const _ach = document.getElementById('attendance-consent-hint');
+  if (_ach) _ach.style.display = 'none';
   document.getElementById('current-note-bar').style.display = 'none';
   document.getElementById('visit-history-chip').style.display = 'none';
   const rh = document.getElementById('reg-number-hint');
@@ -5847,6 +5877,13 @@ async function processAudioAndGenerate(blob, mode) {
     populateFields(data);
     const now = new Date();
     document.getElementById('e-date-display').value = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+    // Set session time from recording timestamps
+    if (_recStartTime) {
+      const rs = new Date(_recStartTime);
+      document.getElementById('e-time-start').value = `${String(rs.getHours()).padStart(2,'0')}:${String(rs.getMinutes()).padStart(2,'0')}`;
+      document.getElementById('e-time-end').value   = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    }
+    autoFillPatientDefaults();
     livePreview(); updateExportPreview(); updateEmailSubject();
 
     const wc = transcript.trim().split(/\s+/).length;
@@ -5882,6 +5919,11 @@ async function processAudioAndGenerate(blob, mode) {
       if (!state.patientProfiles[npKey]) {
         try { await savePatientProfile(npKey, { displayName: assignment.patient, dob: assignment.dob || '', gender: assignment.gender || '' }); } catch(e) {}
       }
+    }
+
+    if (db) {
+      state.currentNoteId = null;
+      await saveCurrentNote(true);
     }
 
     switchTab('edit');
