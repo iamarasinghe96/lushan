@@ -6832,6 +6832,7 @@ COMMON ISSUES:
 let _lnMode = 'ai';
 let _lnHistory = [];
 let _lnTypingEl = null;
+let _lnActivePatient = null;
 
 function lnShowFab() {
   document.getElementById('ln-fab-wrap').classList.remove('fab-hidden');
@@ -6860,6 +6861,7 @@ function lnFabToggle() {
 function lnOpenChat(mode) {
   _lnMode = mode;
   _lnHistory = [];
+  _lnActivePatient = null;
 
   const panel  = document.getElementById('ln-chat-panel');
   const icon   = document.getElementById('ln-panel-icon');
@@ -6978,9 +6980,11 @@ async function lnChatSend() {
     const profiles = state.patientProfiles || {};
     const queryLc = text.toLowerCase();
 
-    // Detect if query mentions a specific patient name from the loaded notes
+    // Detect if query mentions a specific patient name, or carry forward the last matched patient
     const uniqueNames = [...new Set(notes.map(n => (n.patient || '').trim()).filter(Boolean))];
-    const mentionedName = uniqueNames.find(name => queryLc.includes(name.toLowerCase()));
+    const namedInQuery = uniqueNames.find(name => queryLc.includes(name.toLowerCase()));
+    if (namedInQuery) _lnActivePatient = namedInQuery;
+    const mentionedName = _lnActivePatient;
 
     let patientCtx = '';
     let systemPrompt = '';
