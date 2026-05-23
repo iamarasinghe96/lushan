@@ -2585,6 +2585,7 @@ if (!groqKey && !getGeminiKey()) { _checkGroqAudioKey(() => pasteAndGenerate());
       }
     }
 
+    openTranscriptTab();
     toast('Report generated!');
   } catch(e) {
     if (!e._dailyLimit) toast('Error: ' + e.message);
@@ -4145,8 +4146,8 @@ function showConfirm(message, opts = {}) {
   });
 }
 
-const _hashToTab = { generate: 'generate', edit: 'edit', export: 'export', patients: 'history' };
-const _tabToHash = { generate: 'generate', edit: 'edit', export: 'export', history: 'patients' };
+const _hashToTab = { generate: 'generate', edit: 'edit', export: 'export', patients: 'history', transcript: 'transcript' };
+const _tabToHash = { generate: 'generate', edit: 'edit', export: 'export', history: 'patients', transcript: 'transcript' };
 
 function switchTab(name, { updateHash = true } = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -4157,7 +4158,7 @@ function switchTab(name, { updateHash = true } = {}) {
   if (name === 'generate') document.getElementById('transcript-chip').style.display = 'none';
   if (name === 'history') loadHistoryData();
   if (name === 'export')  updateExportPreview();
-  if (updateHash && name !== 'transcript') {
+  if (updateHash) {
     const hash = _tabToHash[name] || name;
     history.replaceState(null, '', '#' + hash);
   }
@@ -4258,7 +4259,7 @@ async function trsAsk() {
   chat.scrollTop = chat.scrollHeight;
   askBtn.disabled = true;
   try {
-    const sysPrompt = `You are a clinical assistant. You have access to the following consultation transcript. Answer questions strictly and factually based ONLY on what is explicitly stated in the transcript below. If the answer is not present in the transcript, say "That is not mentioned in the transcript." Do not infer, assume, or add any information beyond what the transcript contains.\n\nTRANSCRIPT:\n${transcript.slice(0, 12000)}`;
+    const sysPrompt = `You are a clinical assistant analyzing a consultation transcript. Answer the question following these strict rules:\n\n1. DIRECT QUOTE: If the answer is explicitly stated in the transcript, quote the relevant words and answer directly.\n2. INFERENCE: If the exact term is not used but the transcript contains related information, you MUST first show the relevant excerpt in quotes, then label your reading clearly as "Based on this, it appears that..." — never state an inference as a confirmed fact.\n3. NOT MENTIONED: If the topic is not covered in the transcript at all, say exactly: "That is not mentioned in the transcript."\n\nAlways show the transcript evidence before drawing any conclusion.\n\nTRANSCRIPT:\n${transcript.slice(0, 12000)}`;
     let answer = '';
     if (getGeminiKey()) {
       const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + getGeminiKey(), {
@@ -5588,7 +5589,6 @@ async function processAudioAndGenerate(blob, mode) {
       document.getElementById('raw-transcript-toggle-icon').textContent = '▼';
     }
 
-    switchTab('edit');
     const chip = document.getElementById('transcript-chip');
     document.getElementById('transcript-chip-text').textContent = `${mode === 'dictation' ? 'Dictation' : 'Recording'}, ${wc} words${chosenTemplate ? ' · ' + chosenTemplate.title : ''}`;
     chip.style.display = 'inline-flex';
@@ -5601,6 +5601,7 @@ async function processAudioAndGenerate(blob, mode) {
       }
     }
 
+    openTranscriptTab();
     toast('Note generated successfully');
   } catch(e) {
     toast('Generation failed: ' + e.message, 'error');
@@ -5967,10 +5968,10 @@ function openCreateDocumentModal() {
       const now = new Date();
       document.getElementById('e-date-display').value = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
       livePreview(); updateExportPreview(); updateEmailSubject();
-      switchTab('export');
       const chip = document.getElementById('transcript-chip');
       document.getElementById('transcript-chip-text').textContent = `Document, ${content.split(/\s+/).length} words${chosenTemplate ? ' · ' + chosenTemplate.title : ''}`;
       chip.style.display = 'inline-flex';
+      openTranscriptTab();
       toast('Document generated successfully');
     } catch(e) {
       toast('Generation failed: ' + e.message, 'error');
@@ -6973,32 +6974,49 @@ async function lnChatSend() {
       } catch(e) {}
     }
 
+    const notes = state.allNotes || [];
+    const profiles = state.patientProfiles || {};
+    const queryLc = text.toLowerCase();
+
+    // Detect if query mentions a specific patient name from the loaded notes
+    const uniqueNames = [...new Set(notes.map(n => (n.patient || '').trim()).filter(Boolean))];
+    const mentionedName = uniqueNames.find(name => queryLc.includes(name.toLowerCase()));
+
     let patientCtx = '';
-    if (state.allNotes && state.allNotes.length > 0) {
-      const pts = {};
-      state.allNotes.forEach(function(n) {
-        const name = n.patient || 'Unknown';
-        const key  = (name).trim().toLowerCase();
-        if (!pts[key]) pts[key] = { name: name, dates: [], diagnoses: [], reg: n.reg_number || '' };
-        pts[key].dates.push(n.date || '');
-        if (n.diagnosis && pts[key].diagnoses.indexOf(n.diagnosis.trim()) === -1) pts[key].diagnoses.push(n.diagnosis.trim());
-      });
-      const profiles = state.patientProfiles || {};
-      const ptLines = Object.keys(pts).map(function(key) {
-        const p = pts[key];
+    let systemPrompt = '';
+
+    if (mentionedName) {
+      // Full note detail mode — strict, no guessing
+      const matchingNotes = notes.filter(n => (n.patient || '').trim().toLowerCase() === mentionedName.toLowerCase());
+      const profileKey = mentionedName.trim().toLowerCase();
+      const prof = profiles[profileKey] || {};
+      const noteFields = ['diagnosis','presentation','history','medications','mse','content','scales','risk','referrals','summary','nextsteps','attendance'];
+      const noteBlocks = matchingNotes.map(function(n, i) {
+        const lines = ['NOTE ' + (i + 1) + ' — ' + (n.date || 'unknown date') + (n.time ? ' ' + n.time : '')];
+        noteFields.forEach(function(f) {
+          lines.push('  ' + f + ': ' + (n[f] && n[f].trim() ? n[f].trim() : '[not recorded]'));
+        });
+        return lines.join('\n');
+      }).join('\n\n');
+      patientCtx = 'PATIENT: ' + mentionedName + (prof.dob ? ' | DOB: ' + prof.dob : '') + (prof.gender ? ' | ' + prof.gender : '') + '\n\n' + noteBlocks;
+      systemPrompt = 'You are the LushNote AI assistant. Answer questions about the patient below using ONLY the information recorded in their notes.\n\nRULES:\n- If a field says "[not recorded]", tell the user that information was not recorded in the note.\n- Do NOT guess, infer, or add information not present in the notes.\n- If unsure which note is relevant, refer to the date.\n\n' + patientCtx;
+    } else {
+      // General mode — patient list summary + app knowledge
+      const ptLines = uniqueNames.map(function(name) {
+        const key = name.toLowerCase();
         const prof = profiles[key] || {};
-        const parts = [p.name];
+        const ptNotes = notes.filter(n => (n.patient || '').trim().toLowerCase() === key);
+        const parts = [name];
         if (prof.dob)    parts.push('DOB: ' + prof.dob);
         if (prof.gender) parts.push(prof.gender);
-        if (p.reg)       parts.push('ID: ' + p.reg);
-        parts.push(p.dates.length + ' note(s), last: ' + (p.dates[0] || '?'));
-        if (p.diagnoses.length) parts.push('Dx: ' + p.diagnoses.join('; '));
+        parts.push(ptNotes.length + ' note(s), last: ' + (ptNotes[0] && ptNotes[0].date || '?'));
+        const dxList = [...new Set(ptNotes.map(n => n.diagnosis).filter(Boolean))];
+        if (dxList.length) parts.push('Dx: ' + dxList.join('; '));
         return '  - ' + parts.join(' | ');
       }).join('\n');
-      patientCtx = '\n\nCURRENT PATIENTS (' + Object.keys(pts).length + '):\n' + ptLines;
+      patientCtx = notes.length ? '\n\nPATIENT LIST (' + uniqueNames.length + ' patients):\n' + ptLines : '';
+      systemPrompt = 'You are the LushNote AI assistant — an expert helper for the LushNote clinical note builder app for psychiatrists.\n\nKNOWLEDGE BASE:\n' + LUSHNOTE_KB + patientCtx + '\n\nAnswer helpfully and concisely. For patient questions, use only the patient list above. If information is not listed, say it is not recorded — do not guess.';
     }
-
-    const systemPrompt = 'You are the LushNote AI assistant — an expert helper for the LushNote clinical note builder app for psychiatrists.\n\nKNOWLEDGE BASE:\n' + LUSHNOTE_KB + patientCtx + '\n\nAnswer helpfully and concisely. If the user asks about a patient, use the patient list above. If you do not know the answer, say so honestly. Do not make up features that do not exist.';
 
     const contents = [
       { role: 'user', parts: [{ text: systemPrompt }] },
