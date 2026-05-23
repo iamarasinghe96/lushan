@@ -6874,7 +6874,7 @@ function lnOpenChat(mode) {
     title.textContent = 'Live Support';
     sub.textContent   = 'Contact the developer';
     escBar.style.display = 'none';
-    lnAddMsg('ai', "Hi! Describe your issue and the developer will reply to your email. You can attach a screenshot too.");
+    lnAddMsg('ai', "Hi! Describe your issue and the developer will get back to you at " + ((currentUser && currentUser.email) ? currentUser.email : 'your email') + ".");
   }
 
   lnCloseFabSubs();
@@ -7070,8 +7070,25 @@ async function lnLiveSend(text) {
     }
 
     if (SLACK_WEBHOOK) {
-      fetch(SLACK_WEBHOOK, { method: 'POST', body: JSON.stringify(slackMsg) }).catch(function() {});
-      lnAddMsg('ai', "I've notified the developer on Slack and they'll get back to you at " + userEmail + " shortly.");
+      try {
+        const slackRes = await fetch(SLACK_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(slackMsg)
+        });
+        if (slackRes.ok) {
+          lnAddMsg('ai', "I've notified the developer on Slack. They'll reply to " + userEmail + " shortly.");
+        } else {
+          throw new Error('HTTP ' + slackRes.status);
+        }
+      } catch (slackErr) {
+        const subject = encodeURIComponent('LushNote Support: ' + text.slice(0, 60));
+        const body    = encodeURIComponent('From: ' + userEmail + '\n\nIssue: ' + text + '\n\nAI note: ' + escalateReason);
+        const a = document.createElement('a');
+        a.href = 'mailto:' + ADMIN_EMAIL + '?subject=' + subject + '&body=' + body;
+        a.click();
+        lnAddMsg('ai', 'Slack notification failed (' + slackErr.message + '). An email draft has been opened — please send it and the developer will reply to ' + userEmail + '.');
+      }
     } else {
       const subject = encodeURIComponent('LushNote Support: ' + text.slice(0, 60));
       const body    = encodeURIComponent('From: ' + userEmail + '\n\nIssue: ' + text + '\n\nAI note: ' + escalateReason);
@@ -7101,8 +7118,9 @@ function lnEscalate() {
     ]
   };
   if (SLACK_WEBHOOK) {
-    fetch(SLACK_WEBHOOK, { method: 'POST', body: JSON.stringify(slackMsg) }).catch(function() {});
-    toast('Developer notified on Slack.');
+    fetch(SLACK_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(slackMsg) })
+      .then(function(r) { toast(r.ok ? 'Developer notified on Slack.' : 'Slack error ' + r.status + ' — check webhook.'); })
+      .catch(function(e) { toast('Slack failed: ' + e.message); });
   } else {
     const subject = encodeURIComponent('LushNote Support: Need help');
     const body    = encodeURIComponent('From: ' + userEmail + '\n\nConversation:\n' + chatSoFar);
