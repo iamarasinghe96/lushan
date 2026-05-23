@@ -926,6 +926,7 @@
       display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 10px;
     }
     #ln-fab-wrap.fab-hidden { display: none; }
+    body.transcript-active #ln-fab-wrap { display: none; }
     .ln-fab-main {
       width: 54px; height: 54px; border-radius: 50%;
       background: #10b981; color: #fff; border: none; cursor: pointer;
@@ -3605,7 +3606,12 @@ function loadNoteFromHistory(note) {
   state.lastTranscript = note.transcript || null;
   state.lastTranscriptMode = note.transcriptMode || 'paste';
   const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
-  if (trsTabBtn && !state.lastTranscript) trsTabBtn.remove();
+  if (!state.lastTranscript) {
+    if (trsTabBtn) trsTabBtn.remove();
+  } else {
+    _initTranscriptPanel();
+    _ensureTranscriptTabBtn();
+  }
 
   state.currentNoteId = note.id;
   populateFields(note);
@@ -4176,6 +4182,8 @@ function switchTab(name, { updateHash = true } = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   document.body.classList.toggle('tab-edit-active', name === 'edit' || name === 'transcript');
+  document.body.classList.toggle('transcript-active', name === 'transcript');
+  if (name === 'transcript') lnCloseChat();
   const activeBtn = document.querySelector('.tab-btn[data-tab="' + name + '"]');
   if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   if (name === 'generate') document.getElementById('transcript-chip').style.display = 'none';
@@ -4219,27 +4227,36 @@ window.addEventListener('hashchange', () => {
 })();
 
 // ── Transcript tab ──
-function openTranscriptTab() {
-  const transcript = state.lastTranscript;
-  if (!transcript) { toast('No transcript available for this note.'); return; }
+function _initTranscriptPanel() {
   const txtEl = document.getElementById('trs-transcript-text');
-  txtEl.textContent = transcript;
-  txtEl.classList.remove('expanded');
+  if (txtEl) { txtEl.textContent = state.lastTranscript || ''; txtEl.classList.remove('expanded'); }
   const expandBtn = document.getElementById('trs-expand-btn');
   if (expandBtn) expandBtn.textContent = 'Show more ▾';
   const modeMap = { paste: 'Pasted Text', conversation: 'Recorded Session', dictation: 'Dictated Note', document: 'Uploaded File' };
-  document.getElementById('trs-mode-label').textContent = modeMap[state.lastTranscriptMode] || '';
-  document.getElementById('trs-chat').innerHTML = '';
-  document.getElementById('trs-question').value = '';
+  const modeLabel = document.getElementById('trs-mode-label');
+  if (modeLabel) modeLabel.textContent = modeMap[state.lastTranscriptMode] || '';
+  const chat = document.getElementById('trs-chat');
+  if (chat) chat.innerHTML = '';
+  const q = document.getElementById('trs-question');
+  if (q) q.value = '';
+}
+
+function _ensureTranscriptTabBtn() {
   if (!document.querySelector('.tab-btn[data-tab="transcript"]')) {
     const tabs = document.querySelector('.tabs');
     const btn = document.createElement('button');
     btn.className = 'tab-btn';
     btn.dataset.tab = 'transcript';
     btn.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:4px;"><path d="M9 12h6M9 16h4M7 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8l-5-4H7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Transcript';
-    btn.addEventListener('click', () => switchTab('transcript'));
+    btn.addEventListener('click', () => openTranscriptTab());
     tabs.appendChild(btn);
   }
+}
+
+function openTranscriptTab() {
+  if (!state.lastTranscript) { toast('No transcript available for this note.'); return; }
+  _initTranscriptPanel();
+  _ensureTranscriptTabBtn();
   switchTab('transcript');
 }
 
