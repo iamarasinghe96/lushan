@@ -6291,11 +6291,26 @@ function openCreateDocumentModal() {
       if (assignment.reg) data.reg_number = assignment.reg;
       populateFields(data);
       const now = new Date();
+      const endH = String(now.getHours()).padStart(2,'0');
+      const endM = String(now.getMinutes()).padStart(2,'0');
       document.getElementById('e-date-display').value = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+      document.getElementById('e-time-start').value = `${endH}:00`;
+      document.getElementById('e-time-end').value   = `${endH}:${endM}`;
+      autoFillPatientDefaults();
       livePreview(); updateExportPreview(); updateEmailSubject();
       const chip = document.getElementById('transcript-chip');
       document.getElementById('transcript-chip-text').textContent = `Document, ${content.split(/\s+/).length} words${chosenTemplate ? ' · ' + chosenTemplate.title : ''}`;
       chip.style.display = 'inline-flex';
+      if (assignment.isNewPatient && assignment.patient) {
+        const npKey = normalisePatientKey(assignment.patient);
+        if (!state.patientProfiles[npKey]) {
+          try { await savePatientProfile(npKey, { displayName: assignment.patient, dob: assignment.dob || '', gender: assignment.gender || '' }); } catch(e) {}
+        }
+      }
+      if (db) {
+        state.currentNoteId = null;
+        await saveCurrentNote(true);
+      }
       switchTab('export');
       toast('Document generated successfully');
     } catch(e) {
