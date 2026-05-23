@@ -4254,11 +4254,24 @@ function trsHighlightQuote(quote) {
   const txtEl = document.getElementById('trs-transcript-text');
   if (!txtEl) return;
   const transcript = state.lastTranscript || '';
-  const idx = transcript.toLowerCase().indexOf(quote.toLowerCase());
+  let idx = transcript.toLowerCase().indexOf(quote.toLowerCase());
+  let matchLen = quote.length;
+  if (idx === -1) {
+    // Fuzzy: match first 5 significant words with flexible whitespace/punctuation between them
+    const words = quote.replace(/[^\w\s]/g, ' ').split(/\s+/).filter(function(w) { return w.length > 2; }).slice(0, 5);
+    if (words.length >= 2) {
+      const pattern = words.map(function(w) { return w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('[\\s\\S]{0,25}');
+      try {
+        const re = new RegExp(pattern, 'i');
+        const m = re.exec(transcript);
+        if (m) { idx = m.index; matchLen = m[0].length; }
+      } catch(e) {}
+    }
+  }
   if (idx === -1) return;
   const before = esc(transcript.slice(0, idx));
-  const match = esc(transcript.slice(idx, idx + quote.length));
-  const after = esc(transcript.slice(idx + quote.length));
+  const match = esc(transcript.slice(idx, idx + matchLen));
+  const after = esc(transcript.slice(idx + matchLen));
   txtEl.innerHTML = before + '<mark class="trs-hl">' + match + '</mark>' + after;
   if (!txtEl.classList.contains('expanded')) {
     txtEl.classList.add('expanded');
@@ -4300,7 +4313,7 @@ function _trsRenderAnswer(bubble, rawText) {
   }
   let html = '<p class="trs-answer">' + esc(parsed.answer || '') + (parsed.inferred ? '<span class="trs-inference-badge">AI inference</span>' : '') + '</p>';
   if (parsed.quote) {
-    html += '<div class="trs-quote" onclick="trsHighlightQuote(' + JSON.stringify(esc(parsed.quote)) + '.replace(/&amp;/g,\'&\').replace(/&lt;/g,\'<\').replace(/&gt;/g,\'>\'))">'
+    html += '<div class="trs-quote" data-quote="' + esc(parsed.quote) + '" onclick="trsHighlightQuote(this.dataset.quote)">'
       + '<span class="trs-quote-text">' + esc(parsed.quote) + '</span>'
       + '<span class="trs-quote-icon">↗</span>'
       + '</div>';
@@ -4341,7 +4354,7 @@ CRITICAL: Do not fabricate. "quote" must be copied word-for-word from the transc
 JSON format: {"found": bool, "inferred": bool, "answer": "...", "quote": "..." or null}
 
 TRANSCRIPT:
-${transcript.slice(0, 12000)}`;
+${transcript}`;
     const geminiKey = getGeminiKey();
     if (!geminiKey) {
       thinkingMsg.className = 'trs-msg ai';
