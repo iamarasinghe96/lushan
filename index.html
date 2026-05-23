@@ -471,13 +471,15 @@
 
     /* ── Toast ── */
     #toast {
-      position: fixed; bottom: 22px; right: 22px;
+      position: fixed;
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      right: 20px;
       background: var(--text); color: #fff; padding: 11px 18px;
       border-radius: var(--r); font-size: .83rem; font-weight: 600;
       opacity: 0; transform: translateY(8px);
       transition: opacity .3s, transform .3s; z-index: 999; pointer-events: none;
       display: flex; align-items: center; gap: 8px;
-      box-shadow: var(--shadow-xl); max-width: 360px; line-height: 1.4;
+      box-shadow: var(--shadow-xl); max-width: calc(100vw - 40px); line-height: 1.4;
     }
     #toast.show { opacity: 1; transform: translateY(0); }
     #toast.toast-success { background: #064e3b; }
