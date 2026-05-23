@@ -4133,7 +4133,7 @@ function toast(msg, type, duration) {
   el.innerHTML = `<span style="font-size:1rem;line-height:1">${icon}</span><span>${msg}</span>`;
   el.classList.add('show');
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), duration || 2800);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), duration || 5000);
 }
 
 function showConfirm(message, opts = {}) {

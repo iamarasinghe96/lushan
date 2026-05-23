@@ -338,6 +338,32 @@
         <span id="st-gemini-key-saved" style="font-size:.8rem;color:#059669;margin-left:10px;display:none;">Saved ✓</span>
       </div>
 
+      <div class="st-section">
+        <h2 class="st-section-h">Groq API Key <span style="font-size:.72rem;font-weight:500;color:#6b7280;background:#f3f4f6;border:1px solid #e5e7eb;padding:2px 8px;border-radius:20px;margin-left:6px;">Extends daily limits</span></h2>
+        <p style="font-size:.83rem;color:#6b7280;margin-bottom:14px;">When your Gemini daily quota is reached (20 requests/day on the free tier), LushNote automatically switches to Groq for note generation and AI chat — no interruption. Groq is free with much higher limits.</p>
+
+        <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:10px;">How to get your free Groq key</div>
+          <ol style="margin:0;padding-left:18px;font-size:.83rem;color:#374151;line-height:2;">
+            <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;">console.groq.com/keys</a> and sign in</li>
+            <li>Click <strong>Create API Key</strong>, give it a name (e.g. <em>LushNote</em>)</li>
+            <li>Copy the key shown. It starts with <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.8rem;">gsk_</code></li>
+            <li>Paste it in the field below and click <strong>Save Key</strong></li>
+          </ol>
+        </div>
+
+        <div class="field-row">
+          <label>Groq API Key</label>
+          <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" style="font-family:monospace;" />
+          <p style="font-size:.75rem;color:#6b7280;margin-top:4px;">Stored securely in your account — available on any device you sign in with.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+          <button class="btn btn-primary" onclick="stSaveGroqKey()">Save Key</button>
+          <span id="st-groq-key-saved" style="font-size:.8rem;color:#059669;display:none;">Saved ✓</span>
+          <button id="st-groq-remove-btn" onclick="stRemoveGroqKey()" class="btn btn-outline" style="display:none;margin-left:auto;">Remove key</button>
+        </div>
+      </div>
+
     </div>
 
     <!-- Personalisation -->
