@@ -5290,8 +5290,9 @@ if (res.status === 400 && msg.toLowerCase().includes('api key')) return 'Invalid
   if (res.status === 401 || res.status === 403) return 'Invalid or expired Gemini API key. Please update it in Settings → API Keys.';
   if (res.status === 429) {
     const lc = msg.toLowerCase();
-    const isDaily = lc.includes('daily') || lc.includes('tomorrow') || lc.includes('per day') || (lc.includes('quota') && lc.includes('exhausted'));
-    return isDaily ? 'Daily Gemini quota reached. Try again tomorrow or upgrade your Google AI Studio plan.' : 'Gemini rate limit — please wait 60 seconds and try again.';
+    const status = (body.error && body.error.status || '').toLowerCase();
+    const isQuota = status === 'resource_exhausted' || lc.includes('quota') || lc.includes('daily') || lc.includes('exceeded') || lc.includes('exhausted') || lc.includes('per day') || lc.includes('tomorrow');
+    return isQuota ? 'Daily Gemini quota reached (20 requests/day free tier). Try again tomorrow or add billing at ai.google.dev.' : 'Gemini rate limit reached. Please try again shortly.';
   }
   if (res.status >= 500) return 'Gemini service error. Please try again in a moment.';
   return msg || ('Gemini error ' + res.status);
