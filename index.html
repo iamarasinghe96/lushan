@@ -5318,6 +5318,15 @@ function _geminiIncrCount(model) {
   _updateApiQuotaBar();
 }
 
+function _quotaResetIn() {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const ms = midnight - now;
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? 'Resets in ' + h + 'h ' + m + 'm' : 'Resets in ' + m + 'm';
+}
+
 function _updateApiQuotaBar() {
   const bar = document.getElementById('api-quota-bar');
   const txt = document.getElementById('api-quota-text');
@@ -5339,8 +5348,11 @@ function _updateApiQuotaBar() {
   const exhausted = flashLeft === 0 || liteLeft === 0;
   const warning   = !exhausted && (flashLeft <= 5 || liteLeft <= 5);
   bar.className = exhausted ? 'quota-full' : (warning ? 'quota-warn' : '');
-  txt.textContent = 'Gemini today: ' + flashLeft + '/20 generation · ' + liteLeft + '/20 chat left';
-  if (lnk) lnk.style.display = exhausted ? '' : 'none';
+  txt.textContent = 'Gemini today: ' + flashLeft + '/20 generation · ' + liteLeft + '/20 chat left · ' + _quotaResetIn();
+  if (lnk) {
+    lnk.textContent = exhausted ? 'Add Groq key to keep going →' : 'Add Groq API to extend usage →';
+    lnk.style.display = '';
+  }
   bar.style.display = 'flex';
 }
 
