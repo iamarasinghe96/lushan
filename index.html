@@ -3591,10 +3591,8 @@ function loadNoteById(id) {
 
 function loadNoteFromHistory(note) {
   _cancelActiveAnimation();
-  if (note.transcript) {
-    state.lastTranscript = note.transcript;
-    state.lastTranscriptMode = note.transcriptMode || 'paste';
-  }
+  state.lastTranscript = note.transcript || null;
+  state.lastTranscriptMode = note.transcriptMode || 'paste';
   const trsTabBtn = document.querySelector('.tab-btn[data-tab="transcript"]');
   if (trsTabBtn && !state.lastTranscript) trsTabBtn.remove();
 
