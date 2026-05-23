@@ -312,6 +312,7 @@
       border-color: #34d399;
     }
     #api-quota-bar { display:none; margin-bottom:14px; padding:9px 14px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; font-size:.79rem; color:#065f46; align-items:center; gap:8px; flex-wrap:wrap; }
+    #api-quota-text { flex:1; min-width:0; }
     #api-quota-bar.quota-warn { background:#fffbeb; border-color:#fde68a; color:#92400e; }
     #api-quota-bar.quota-full { background:#fef2f2; border-color:#fecaca; color:#991b1b; }
     #api-quota-bar.groq-active { background:#eff6ff; border-color:#bfdbfe; color:#1e40af; }
@@ -473,7 +474,7 @@
     #toast {
       position: fixed;
       bottom: calc(88px + env(safe-area-inset-bottom));
-      right: 20px;
+      left: 20px;
       background: var(--text); color: #fff; padding: 11px 18px;
       border-radius: var(--r); font-size: .83rem; font-weight: 600;
       opacity: 0; transform: translateY(8px);
@@ -4291,8 +4292,10 @@ async function trsAsk() {
       const data = await res.json();
       answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : '';
     } else if (res.status === 429 && getGroqKey()) {
+      _geminiMarkExhausted('lite');
       answer = await _groqChat([{ role: 'system', content: sysPrompt }, { role: 'user', content: question }], 512);
     } else if (res.status === 429) {
+      _geminiMarkExhausted('lite');
       _showGroqSetupPrompt();
       const rawText = await res.text();
       answer = await _geminiErrorMsg(res, rawText);
@@ -5315,6 +5318,14 @@ function _geminiIncrCount(model) {
   _updateApiQuotaBar();
 }
 
+function _geminiMarkExhausted(model) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem('lnGem_' + model, JSON.stringify({d: today, n: GEMINI_RPD}));
+  } catch(e) {}
+  _updateApiQuotaBar();
+}
+
 function _quotaResetIn() {
   const now = new Date();
   const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
@@ -5479,6 +5490,7 @@ async function transcribeAudio(blob) {
       ]}]);
       return transcript.trim();
     } catch(e) {
+      if (e._quotaExhausted) _geminiMarkExhausted('flash');
       if (e._quotaExhausted && !getGroqKey()) { _showGroqSetupPrompt(); throw e; }
       if (!e._quotaExhausted) throw e;
       setLoading(true, 'Transcribing via Groq…');
@@ -5530,6 +5542,7 @@ async function callGroqWithMode(transcript, mode, templatePrompt = null) {
       return await _geminiGenerate([{ parts: [{ text: userMsg }] }], systemPrompt);
     } catch(e) {
       if (e._quotaExhausted) {
+        _geminiMarkExhausted('flash');
         if (getGroqKey()) { /* fall through to Groq below */ }
         else { _showGroqSetupPrompt(); throw e; }
       } else { throw e; }
@@ -7187,11 +7200,13 @@ async function lnChatSend() {
       const data = await res.json();
       answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : '';
     } else if (res.status === 429 && getGroqKey()) {
+      _geminiMarkExhausted('lite');
       const groqMsgs = [{ role: 'system', content: systemPrompt }].concat(
         _lnHistory.map(function(m) { return { role: m.role === 'model' ? 'assistant' : 'user', content: m.parts[0].text }; })
       );
       answer = await _groqChat(groqMsgs, 700);
     } else if (res.status === 429) {
+      _geminiMarkExhausted('lite');
       _showGroqSetupPrompt();
       const rawText = await res.text();
       lnRemoveTyping();
@@ -7235,8 +7250,11 @@ async function lnLiveSend(text) {
           aiAnswer = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) ? d.candidates[0].content.parts[0].text : '';
           if (aiAnswer && !aiAnswer.startsWith('ESCALATE:')) aiCouldAnswer = true;
         } else if (res.status === 429 && getGroqKey()) {
+          _geminiMarkExhausted('lite');
           aiAnswer = await _groqChat([{ role: 'system', content: liveSystemPrompt }, { role: 'user', content: text }], 600);
           if (aiAnswer && !aiAnswer.startsWith('ESCALATE:')) aiCouldAnswer = true;
+        } else if (res.status === 429) {
+          _geminiMarkExhausted('lite');
         }
       } catch(e) {}
     }
