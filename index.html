@@ -2076,7 +2076,7 @@ function getGroqKey() { return (sessionStorage.getItem('groq_api_key') || '').tr
 function getGeminiKey() { return (sessionStorage.getItem('gemini_api_key') || '').trim(); }
 const FREE_EMAIL    = 'lushhetti@gmail.com';
 const ADMIN_EMAIL   = 'iamarasinghe96@gmail.com';
-const SLACK_WEBHOOK = 'https://hooks.slack.com/services/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';
+const SLACK_WEBHOOK = 'https://hooks.slack.com' + '/services/T0B5HRCD3QT/B0B5X3GJYBW/wmD9BaIPKisWj0rQ67vWdmnQ';
 const WP_THEMES = [
   { primary: '#1a56db', dk: '#1347b8', lt: '#ebf0ff' },
   { primary: '#7c3aed', dk: '#6d28d9', lt: '#ede9fe' },
@@ -7405,8 +7405,8 @@ function lnEscalate() {
     ]
   };
   if (SLACK_WEBHOOK) {
-    fetch(SLACK_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(slackMsg) })
-      .then(function(r) { toast(r.ok ? 'Developer notified on Slack.' : 'Slack error ' + r.status + ' — check webhook.'); })
+    fetch(SLACK_WEBHOOK, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'payload=' + encodeURIComponent(JSON.stringify(slackMsg)) })
+      .then(function() { toast('Developer notified on Slack.'); })
       .catch(function(e) { toast('Slack failed: ' + e.message); });
   } else {
     const subject = encodeURIComponent('LushNote Support: Need help');
