@@ -2636,6 +2636,8 @@ FIELD MAPPING — populate each JSON field strictly from the transcript using th
 IMPORTANT: Return ONLY a raw JSON object (no markdown fences, no explanation). The JSON must have exactly these keys:
 patient, date, time, clinician, session_number, attendance, diagnosis, presentation, history, medications, mse, content, scales, risk, referrals, summary, nextsteps.
 Every field value must be a plain string (never a nested object or array). For multi-section fields like content, embed all sub-sections as formatted plain text with headings and bullet points inside a single string value.
+Do NOT prefix section names or field labels with numbers (e.g. never write "1. Session Content:" or "5. Goals:"). Numbered lists may only appear within field content where explicitly requested.
+For risk assessment fields that are not mentioned in the transcript, write "Not mentioned" rather than leaving them blank.
 Use empty string "" for any field not applicable to this template. Do not fabricate clinical details.`;
 }
 
