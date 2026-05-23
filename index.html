@@ -304,6 +304,13 @@
     .anim-dots span { display:inline-block; animation: dotFade 1.2s ease-in-out infinite; }
     .anim-dots span:nth-child(2) { animation-delay:.25s; }
     .anim-dots span:nth-child(3) { animation-delay:.5s; }
+    @keyframes nb-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    #current-note-bar.generating {
+      background: linear-gradient(90deg, #d1fae5 0%, #6ee7b7 40%, #a7f3d0 60%, #d1fae5 100%);
+      background-size: 300% 100%;
+      animation: nb-shimmer 2s linear infinite;
+      border-color: #34d399;
+    }
 
     /* ── Preview Pane ── */
     #preview-pane {
@@ -2585,7 +2592,6 @@ if (!groqKey && !getGeminiKey()) { _checkGroqAudioKey(() => pasteAndGenerate());
       }
     }
 
-    openTranscriptTab();
     toast('Report generated!');
   } catch(e) {
     if (!e._dailyLimit) toast('Error: ' + e.message);
@@ -2783,10 +2789,12 @@ function _setEditGenerating(on) {
     livePreview();
     bar.style.opacity = '0';
     bar.style.display = 'flex';
+    bar.classList.add('generating');
     requestAnimationFrame(() => { bar.style.opacity = '1'; });
     _startStatusSequence();
   } else {
     _stopStatusSequence();
+    bar.classList.remove('generating');
     if (!_isAnimating) updateNoteBar();
   }
 }
@@ -5601,7 +5609,7 @@ async function processAudioAndGenerate(blob, mode) {
       }
     }
 
-    openTranscriptTab();
+    switchTab('edit');
     toast('Note generated successfully');
   } catch(e) {
     toast('Generation failed: ' + e.message, 'error');
@@ -5971,7 +5979,7 @@ function openCreateDocumentModal() {
       const chip = document.getElementById('transcript-chip');
       document.getElementById('transcript-chip-text').textContent = `Document, ${content.split(/\s+/).length} words${chosenTemplate ? ' · ' + chosenTemplate.title : ''}`;
       chip.style.display = 'inline-flex';
-      openTranscriptTab();
+      switchTab('export');
       toast('Document generated successfully');
     } catch(e) {
       toast('Generation failed: ' + e.message, 'error');
