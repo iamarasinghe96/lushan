@@ -7303,8 +7303,8 @@ async function lnChatSend() {
     if (res.ok) {
       const data = await res.json();
       answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : '';
-    } else if (res.status === 429 && getGroqKey()) {
-      _geminiMarkExhausted('lite');
+    } else if (getGroqKey()) {
+      if (res.status === 429) _geminiMarkExhausted('lite');
       const groqMsgs = [{ role: 'system', content: systemPrompt }].concat(
         _lnHistory.map(function(m) { return { role: m.role === 'model' ? 'assistant' : 'user', content: m.parts[0].text }; })
       );
