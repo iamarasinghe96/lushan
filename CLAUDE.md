@@ -274,6 +274,17 @@ Both exist as scaffolding remnants. Remove when refactoring that section.
 - **Patient CRUD**: `openAddPatientModal()` → `pmSave()` → `savePatientProfile()`
 - After audio generation: stats card (`#session-stats-card`) and raw transcript (`#raw-transcript-section`) are shown in Edit tab
 
+## Consistency Rule — Fix All Similar Instances
+When the user reports a bug or requests a change, always scan the entire codebase for other places where the same pattern exists and apply the fix consistently across all of them — **with the user's explicit consent before making the sweeping change**.
+
+Workflow:
+1. Fix the reported instance.
+2. Identify all other similar instances (e.g. same missing guard, same missing save call, same missing field clear).
+3. Tell the user what other instances were found and what the consistent fix would be.
+4. Wait for the user to confirm before applying the broader fix.
+
+Example from this project: when auto-save after generation was missing from the recording flow, the same omission existed in the Create from Document flow. The fix was applied to both only after the user confirmed.
+
 ## DO NOT rules
 - Do NOT store patient data in localStorage or sessionStorage
 - Do NOT add hardcoded Groq API keys
