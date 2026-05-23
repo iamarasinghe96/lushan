@@ -311,6 +311,10 @@
       animation: nb-shimmer 2s linear infinite;
       border-color: #34d399;
     }
+    #api-quota-bar { display:none; margin-bottom:14px; padding:9px 14px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; font-size:.79rem; color:#065f46; align-items:center; gap:8px; flex-wrap:wrap; }
+    #api-quota-bar.quota-warn { background:#fffbeb; border-color:#fde68a; color:#92400e; }
+    #api-quota-bar.quota-full { background:#fef2f2; border-color:#fecaca; color:#991b1b; }
+    #api-quota-bar.groq-active { background:#eff6ff; border-color:#bfdbfe; color:#1e40af; }
 
     /* ── Preview Pane ── */
     #preview-pane {
@@ -1570,6 +1574,11 @@ With regards,
         <p id="interrupted-banner-msg" style="font-size:.81rem;color:#b45309;margin:0;line-height:1.5;"></p>
       </div>
       <button onclick="dismissInterruptedBanner()" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#b45309;font-size:1.1rem;line-height:1;padding:2px 4px;">&times;</button>
+    </div>
+
+    <div id="api-quota-bar">
+      <span id="api-quota-text"></span>
+      <button id="api-quota-link" onclick="openSettings('apikeys')" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:.79rem;font-weight:600;color:inherit;padding:0;text-decoration:underline;font-family:inherit;">Add Groq key →</button>
     </div>
 
     <div class="input-mode-grid">
@@ -4274,22 +4283,28 @@ async function trsAsk() {
       thinkingMsg.textContent = 'No Gemini API key configured. Please add your key in Settings.';
       return;
     }
+    _geminiIncrCount('lite');
     const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: sysPrompt + '\n\nQuestion: ' + question }] }], generationConfig: { temperature: 0.0, maxOutputTokens: 512 } })
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(function() { return {}; });
-      const errMsg = (errData.error && errData.error.message) ? errData.error.message : 'API error (' + res.status + ')';
-      thinkingMsg.className = 'trs-msg ai';
-      thinkingMsg.textContent = errMsg;
-      return;
+    let answer = '';
+    if (res.ok) {
+      const data = await res.json();
+      answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : '';
+    } else if (res.status === 429 && getGroqKey()) {
+      answer = await _groqChat([{ role: 'system', content: sysPrompt }, { role: 'user', content: question }], 512);
+    } else if (res.status === 429) {
+      _showGroqSetupPrompt();
+      const rawText = await res.text();
+      answer = await _geminiErrorMsg(res, rawText);
+    } else {
+      const rawText = await res.text();
+      answer = await _geminiErrorMsg(res, rawText);
     }
-    const data = await res.json();
-    const answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : 'No response from AI. Please try again.';
     thinkingMsg.className = 'trs-msg ai';
-    thinkingMsg.textContent = answer;
+    thinkingMsg.textContent = answer || 'No response. Please try again.';
   } catch (err) {
     thinkingMsg.className = 'trs-msg ai';
     thinkingMsg.textContent = 'Error: ' + (err.message || 'Something went wrong.');
@@ -5282,6 +5297,112 @@ function _recFormatTime(s) {
 }
 
 
+const GEMINI_RPD = 20;
+
+function _geminiCountToday(model) {
+  try {
+    const s = JSON.parse(localStorage.getItem('lnGem_' + model) || '{}');
+    const today = new Date().toISOString().slice(0, 10);
+    return s.d === today ? (s.n || 0) : 0;
+  } catch(e) { return 0; }
+}
+
+function _geminiIncrCount(model) {
+  try {
+    const key = 'lnGem_' + model;
+    const today = new Date().toISOString().slice(0, 10);
+    const s = JSON.parse(localStorage.getItem(key) || '{}');
+    const n = (s.d === today ? (s.n || 0) : 0) + 1;
+    localStorage.setItem(key, JSON.stringify({d: today, n: n}));
+  } catch(e) {}
+  _updateApiQuotaBar();
+}
+
+function _updateApiQuotaBar() {
+  const bar = document.getElementById('api-quota-bar');
+  const txt = document.getElementById('api-quota-text');
+  const lnk = document.getElementById('api-quota-link');
+  if (!bar || !txt) return;
+  const hasGroq = !!getGroqKey();
+  if (hasGroq) {
+    bar.className = 'groq-active';
+    txt.textContent = 'Groq API active — generation and chat unlimited';
+    if (lnk) lnk.style.display = 'none';
+    bar.style.display = 'flex';
+    return;
+  }
+  if (!getGeminiKey()) { bar.style.display = 'none'; return; }
+  const flash = _geminiCountToday('flash');
+  const lite  = _geminiCountToday('lite');
+  const flashLeft = Math.max(0, GEMINI_RPD - flash);
+  const liteLeft  = Math.max(0, GEMINI_RPD - lite);
+  const exhausted = flashLeft === 0 || liteLeft === 0;
+  const warning   = !exhausted && (flashLeft <= 5 || liteLeft <= 5);
+  bar.className = exhausted ? 'quota-full' : (warning ? 'quota-warn' : '');
+  txt.textContent = 'Gemini today: ' + flashLeft + '/20 generation · ' + liteLeft + '/20 chat left';
+  if (lnk) lnk.style.display = exhausted ? '' : 'none';
+  bar.style.display = 'flex';
+}
+
+function _showGroqSetupPrompt() {
+  toast('Daily Gemini quota reached. Open Settings → API Keys to add a Groq key and keep going.');
+}
+
+async function _groqChat(messages, maxTokens) {
+  const key = getGroqKey();
+  const res = await fetch(GROQ_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: GROQ_MODEL, messages: messages, temperature: 0.2, max_tokens: maxTokens || 700 })
+  });
+  if (!res.ok) { const e = await res.json().catch(function() { return {}; }); throw new Error((e.error && e.error.message) ? e.error.message : 'Groq error ' + res.status); }
+  const d = await res.json();
+  return (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) ? d.choices[0].message.content : '';
+}
+
+function _refreshApiKeysPane() {
+  const gemEl = document.getElementById('apikeys-gemini-status');
+  if (gemEl) {
+    const flash = _geminiCountToday('flash');
+    const lite  = _geminiCountToday('lite');
+    gemEl.textContent = getGeminiKey() ? 'Key configured ✓' : 'No key set';
+    gemEl.style.color = getGeminiKey() ? '#065f46' : '#6b7280';
+  }
+  const groqInput = document.getElementById('st-groq-key');
+  if (groqInput) groqInput.value = getGroqKey();
+  const removeBtn = document.getElementById('st-groq-remove-btn');
+  if (removeBtn) removeBtn.style.display = getGroqKey() ? '' : 'none';
+  const usageEl = document.getElementById('apikeys-usage-detail');
+  if (usageEl) {
+    const flash = _geminiCountToday('flash');
+    const lite  = _geminiCountToday('lite');
+    usageEl.innerHTML =
+      'Gemini 2.5 Flash (generation): <strong>' + flash + ' / ' + GEMINI_RPD + '</strong> requests today<br>' +
+      'Gemini 2.5 Flash Lite (chat): <strong>' + lite + ' / ' + GEMINI_RPD + '</strong> requests today<br>' +
+      (getGroqKey() ? 'Groq: <strong>active</strong> — taking over when Gemini quota reached' : 'Groq: <strong>not configured</strong>');
+  }
+}
+
+function stSaveGroqKey() {
+  const key = (document.getElementById('st-groq-key').value || '').trim();
+  if (key) {
+    sessionStorage.setItem('groq_api_key', key);
+    if (db && currentUser) { db.collection('users').doc(currentUser.uid).update({ groqApiKey: key }).catch(function() {}); }
+  } else {
+    sessionStorage.removeItem('groq_api_key');
+    if (db && currentUser) { db.collection('users').doc(currentUser.uid).update({ groqApiKey: '' }).catch(function() {}); }
+  }
+  const msg = document.getElementById('st-groq-msg');
+  if (msg) { msg.textContent = key ? 'Groq key saved.' : 'Groq key removed.'; setTimeout(function() { if (msg) msg.textContent = ''; }, 3000); }
+  _refreshApiKeysPane();
+  _updateApiQuotaBar();
+}
+
+function stRemoveGroqKey() {
+  document.getElementById('st-groq-key').value = '';
+  stSaveGroqKey();
+}
+
 async function _geminiErrorMsg(res, rawText) {
   let body = {};
   try { body = JSON.parse(rawText); } catch(e) {}
@@ -5333,7 +5454,7 @@ async function _geminiGenerate(contents, systemText) {
     if (attempt > 0) await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
     const res = await fetch(url, init);
     const rawText = await res.text();
-    if (res.status === 429) { throw new Error(await _geminiErrorMsg(res, rawText)); }
+    if (res.status === 429) { const qe = new Error(await _geminiErrorMsg(res, rawText)); qe._quotaExhausted = true; throw qe; }
     if (res.status === 503) { lastErr = await _geminiErrorMsg(res, rawText); continue; }
     if (!res.ok) throw new Error(await _geminiErrorMsg(res, rawText));
     const d = JSON.parse(rawText);
@@ -5345,14 +5466,21 @@ async function _geminiGenerate(contents, systemText) {
 async function transcribeAudio(blob) {
   const ext = (blob.type||'').includes('ogg') ? 'ogg' : (blob.type||'').includes('mp4') ? 'mp4' : 'webm';
   if (getGeminiKey()) {
-    setLoading(true, 'Uploading audio…');
-    const file = await geminiUploadAudio(blob);
-    setLoading(true, 'Transcribing audio…');
-    const transcript = await _geminiGenerate([{ parts: [
-      { file_data: { mime_type: file.mimeType || blob.type || 'audio/mp4', file_uri: file.uri } },
-      { text: 'Transcribe this audio recording verbatim. Return only the transcript text with no labels, headings, or commentary.' }
-    ]}]);
-    return transcript.trim();
+    try {
+      setLoading(true, 'Uploading audio…');
+      const file = await geminiUploadAudio(blob);
+      setLoading(true, 'Transcribing audio…');
+      _geminiIncrCount('flash');
+      const transcript = await _geminiGenerate([{ parts: [
+        { file_data: { mime_type: file.mimeType || blob.type || 'audio/mp4', file_uri: file.uri } },
+        { text: 'Transcribe this audio recording verbatim. Return only the transcript text with no labels, headings, or commentary.' }
+      ]}]);
+      return transcript.trim();
+    } catch(e) {
+      if (e._quotaExhausted && !getGroqKey()) { _showGroqSetupPrompt(); throw e; }
+      if (!e._quotaExhausted) throw e;
+      setLoading(true, 'Transcribing via Groq…');
+    }
   }
   const MAX_BYTES = 24 * 1024 * 1024;
   if (blob.size > MAX_BYTES) {
@@ -5395,7 +5523,15 @@ async function callGroqWithMode(transcript, mode, templatePrompt = null) {
     const userMsg = mode === 'dictation'
       ? 'Structure this dictated clinical note:\n\n' + redacted
       : 'Structure this consultation transcript into a clinical note:\n\n' + redacted;
-    return await _geminiGenerate([{ parts: [{ text: userMsg }] }], systemPrompt);
+    try {
+      _geminiIncrCount('flash');
+      return await _geminiGenerate([{ parts: [{ text: userMsg }] }], systemPrompt);
+    } catch(e) {
+      if (e._quotaExhausted) {
+        if (getGroqKey()) { /* fall through to Groq below */ }
+        else { _showGroqSetupPrompt(); throw e; }
+      } else { throw e; }
+    }
   }
   const redacted = applyTranscriptRedactions(transcript);
   const personalPrefix = getPersonalisationPrefix();
@@ -6123,6 +6259,7 @@ function validateRegNumber() {
 }
 
 function initApp() {
+  _updateApiQuotaBar();
   loadPatientIndex();
   applyRegPattern();
   const clinEl = document.getElementById('e-clinician');
@@ -6234,10 +6371,11 @@ function closeSettings() {
 }
 
 function settingsNav(tab) {
-  ['profile','workplaces','templates','transcripts','personalisation','subscription'].forEach(t => {
+  ['profile','workplaces','templates','transcripts','personalisation','subscription','apikeys'].forEach(t => {
     document.getElementById('stnav-' + t).classList.toggle('active', t === tab);
     document.getElementById('st-pane-' + t).classList.toggle('active', t === tab);
   });
+  if (tab === 'apikeys') _refreshApiKeysPane();
 }
 
 // ── Profile save ──
@@ -7036,25 +7174,34 @@ async function lnChatSend() {
       { role: 'model', parts: [{ text: "Understood. I'm ready to help with LushNote." }] }
     ].concat(_lnHistory);
 
+    _geminiIncrCount('lite');
     const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: contents, generationConfig: { temperature: 0.2, maxOutputTokens: 700 } })
     });
-    if (!res.ok) {
+    let answer = '';
+    if (res.ok) {
+      const data = await res.json();
+      answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : '';
+    } else if (res.status === 429 && getGroqKey()) {
+      const groqMsgs = [{ role: 'system', content: systemPrompt }].concat(
+        _lnHistory.map(function(m) { return { role: m.role === 'model' ? 'assistant' : 'user', content: m.parts[0].text }; })
+      );
+      answer = await _groqChat(groqMsgs, 700);
+    } else if (res.status === 429) {
+      _showGroqSetupPrompt();
       const rawText = await res.text();
-      const errMsg = await _geminiErrorMsg(res, rawText);
       lnRemoveTyping();
-      lnAddMsg('ai', errMsg);
+      lnAddMsg('ai', await _geminiErrorMsg(res, rawText));
+      return;
+    } else {
+      const rawText = await res.text();
+      lnRemoveTyping();
+      lnAddMsg('ai', await _geminiErrorMsg(res, rawText));
       return;
     }
-    const data = await res.json();
-    const answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : '';
-    if (!answer) {
-      lnRemoveTyping();
-      lnAddMsg('ai', "Couldn't get a response. Please try again.");
-      return;
-    }
+    if (!answer) { lnRemoveTyping(); lnAddMsg('ai', "Couldn't get a response. Please try again."); return; }
     _lnHistory.push({ role: 'model', parts: [{ text: answer }] });
     lnRemoveTyping();
     lnAddMsg('ai', answer);
@@ -7075,6 +7222,7 @@ async function lnLiveSend(text) {
 
     if (geminiKey) {
       try {
+        _geminiIncrCount('lite');
         const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + geminiKey, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -7083,6 +7231,9 @@ async function lnLiveSend(text) {
         if (res.ok) {
           const d = await res.json();
           aiAnswer = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) ? d.candidates[0].content.parts[0].text : '';
+          if (aiAnswer && !aiAnswer.startsWith('ESCALATE:')) aiCouldAnswer = true;
+        } else if (res.status === 429 && getGroqKey()) {
+          aiAnswer = await _groqChat([{ role: 'system', content: liveSystemPrompt }, { role: 'user', content: text }], 600);
           if (aiAnswer && !aiAnswer.startsWith('ESCALATE:')) aiCouldAnswer = true;
         }
       } catch(e) {}
@@ -7233,6 +7384,10 @@ window.lnDebug = function() {
       <button class="stnav-btn" id="stnav-subscription"   onclick="settingsNav('subscription')">
         <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M1 10h22" stroke="currentColor" stroke-width="2"/></svg>
         Subscription
+      </button>
+      <button class="stnav-btn" id="stnav-apikeys" onclick="settingsNav('apikeys')">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        API Keys
       </button>
     </div>
 
@@ -7530,6 +7685,37 @@ window.lnDebug = function() {
             <button class="btn btn-primary" onclick="stSendFeedback()">Send Feedback</button>
           </div>
           <div id="st-feedback-msg" style="font-size:.8rem;margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <!-- ─── API Keys Tab ─── -->
+      <div class="st-pane" id="st-pane-apikeys">
+        <h1 class="st-h1">API Keys</h1>
+        <p class="st-sub">Manage API keys for generation and transcription</p>
+
+        <div class="st-section">
+          <h2 class="st-section-h">Gemini API Key (Primary)</h2>
+          <p style="font-size:.84rem;color:#6b7280;margin-bottom:10px;line-height:1.65;">Used for note generation, audio transcription, and AI chat. Free tier: <strong>20 requests/day</strong> per model. Get a key at <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600;">aistudio.google.com/api-keys</a>.</p>
+          <div id="apikeys-gemini-status" style="font-size:.82rem;font-weight:600;color:#065f46;margin-bottom:8px;"></div>
+        </div>
+
+        <div class="st-section">
+          <h2 class="st-section-h">Groq API Key <span style="font-size:.75rem;font-weight:500;color:#6b7280;">(optional — extends limits)</span></h2>
+          <p style="font-size:.84rem;color:#6b7280;margin-bottom:12px;line-height:1.65;">When your Gemini daily quota is reached, LushNote automatically switches to Groq for note generation and chat. Groq is free with higher limits. Get a key at <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600;">console.groq.com/keys</a>.</p>
+          <div class="field-row">
+            <label>Groq API Key</label>
+            <input type="password" id="st-groq-key" placeholder="gsk_..." autocomplete="off" />
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+            <button class="btn btn-primary btn-sm" onclick="stSaveGroqKey()">Save Groq Key</button>
+            <button class="btn btn-outline btn-sm" onclick="stRemoveGroqKey()" id="st-groq-remove-btn" style="display:none;">Remove</button>
+          </div>
+          <div id="st-groq-msg" style="font-size:.8rem;margin-top:8px;color:#065f46;"></div>
+        </div>
+
+        <div class="st-section" style="background:#f0fdf4;border-color:#bbf7d0;">
+          <h2 class="st-section-h" style="color:#065f46;">Today's Usage</h2>
+          <div id="apikeys-usage-detail" style="font-size:.84rem;color:#374151;line-height:2;"></div>
         </div>
       </div>
 
