@@ -385,6 +385,14 @@
     .trs-msg.user { background: var(--blue); color: #fff; align-self: flex-end; border-radius: var(--r) var(--r) 4px var(--r); }
     .trs-msg.ai { background: var(--bg); border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-radius: var(--r) var(--r) var(--r) 4px; }
     .trs-msg.ai.thinking { color: var(--text3); font-style: italic; }
+    .trs-msg.ai .trs-answer { margin: 0; }
+    .trs-inference-badge { display: inline-block; font-size: .68rem; font-weight: 700; color: #d97706; background: #fef3c7; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+    .trs-quote { margin: 8px 0 0; padding: 8px 11px; border-left: 3px solid var(--blue); background: rgba(59,130,246,.06); border-radius: 0 6px 6px 0; font-size: .79rem; color: var(--text2); cursor: pointer; line-height: 1.5; display: flex; align-items: flex-start; gap: 8px; }
+    .trs-quote:hover { background: rgba(59,130,246,.13); }
+    .trs-quote-text { flex: 1; font-style: italic; }
+    .trs-quote-icon { flex-shrink: 0; font-size: .8rem; opacity: .6; margin-top: 1px; }
+    .trs-not-found { color: var(--text3); font-style: italic; }
+    mark.trs-hl { background: #fef08a; border-radius: 2px; color: inherit; }
     .trs-input-row { display: flex; gap: 8px; }
     .trs-input-row textarea { resize: none; font-size: .86rem; flex: 1; height: 52px; padding: 17px 12px 10px; line-height: 1.3; }
     .trs-input-row button { flex-shrink: 0; }
@@ -4241,6 +4249,26 @@ function closeTranscriptTab() {
   if (btn) btn.remove();
 }
 
+function trsHighlightQuote(quote) {
+  if (!quote) return;
+  const txtEl = document.getElementById('trs-transcript-text');
+  if (!txtEl) return;
+  const transcript = state.lastTranscript || '';
+  const idx = transcript.toLowerCase().indexOf(quote.toLowerCase());
+  if (idx === -1) return;
+  const before = esc(transcript.slice(0, idx));
+  const match = esc(transcript.slice(idx, idx + quote.length));
+  const after = esc(transcript.slice(idx + quote.length));
+  txtEl.innerHTML = before + '<mark class="trs-hl">' + match + '</mark>' + after;
+  if (!txtEl.classList.contains('expanded')) {
+    txtEl.classList.add('expanded');
+    const btn = document.getElementById('trs-expand-btn');
+    if (btn) btn.textContent = 'Show less ▴';
+  }
+  const mark = txtEl.querySelector('mark.trs-hl');
+  if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function trsClearChat() {
   const chat = document.getElementById('trs-chat');
   if (chat) chat.innerHTML = '';
@@ -4253,6 +4281,31 @@ function trsToggleExpand() {
   const btn = document.getElementById('trs-expand-btn');
   const expanded = txt.classList.toggle('expanded');
   btn.textContent = expanded ? 'Show less ▴' : 'Show more ▾';
+}
+
+function _trsRenderAnswer(bubble, rawText) {
+  let parsed = null;
+  try {
+    const jsonStr = rawText.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+    parsed = JSON.parse(jsonStr);
+  } catch(e) {}
+  bubble.className = 'trs-msg ai';
+  if (!parsed || typeof parsed.found === 'undefined') {
+    bubble.textContent = rawText || 'No response. Please try again.';
+    return;
+  }
+  if (!parsed.found) {
+    bubble.innerHTML = '<span class="trs-not-found">Not mentioned in the transcript.</span>';
+    return;
+  }
+  let html = '<p class="trs-answer">' + esc(parsed.answer || '') + (parsed.inferred ? '<span class="trs-inference-badge">AI inference</span>' : '') + '</p>';
+  if (parsed.quote) {
+    html += '<div class="trs-quote" onclick="trsHighlightQuote(' + JSON.stringify(esc(parsed.quote)) + '.replace(/&amp;/g,\'&\').replace(/&lt;/g,\'<\').replace(/&gt;/g,\'>\'))">'
+      + '<span class="trs-quote-text">' + esc(parsed.quote) + '</span>'
+      + '<span class="trs-quote-icon">↗</span>'
+      + '</div>';
+  }
+  bubble.innerHTML = html;
 }
 
 async function trsAsk() {
@@ -4274,7 +4327,21 @@ async function trsAsk() {
   chat.scrollTop = chat.scrollHeight;
   askBtn.disabled = true;
   try {
-    const sysPrompt = `You are a clinical assistant analyzing a consultation transcript. Answer the question following these strict rules:\n\n1. DIRECT QUOTE: If the answer is explicitly stated in the transcript, quote the relevant words and answer directly.\n2. INFERENCE: If the exact term is not used but the transcript contains related information, you MUST first show the relevant excerpt in quotes, then label your reading clearly as "Based on this, it appears that..." — never state an inference as a confirmed fact.\n3. NOT MENTIONED: If the topic is not covered in the transcript at all, say exactly: "That is not mentioned in the transcript."\n\nAlways show the transcript evidence before drawing any conclusion.\n\nTRANSCRIPT:\n${transcript.slice(0, 12000)}`;
+    const sysPrompt = `You are a clinical assistant. A doctor is asking a question about a consultation transcript.
+
+Answer using ONLY information present in the transcript. Return a JSON object — no markdown fences, no extra text.
+
+Rules:
+1. If the answer is explicitly stated: set "found":true, "inferred":false. Write a single concise sentence in "answer". Copy the shortest exact verbatim excerpt that contains the answer into "quote".
+2. If it can only be inferred from related context: set "found":true, "inferred":true. Write a brief inference (max 1 sentence) in "answer". Copy the most relevant verbatim excerpt into "quote".
+3. If not in the transcript at all: set "found":false, "answer":"Not mentioned in the transcript.", "quote":null.
+
+CRITICAL: Do not fabricate. "quote" must be copied word-for-word from the transcript. Keep "answer" to one sentence maximum.
+
+JSON format: {"found": bool, "inferred": bool, "answer": "...", "quote": "..." or null}
+
+TRANSCRIPT:
+${transcript.slice(0, 12000)}`;
     const geminiKey = getGeminiKey();
     if (!geminiKey) {
       thinkingMsg.className = 'trs-msg ai';
@@ -4285,26 +4352,28 @@ async function trsAsk() {
     const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: sysPrompt + '\n\nQuestion: ' + question }] }], generationConfig: { temperature: 0.0, maxOutputTokens: 512 } })
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: sysPrompt + '\n\nQuestion: ' + question }] }], generationConfig: { temperature: 0.0, maxOutputTokens: 400 } })
     });
-    let answer = '';
+    let rawText = '';
     if (res.ok) {
       const data = await res.json();
-      answer = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : '';
+      rawText = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) ? data.candidates[0].content.parts[0].text : '';
+      _trsRenderAnswer(thinkingMsg, rawText);
     } else if (res.status === 429 && getGroqKey()) {
       _geminiMarkExhausted('lite');
-      answer = await _groqChat([{ role: 'system', content: sysPrompt }, { role: 'user', content: question }], 512);
+      rawText = await _groqChat([{ role: 'system', content: sysPrompt }, { role: 'user', content: 'Question: ' + question }], 400);
+      _trsRenderAnswer(thinkingMsg, rawText);
     } else if (res.status === 429) {
       _geminiMarkExhausted('lite');
       _showGroqSetupPrompt();
-      const rawText = await res.text();
-      answer = await _geminiErrorMsg(res, rawText);
+      const errText = await res.text();
+      thinkingMsg.className = 'trs-msg ai';
+      thinkingMsg.textContent = await _geminiErrorMsg(res, errText);
     } else {
-      const rawText = await res.text();
-      answer = await _geminiErrorMsg(res, rawText);
+      const errText = await res.text();
+      thinkingMsg.className = 'trs-msg ai';
+      thinkingMsg.textContent = await _geminiErrorMsg(res, errText);
     }
-    thinkingMsg.className = 'trs-msg ai';
-    thinkingMsg.textContent = answer || 'No response. Please try again.';
   } catch (err) {
     thinkingMsg.className = 'trs-msg ai';
     thinkingMsg.textContent = 'Error: ' + (err.message || 'Something went wrong.');
