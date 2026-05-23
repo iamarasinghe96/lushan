@@ -7374,15 +7374,13 @@ async function lnLiveSend(text) {
     }
     const slackRes = await fetch(SLACK_WEBHOOK, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(slackMsg)
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'payload=' + encodeURIComponent(JSON.stringify(slackMsg))
     });
     lnRemoveTyping();
-    if (slackRes.ok) {
-      lnAddMsg('ai', "Your message has been sent to the developer. They'll get back to you at " + userEmail + " as soon as possible.");
-    } else {
-      throw new Error('HTTP ' + slackRes.status);
-    }
+    // no-cors returns opaque response — can't read ok status, assume delivered
+    lnAddMsg('ai', "Your message has been sent to the developer. They'll get back to you at " + userEmail + " as soon as possible.");
   } catch (err) {
     lnRemoveTyping();
     const subject = encodeURIComponent('LushNote Support: ' + text.slice(0, 60));
