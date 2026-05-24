@@ -24,10 +24,8 @@ assets/                  — static files (SVGs, images) referenced by CSS/HTML
 ## Deployment
 - **GitHub Pages serves from branch:** `claude/combine-transcription-prompt-6BmeG` (this is the DEFAULT branch — confirmed via GitHub UI)
 - **All code changes must be pushed to:** `claude/combine-transcription-prompt-6BmeG`
-- The other branches (`claude/continue-previous-work-7o43J`, `claude/fix-empty-text-blocks-xYhZD`) are NOT served by GitHub Pages — pushing to them has no effect on the live site.
-- There is no `main` or `master` branch.
-- After every push, run `node --check` on the extracted script block to verify no syntax errors before pushing.
-- **IMPORTANT:** At the start of every session, confirm the working branch with `git branch --show-current`. If not on `claude/combine-transcription-prompt-6BmeG`, switch to it before making any changes.
+- After every session, push to both the working branch AND `claude/combine-transcription-prompt-6BmeG` so changes are live on the site.
+- Push to Pages branch with: `git push origin HEAD:claude/combine-transcription-prompt-6BmeG`
 
 ## Firebase Project
 - **Project ID:** `lush-note`
