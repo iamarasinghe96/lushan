@@ -11,7 +11,15 @@ settings/index.html      — settings page (separate HTML file, not a SPA route)
 email-verified/          — branded email verification landing page
 templates-prompts.json   — template prompt definitions fetched at runtime
 LushNotes_templates.md   — template source (markdown, not served directly)
+assets/                  — static files (SVGs, images) referenced by CSS/HTML
 ```
+
+## Static Assets (SVGs, Images)
+- Store in `assets/` folder in the repo root
+- Reference in CSS as `url('assets/filename.svg')` — GitHub Pages serves them correctly
+- Do NOT inline large SVGs into index.html — use CSS `background-image` instead
+- **Adding a file to `assets/` via GitHub web UI:** use "Add file → Create new file", type `assets/filename.svg` in the name box, paste content. The "Upload files" path bar is NOT editable so folder creation that way does not work.
+- Applied to elements via CSS only — no JS fetch needed for decorative backgrounds
 
 ## Deployment
 - **GitHub Pages serves from branch:** `claude/combine-transcription-prompt-6BmeG` (this is the DEFAULT branch — confirmed via GitHub UI)
