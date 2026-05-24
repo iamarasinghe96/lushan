@@ -749,7 +749,8 @@
     .input-mode-card .imc-icon svg { width:36px;height:36px; }
     .input-mode-card strong { font-size:.86rem; font-weight:700; color:var(--text); }
     .input-mode-card span { font-size:.72rem; color:var(--gray); line-height:1.3; }
-    #tab-generate { background-image:url('assets/bg.svg'); background-repeat:no-repeat; background-position:center bottom; background-size:auto 45vh; }
+    body.tab-generate-active #view-app > main { background-image:url('assets/bg.svg'); background-repeat:no-repeat; background-position:center bottom; background-size:auto 45vh; }
+    @media(max-width:600px) { body.tab-generate-active #view-app > main { background-size:auto 28vh; } }
     .imc-featured { border-color:var(--blue-lt); background:var(--blue-lt); }
     .imc-featured:hover { background:#fff; }
     .imc-muted { opacity:.5; pointer-events:none; }
@@ -884,7 +885,6 @@
       .paste-hint { font-size: .76rem; }
       .input-mode-grid { grid-template-columns: repeat(2,1fr); }
       .mode-choice-grid { grid-template-columns: 1fr; }
-      #tab-generate { background-size: auto 28vh; }
 
       .two-col, .three-col { grid-template-columns: 1fr; }
       .field-row label { font-size: .78rem; }
@@ -4219,6 +4219,7 @@ function switchTab(name, { updateHash = true } = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   document.body.classList.toggle('tab-edit-active', name === 'edit' || name === 'transcript');
+  document.body.classList.toggle('tab-generate-active', name === 'generate');
   document.body.classList.toggle('transcript-active', name === 'transcript');
   if (name === 'transcript') lnCloseChat();
   const activeBtn = document.querySelector('.tab-btn[data-tab="' + name + '"]');
