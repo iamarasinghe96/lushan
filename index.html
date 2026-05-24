@@ -1052,8 +1052,9 @@
 <!-- ══════════════════════ VIEW: LANDING ══════════════════════ -->
 <div id="view-landing" style="display:none;">
 <style>
-  #view-landing { background:var(--bg); min-height:100vh; overflow-y:auto; font-family:'Inter','Segoe UI',system-ui,sans-serif; }
-  #view-landing { background-image:url('assets/bg-landing.svg'); background-repeat:no-repeat; background-position:center top; background-size:cover; }
+  #view-landing { background:var(--bg); min-height:100vh; overflow-y:auto; font-family:'Inter','Segoe UI',system-ui,sans-serif; position:relative; }
+  #view-landing::before { content:''; position:fixed; inset:0; background-image:url('assets/bg-landing.svg'); background-repeat:no-repeat; background-position:center top; background-size:75%; opacity:0.25; pointer-events:none; z-index:0; }
+  #view-landing > * { position:relative; z-index:1; }
   .ln-nav { display:flex; align-items:center; justify-content:space-between; padding:16px 40px; background:#fff; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(15,23,42,.05); }
   .ln-nav-logo { display:flex; align-items:center; gap:10px; }
   .ln-nav-logo span { font-size:1.08rem; font-weight:800; color:var(--text); letter-spacing:-.2px; }
