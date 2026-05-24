@@ -7279,6 +7279,37 @@ function lnInputKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); lnChatSend(); }
 }
 
+function lnExtractKeywords(text) {
+  const stop = new Set(['the','a','an','is','was','who','which','what','that','of','in','at','to','and','or','for','with','has','have','had','were','are','be','been','their','they','them','this','these','those','it','its','on','by','from','as','but','not','no','he','she','we','you','i','my','his','her','our','your','did','do','does','about','when','where','how','why','can','could','would','should','will','any','some','all','also','just','if','so','than','very','most','more','like','get','got','said','say','one','two','into','out','up','down','off','over','then','there','here','been','its','an','her','him']);
+  return text.toLowerCase().replace(/[^a-z0-9:\s]/g,' ').split(/\s+/).filter(function(w){ return w.length >= 3 && !stop.has(w); });
+}
+
+function lnRecallSearch(notes, keywords) {
+  const FIELDS = ['transcript','presentation','history','content','summary','mse'];
+  const results = [];
+  notes.forEach(function(note) {
+    const found = [];
+    FIELDS.forEach(function(field) {
+      const text = note[field] || '';
+      if (!text.trim()) return;
+      const lc = text.toLowerCase();
+      keywords.forEach(function(kw) {
+        const pos = lc.indexOf(kw);
+        if (pos === -1) return;
+        const s = Math.max(0, pos - 130);
+        const e = Math.min(text.length, pos + kw.length + 130);
+        const snippet = (s > 0 ? '...' : '') + text.slice(s, e).trim() + (e < text.length ? '...' : '');
+        found.push(snippet);
+      });
+    });
+    if (found.length) {
+      const unique = found.filter(function(s, i){ return found.indexOf(s) === i; });
+      results.push({ patient: note.patient || 'Unknown', date: note.date || '', snippets: unique.slice(0, 3) });
+    }
+  });
+  return results;
+}
+
 async function lnChatSend() {
   const input = document.getElementById('ln-input');
   const text  = input.value.trim();
@@ -7347,21 +7378,38 @@ async function lnChatSend() {
       patientCtx = 'PATIENT: ' + mentionedName + (prof.dob ? ' | DOB: ' + prof.dob : '') + (prof.gender ? ' | ' + prof.gender : '') + '\n\n' + noteBlocks;
       systemPrompt = 'You are the LushNote AI assistant. Answer questions about the patient below using ONLY the information recorded in their notes.\n\nRULES:\n- If a field says "[not recorded]", tell the user that information was not recorded in the note.\n- Do NOT guess, infer, or add information not present in the notes.\n- If unsure which note is relevant, refer to the date.\n\n' + patientCtx;
     } else {
-      // General mode — patient list summary + app knowledge
-      const ptLines = uniqueNames.map(function(name) {
-        const key = name.toLowerCase();
-        const prof = profiles[key] || {};
-        const ptNotes = notes.filter(n => (n.patient || '').trim().toLowerCase() === key);
-        const parts = [name];
-        if (prof.dob)    parts.push('DOB: ' + prof.dob);
-        if (prof.gender) parts.push(prof.gender);
-        parts.push(ptNotes.length + ' note(s), last: ' + (ptNotes[0] && ptNotes[0].date || '?'));
-        const dxList = [...new Set(ptNotes.map(n => n.diagnosis).filter(Boolean))];
-        if (dxList.length) parts.push('Dx: ' + dxList.join('; '));
-        return '  - ' + parts.join(' | ');
-      }).join('\n');
-      patientCtx = notes.length ? '\n\nPATIENT LIST (' + uniqueNames.length + ' patients):\n' + ptLines : '';
-      systemPrompt = 'You are the LushNote AI assistant — an expert helper for the LushNote clinical note builder app for psychiatrists.\n\nKNOWLEDGE BASE:\n' + LUSHNOTE_KB + patientCtx + '\n\nAnswer helpfully and concisely. For patient questions, use only the patient list above. If information is not listed, say it is not recorded — do not guess.';
+      const isRecall = /\b(who|which patient|patient (that|who|with)|what patient)\b/i.test(text);
+      if (isRecall) {
+        const keywords = lnExtractKeywords(text);
+        const hits = keywords.length ? lnRecallSearch(notes, keywords) : [];
+        if (!hits.length) {
+          lnRemoveTyping();
+          const noMatch = 'This detail was not found in any session notes.';
+          _lnHistory.push({ role: 'model', parts: [{ text: noMatch }] });
+          lnAddMsg('ai', noMatch);
+          return;
+        }
+        const snippetCtx = hits.slice(0, 5).map(function(r) {
+          return '[' + r.patient + (r.date ? ' · ' + r.date : '') + ']\n' + r.snippets.map(function(s){ return '"' + s + '"'; }).join('\n');
+        }).join('\n\n');
+        systemPrompt = 'You are the LushNote AI assistant. A clinician asked which patient matches a specific detail.\n\nMATCHING EXCERPTS FROM SESSION NOTES:\n' + snippetCtx + '\n\nRULES:\n- State the patient name and quote the exact matching text from the excerpts above.\n- Only match if the specific detail appears directly in the text.\n- If the excerpts do not contain the exact detail, say "This detail was not found in any session notes."\n- Do not infer or generalise.';
+      } else {
+        // General mode — patient list summary + app knowledge
+        const ptLines = uniqueNames.map(function(name) {
+          const key = name.toLowerCase();
+          const prof = profiles[key] || {};
+          const ptNotes = notes.filter(n => (n.patient || '').trim().toLowerCase() === key);
+          const parts = [name];
+          if (prof.dob)    parts.push('DOB: ' + prof.dob);
+          if (prof.gender) parts.push(prof.gender);
+          parts.push(ptNotes.length + ' note(s), last: ' + (ptNotes[0] && ptNotes[0].date || '?'));
+          const dxList = [...new Set(ptNotes.map(n => n.diagnosis).filter(Boolean))];
+          if (dxList.length) parts.push('Dx: ' + dxList.join('; '));
+          return '  - ' + parts.join(' | ');
+        }).join('\n');
+        patientCtx = notes.length ? '\n\nPATIENT LIST (' + uniqueNames.length + ' patients):\n' + ptLines : '';
+        systemPrompt = 'You are the LushNote AI assistant — an expert helper for the LushNote clinical note builder app for psychiatrists.\n\nKNOWLEDGE BASE:\n' + LUSHNOTE_KB + patientCtx + '\n\nAnswer helpfully and concisely. For patient questions, use only the patient list above. If information is not listed, say it is not recorded — do not guess.';
+      }
     }
 
     const contents = [
