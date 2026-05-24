@@ -7281,11 +7281,38 @@ function lnInputKey(e) {
 
 function lnExtractKeywords(text) {
   const stop = new Set(['the','a','an','is','was','who','which','what','that','of','in','at','to','and','or','for','with','has','have','had','were','are','be','been','their','they','them','this','these','those','it','its','on','by','from','as','but','not','no','he','she','we','you','i','my','his','her','our','your','did','do','does','about','when','where','how','why','can','could','would','should','will','any','some','all','also','just','if','so','than','very','most','more','like','get','got','said','say','one','two','into','out','up','down','off','over','then','there','here','been','its','an','her','him']);
-  return text.toLowerCase().replace(/[^a-z0-9:\s]/g,' ').split(/\s+/).filter(function(w){ return w.length >= 3 && !stop.has(w); });
+  // Normalise time formats before stripping punctuation so "9:00 p.m." → "9pm", "9 a.m." → "9am"
+  const normed = text.toLowerCase()
+    .replace(/(\d{1,2}):\d{2}\s*p\.?m\.?/gi, function(m, h){ return h + 'pm'; })
+    .replace(/(\d{1,2}):\d{2}\s*a\.?m\.?/gi, function(m, h){ return h + 'am'; })
+    .replace(/(\d{1,2})\s+p\.?m\.?/gi,       function(m, h){ return h + 'pm'; })
+    .replace(/(\d{1,2})\s+a\.?m\.?/gi,       function(m, h){ return h + 'am'; })
+    .replace(/[^a-z0-9\s]/g, ' ');
+  return normed.split(/\s+/).filter(function(w){ return w.length >= 3 && !stop.has(w); });
+}
+
+// Return every format a normalised keyword might appear in within a transcript
+function lnExpandVariants(kw) {
+  const variants = [kw];
+  const tm = kw.match(/^(\d{1,2})(am|pm)$/);
+  if (tm) {
+    const h = tm[1], ap = tm[2];
+    const dot = ap === 'am' ? 'a.m.' : 'p.m.';
+    variants.push(
+      h + ':00 ' + dot,           // "9:00 p.m."
+      h + ':' + '00' + ap,        // "9:00pm"
+      h + ':00 ' + ap,            // "9:00 pm"
+      h + ':00 ' + ap.toUpperCase(), // "9:00 PM"
+      h + ' ' + dot,              // "9 p.m."
+      h + ' ' + ap                // "9 pm"
+    );
+  }
+  return variants;
 }
 
 function lnRecallSearch(notes, keywords) {
   const FIELDS = ['transcript','presentation','history','content','summary','mse'];
+  const kwVariants = keywords.map(function(kw){ return { kw: kw, variants: lnExpandVariants(kw) }; });
   const results = [];
   notes.forEach(function(note) {
     const found = [];
@@ -7293,13 +7320,17 @@ function lnRecallSearch(notes, keywords) {
       const text = note[field] || '';
       if (!text.trim()) return;
       const lc = text.toLowerCase();
-      keywords.forEach(function(kw) {
-        const pos = lc.indexOf(kw);
+      kwVariants.forEach(function(entry) {
+        var pos = -1, matchLen = entry.kw.length;
+        for (var i = 0; i < entry.variants.length; i++) {
+          const v = entry.variants[i].toLowerCase();
+          pos = lc.indexOf(v);
+          if (pos !== -1) { matchLen = v.length; break; }
+        }
         if (pos === -1) return;
         const s = Math.max(0, pos - 130);
-        const e = Math.min(text.length, pos + kw.length + 130);
-        const snippet = (s > 0 ? '...' : '') + text.slice(s, e).trim() + (e < text.length ? '...' : '');
-        found.push(snippet);
+        const e = Math.min(text.length, pos + matchLen + 130);
+        found.push((s > 0 ? '...' : '') + text.slice(s, e).trim() + (e < text.length ? '...' : ''));
       });
     });
     if (found.length) {
