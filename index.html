@@ -3310,7 +3310,7 @@ async function loadHistoryData() {
     loadPatientIndex();
   } catch(e) {
     const area = document.getElementById('patients-area');
-    if (area) area.innerHTML = `<div class="warn-box">Could not load history: ${e.message}</div>`;
+    if (area) area.innerHTML = `<div class="warn-box">Could not load history: ${esc(e.message)}</div>`;
   }
 }
 
@@ -4179,7 +4179,7 @@ function toast(msg, type, duration) {
   el.className = type ? 'toast-' + type : '';
   const icons = { success: '✓', error: '✕', warning: '⚠' };
   const icon = icons[type] || 'ℹ';
-  el.innerHTML = `<span style="font-size:1rem;line-height:1">${icon}</span><span>${msg}</span>`;
+  el.innerHTML = `<span style="font-size:1rem;line-height:1">${icon}</span><span>${esc(msg)}</span>`;
   el.classList.add('show');
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => el.classList.remove('show'), duration || 5000);
